@@ -1,0 +1,146 @@
+<!-- Copyright 2025 SILICONDEV SPA -->
+<!-- Filename: templates/auth/profile.html -->
+<!-- Description: User profile page -->
+
+{% extends "base.html" %}
+
+{% block title %}Profilo Utente - AsteImmobili{% endblock %}
+
+{% block page_title %}Il mio Profilo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-person me-2"></i>
+                    Informazioni Personali
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Nome</label>
+                        <p class="fw-bold">{{ user.first_name }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Cognome</label>
+                        <p class="fw-bold">{{ user.last_name }}</p>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Email</label>
+                        <p class="fw-bold">{{ user.email }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Username</label>
+                        <p class="fw-bold">{{ user.username or 'Non impostato' }}</p>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Telefono</label>
+                        <p class="fw-bold">{{ user.phone or 'Non impostato' }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Azienda</label>
+                        <p class="fw-bold">{{ user.company_name or 'Non impostata' }}</p>
+                    </div>
+                </div>
+
+                {% if user.license_number or user.vat_number %}
+                <hr>
+                <div class="row">
+                    {% if user.license_number %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Numero Albo</label>
+                        <p class="fw-bold">{{ user.license_number }}</p>
+                    </div>
+                    {% endif %}
+                    {% if user.vat_number %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Partita IVA</label>
+                        <p class="fw-bold">{{ user.vat_number }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="mt-4">
+                    <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-primary">
+                        <i class="bi bi-pencil me-2"></i>
+                        Modifica Profilo
+                    </a>
+
+                    {% if not user.google_id %}
+                    <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-key me-2"></i>
+                        Cambia Password
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Account Status -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Stato Account</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <span class="badge bg-{{ 'success' if user.is_active else 'danger' }} me-2">
+                        {{ 'Attivo' if user.is_active else 'Disattivo' }}
+                    </span>
+
+                    {% if user.is_verified %}
+                        <span class="badge bg-success me-2">Verificato</span>
+                    {% else %}
+                        <span class="badge bg-warning">Non Verificato</span>
+                    {% endif %}
+
+                    {% if user.is_admin %}
+                        <span class="badge bg-primary">Amministratore</span>
+                    {% endif %}
+                </div>
+
+                <hr>
+
+                <div class="small text-muted">
+                    <p><strong>Registrato:</strong> {{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</p>
+                    {% if user.last_login %}
+                        <p><strong>Ultimo accesso:</strong> {{ user.last_login.strftime('%d/%m/%Y %H:%M') }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Stats -->
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Le mie Attività</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Immobili gestiti:</span>
+                    <strong>{{ user.properties.count() }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Offerte effettuate:</span>
+                    <strong>{{ user.bids.count() }}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Offerte vincenti:</span>
+                    <strong class="text-success">{{ user.bids.filter_by(is_winning=True).count() }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

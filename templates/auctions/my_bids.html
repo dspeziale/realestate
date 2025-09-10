@@ -1,0 +1,599 @@
+<!-- Copyright 2025 SILICONDEV SPA -->
+<!-- Filename: templates/auctions/my_bids.html -->
+<!-- Description: User's bids listing page -->
+
+{% extends "base.html" %}
+
+{% block title %}Le mie Offerte - AsteImmobili{% endblock %}
+
+{% block page_title %}Le mie Offerte{% endblock %}
+
+{% block page_actions %}
+    <a href="{{ url_for('auctions.index') }}" class="btn btn-primary">
+        <i class="bi bi-hammer me-2"></i>
+        Vedi Tutte le Aste
+    </a>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-hand-index display-6 mb-2"></i>
+                <h3>{{ bids.total }}</h3>
+                <p class="mb-0">Offerte Totali</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-trophy display-6 mb-2"></i>
+                <h3>
+                    {% set winning_count = 0 %}
+                    {% for bid in bids.items %}
+                        {% if bid.is_winning %}
+                            {% set winning_count = winning_count + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ winning_count }}
+                </h3>
+                <p class="mb-0">Offerte Vincenti</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-currency-euro display-6 mb-2"></i>
+                <h3>
+                    {% set total_bid_amount = 0 %}
+                    {% for bid in bids.items %}
+                        {% set total_bid_amount = total_bid_amount + bid.amount %}
+                    {% endfor %}
+                    €{{ "{:,.0f}".format(total_bid_amount) if total_bid_amount > 0 else "0" }}
+                </h3>
+                <p class="mb-0">Valore Totale Offerte</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-clock-history display-6 mb-2"></i>
+                <h3>
+                    {% set active_bids = 0 %}
+                    {% for bid in bids.items %}
+                        {% if bid.auction.status == 'active' %}
+                            {% set active_bids = active_bids + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ active_bids }}
+                </h3>
+                <p class="mb-0">Su Aste Attive</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="row mb-4">
+    <div class="col-12">
+        <ul class="nav nav-pills" id="bidFilters" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="all-bids-tab" data-bs-toggle="pill"
+                        data-bs-target="#all-bids" type="button" role="tab">
+                    <i class="bi bi-list me-1"></i>
+                    Tutte le Offerte
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="winning-bids-tab" data-bs-toggle="pill"
+                        data-bs-target="#winning-bids" type="button" role="tab">
+                    <i class="bi bi-trophy me-1"></i>
+                    Vincenti
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="active-bids-tab" data-bs-toggle="pill"
+                        data-bs-target="#active-bids" type="button" role="tab">
+                    <i class="bi bi-play-circle me-1"></i>
+                    Aste Attive
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="ended-bids-tab" data-bs-toggle="pill"
+                        data-bs-target="#ended-bids" type="button" role="tab">
+                    <i class="bi bi-stop-circle me-1"></i>
+                    Aste Terminate
+                </button>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- Bids Content -->
+<div class="tab-content" id="bidFiltersContent">
+    <!-- All Bids Tab -->
+    <div class="tab-pane fade show active" id="all-bids" role="tabpanel">
+        {% if bids.items %}
+            <div class="row">
+                {% for bid in bids.items %}
+                    <div class="col-12 mb-3">
+                        <div class="card bid-card h-100">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <!-- Bid Info -->
+                                    <div class="col-lg-3 col-md-12 mb-3 mb-lg-0">
+                                        <div class="d-flex align-items-center">
+                                            <!-- Status Icon -->
+                                            <div class="me-3">
+                                                {% if bid.is_winning %}
+                                                    <i class="bi bi-trophy text-warning" style="font-size: 2rem;"></i>
+                                                {% elif bid.auction.status == 'active' %}
+                                                    <i class="bi bi-clock text-info" style="font-size: 2rem;"></i>
+                                                {% elif bid.auction.status == 'ended' %}
+                                                    <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                                                {% else %}
+                                                    <i class="bi bi-circle text-secondary" style="font-size: 2rem;"></i>
+                                                {% endif %}
+                                            </div>
+
+                                            <div>
+                                                <h5 class="mb-1 bid-amount">
+                                                    €{{ "{:,.2f}".format(bid.amount) }}
+                                                </h5>
+                                                <div class="bid-badges">
+                                                    {% if bid.is_winning %}
+                                                        <span class="badge bg-warning text-dark">
+                                                            <i class="bi bi-trophy me-1"></i>
+                                                            Vincente
+                                                        </span>
+                                                    {% endif %}
+
+                                                    <span class="badge bg-secondary">
+                                                        {{ bid.bid_type_label }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Auction Info -->
+                                    <div class="col-lg-4 col-md-6 mb-3 mb-lg-0">
+                                        <div>
+                                            <h6 class="mb-1">
+                                                <a href="{{ url_for('auctions.show', auction_id=bid.auction.id) }}"
+                                                   class="text-decoration-none">
+                                                    {{ bid.auction.title }}
+                                                </a>
+                                            </h6>
+                                            <p class="text-muted mb-1">
+                                                <i class="bi bi-hash me-1"></i>
+                                                {{ bid.auction.auction_number }}
+                                            </p>
+                                            {% if bid.auction.property %}
+                                                <p class="text-muted mb-1">
+                                                    <i class="bi bi-building me-1"></i>
+                                                    {{ bid.auction.property.title }}
+                                                </p>
+                                                <p class="text-muted mb-0">
+                                                    <i class="bi bi-geo-alt me-1"></i>
+                                                    {{ bid.auction.property.city }}
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Auction Status & Current Price -->
+                                    <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
+                                        <div>
+                                            <div class="mb-2">
+                                                <span class="badge auction-status {{ bid.auction.status }}">
+                                                    {{ bid.auction.status_label }}
+                                                </span>
+                                            </div>
+
+                                            <div class="mb-1">
+                                                <small class="text-muted d-block">Prezzo Attuale</small>
+                                                <div class="fw-bold text-success">
+                                                    €{{ "{:,.2f}".format(bid.auction.current_price or bid.auction.starting_price) }}
+                                                </div>
+                                            </div>
+
+                                            {% if bid.auction.status == 'active' and bid.auction.end_date %}
+                                                <div>
+                                                    <small class="text-muted d-block">Tempo Rimanente</small>
+                                                    <div class="countdown-timer text-danger fw-bold"
+                                                         data-end-time="{{ bid.auction.end_date.isoformat() }}">
+                                                        Calcolo...
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Actions & Timing -->
+                                    <div class="col-lg-2 col-md-12">
+                                        <div class="text-lg-end">
+                                            <!-- Bid Time -->
+                                            <div class="mb-2">
+                                                <small class="text-muted d-block">Offerta del</small>
+                                                <div class="fw-bold">
+                                                    {{ bid.created_at.strftime('%d/%m/%Y') if bid.created_at else 'N/A' }}
+                                                </div>
+                                                <div class="text-muted">
+                                                    {{ bid.created_at.strftime('%H:%M') if bid.created_at else '' }}
+                                                </div>
+                                            </div>
+
+                                            <!-- Actions -->
+                                            <div class="d-flex flex-column gap-1">
+                                                <a href="{{ url_for('auctions.show', auction_id=bid.auction.id) }}"
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="bi bi-eye me-1"></i>
+                                                    Vedi Asta
+                                                </a>
+
+                                                {% if bid.auction.status == 'active' %}
+                                                    <a href="{{ url_for('auctions.show', auction_id=bid.auction.id) }}#bid-form"
+                                                       class="btn btn-success btn-sm">
+                                                        <i class="bi bi-plus me-1"></i>
+                                                        Nuova Offerta
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Additional Info Row (if needed) -->
+                                {% if bid.notes %}
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <div class="alert alert-light mb-0">
+                                                <small><strong>Note:</strong> {{ bid.notes }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if bids.pages > 1 %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <nav aria-label="Bids pagination">
+                            <ul class="pagination justify-content-center">
+                                <!-- Previous -->
+                                {% if bids.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('auctions.my_bids', page=bids.prev_num) }}">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </span>
+                                    </li>
+                                {% endif %}
+
+                                <!-- Page Numbers -->
+                                {% for page_num in bids.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                                    {% if page_num %}
+                                        {% if page_num != bids.page %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('auctions.my_bids', page=page_num) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ page_num }}</span>
+                                            </li>
+                                        {% endif %}
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">…</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                <!-- Next -->
+                                {% if bids.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('auctions.my_bids', page=bids.next_num) }}">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <!-- No Bids -->
+            <div class="text-center py-5">
+                <i class="bi bi-hand-index display-1 text-muted mb-4"></i>
+                <h4 class="text-muted">Nessuna offerta ancora effettuata</h4>
+                <p class="text-muted">Partecipa alle aste per vedere qui le tue offerte.</p>
+                <a href="{{ url_for('auctions.index', status='active') }}" class="btn btn-primary">
+                    <i class="bi bi-hammer me-1"></i>
+                    Vedi Aste Attive
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Other tabs use JavaScript filtering -->
+    <div class="tab-pane fade" id="winning-bids" role="tabpanel">
+        <div class="filter-content" data-filter="winning"></div>
+    </div>
+
+    <div class="tab-pane fade" id="active-bids" role="tabpanel">
+        <div class="filter-content" data-filter="active"></div>
+    </div>
+
+    <div class="tab-pane fade" id="ended-bids" role="tabpanel">
+        <div class="filter-content" data-filter="ended"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bid-card {
+    transition: transform 0.2s ease-in-out;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.bid-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.bid-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #198754;
+}
+
+.bid-badges .badge {
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.auction-status {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.auction-status.active {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    border: 1px solid #c3e6cb;
+}
+
+.auction-status.scheduled {
+    background-color: #d1ecf1 !important;
+    color: #0c5460 !important;
+    border: 1px solid #bee5eb;
+}
+
+.auction-status.ended {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+    border: 1px solid #f5c6cb;
+}
+
+.auction-status.sold {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    border: 1px solid #c3e6cb;
+}
+
+.auction-status.unsold {
+    background-color: #e2e3e5 !important;
+    color: #383d41 !important;
+    border: 1px solid #d6d8db;
+}
+
+.countdown-timer {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.nav-pills .nav-link {
+    border-radius: 0.375rem;
+    margin-right: 0.5rem;
+    font-weight: 500;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #0d6efd;
+}
+
+.summary-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .bid-amount {
+        font-size: 1.25rem;
+    }
+
+    .bid-card .row > div {
+        margin-bottom: 1rem;
+    }
+
+    .bid-card .text-lg-end {
+        text-align: left !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Countdown timer functionality
+function updateCountdownTimers() {
+    const timers = document.querySelectorAll('.countdown-timer');
+    timers.forEach(function(timer) {
+        const endTime = new Date(timer.dataset.endTime);
+        const now = new Date();
+        const timeLeft = endTime - now;
+
+        if (timeLeft <= 0) {
+            timer.innerHTML = 'Terminata';
+            timer.classList.remove('text-danger');
+            timer.classList.add('text-secondary');
+            return;
+        }
+
+        const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+        let timeString = '';
+        if (days > 0) {
+            timeString += `${days}g `;
+        }
+        if (hours > 0 || days > 0) {
+            timeString += `${hours.toString().padStart(2, '0')}:`;
+        }
+        timeString += `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+        timer.textContent = timeString;
+
+        // Add warning/danger classes
+        if (timeLeft < 3600000) { // Less than 1 hour
+            timer.classList.add('text-danger');
+        } else if (timeLeft < 86400000) { // Less than 1 day
+            timer.classList.add('text-warning');
+        }
+    });
+}
+
+// Tab filtering functionality
+function filterBids(filterType) {
+    const allBids = document.querySelectorAll('.bid-card');
+    let filteredBids = [];
+
+    allBids.forEach(function(bidCard) {
+        const isWinning = bidCard.querySelector('.badge.bg-warning') !== null;
+        const auctionStatus = bidCard.querySelector('.auction-status');
+        const status = auctionStatus ? auctionStatus.classList.contains('active') ? 'active' :
+                      auctionStatus.classList.contains('ended') ? 'ended' :
+                      auctionStatus.classList.contains('sold') ? 'ended' : 'other' : 'other';
+
+        let shouldShow = false;
+
+        switch(filterType) {
+            case 'winning':
+                shouldShow = isWinning;
+                break;
+            case 'active':
+                shouldShow = status === 'active';
+                break;
+            case 'ended':
+                shouldShow = status === 'ended';
+                break;
+            default:
+                shouldShow = true;
+        }
+
+        if (shouldShow) {
+            filteredBids.push(bidCard.closest('.col-12').outerHTML);
+        }
+    });
+
+    return filteredBids;
+}
+
+function displayFilteredBids(filterType, targetElement) {
+    const filteredBids = filterBids(filterType);
+
+    if (filteredBids.length > 0) {
+        targetElement.innerHTML = '<div class="row">' + filteredBids.join('') + '</div>';
+    } else {
+        let message = '';
+        let icon = '';
+
+        switch(filterType) {
+            case 'winning':
+                message = 'Nessuna offerta vincente al momento';
+                icon = 'bi-trophy';
+                break;
+            case 'active':
+                message = 'Nessuna offerta su aste attive';
+                icon = 'bi-play-circle';
+                break;
+            case 'ended':
+                message = 'Nessuna offerta su aste terminate';
+                icon = 'bi-stop-circle';
+                break;
+        }
+
+        targetElement.innerHTML = `
+            <div class="text-center py-5">
+                <i class="bi ${icon} display-1 text-muted mb-4"></i>
+                <h4 class="text-muted">${message}</h4>
+                <p class="text-muted">Le offerte appariranno qui quando disponibili.</p>
+            </div>
+        `;
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Update countdown timers
+    updateCountdownTimers();
+    setInterval(updateCountdownTimers, 1000);
+
+    // Handle tab switching
+    const tabButtons = document.querySelectorAll('[data-bs-toggle="pill"]');
+    tabButtons.forEach(function(button) {
+        button.addEventListener('shown.bs.tab', function(e) {
+            const targetTab = e.target.getAttribute('data-bs-target');
+            const filterContent = document.querySelector(targetTab + ' .filter-content');
+
+            if (filterContent) {
+                const filterType = filterContent.getAttribute('data-filter');
+                displayFilteredBids(filterType, filterContent);
+            }
+        });
+    });
+
+    // Auto-refresh bid data every 30 seconds for active auctions
+    setInterval(function() {
+        // Could implement AJAX refresh here
+        console.log('Refreshing bid data...');
+    }, 30000);
+});
+</script>
+{% endblock %}

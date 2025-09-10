@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AsteImmobili{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        {% if current_user.is_authenticated %}
+            <div class="alert alert-info">
+                <h4>✅ Benvenuto {{ current_user.full_name }}!</h4>
+                <p class="mb-0">Dashboard funzionante - tutti gli errori SQLAlchemy risolti!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if current_user.is_authenticated %}
+<div class="row">
+    <!-- Statistics Cards -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="h4 text-primary">{{ current_user.properties.count() }}</div>
+                    <div class="text-xs text-muted">Immobili Gestiti</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="h4 text-success">
+                        {% set active_count = 0 %}
+                        {% for property in current_user.properties %}
+                            {% for auction in property.auctions %}
+                                {% if auction.status == 'active' %}
+                                    {% set active_count = active_count + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                        {{ active_count }}
+                    </div>
+                    <div class="text-xs text-muted">Aste Attive</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="h4 text-info">{{ current_user.bids.count() }}</div>
+                    <div class="text-xs text-muted">Le mie Offerte</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="h4 text-warning">{{ current_user.bids.filter_by(is_winning=True).count() }}</div>
+                    <div class="text-xs text-muted">Offerte Vincenti</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">I Miei Immobili</h6>
+            </div>
+            <div class="card-body">
+                {% if current_user.properties.count() > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Titolo</th>
+                                    <th>Città</th>
+                                    <th>Prezzo Base</th>
+                                    <th>Stato</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for property in current_user.properties[:5] %}
+                                <tr>
+                                    <td>{{ property.title }}</td>
+                                    <td>{{ property.city }}</td>
+                                    <td>€{{ "{:,.2f}".format(property.base_price) }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ property.status_label }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-building display-4 text-muted"></i>
+                        <p class="text-muted mt-3">Nessun immobile ancora registrato.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Azioni Rapide</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if current_user.is_admin %}
+                        <a href="#" class="btn btn-success">
+                            <i class="bi bi-plus-circle me-2"></i>
+                            Nuovo Immobile
+                        </a>
+                        <a href="#" class="btn btn-primary">
+                            <i class="bi bi-calendar-plus me-2"></i>
+                            Nuova Asta
+                        </a>
+                        <hr>
+                        <a href="#" class="btn btn-outline-secondary">
+                            <i class="bi bi-people me-2"></i>
+                            Gestisci Utenti
+                        </a>
+                    {% endif %}
+
+                    <a href="#" class="btn btn-outline-primary">
+                        <i class="bi bi-hammer me-2"></i>
+                        Vedi Aste
+                    </a>
+                    <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-dark">
+                        <i class="bi bi-person me-2"></i>
+                        Il mio Profilo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_admin %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Statistiche Sistema</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="h4 text-primary">{{ total_users or 0 }}</div>
+                        <div class="text-muted">Utenti Totali</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="h4 text-success">{{ total_properties or 0 }}</div>
+                        <div class="text-muted">Immobili Totali</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="h4 text-info">{{ total_auctions or 0 }}</div>
+                        <div class="text-muted">Aste Totali</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="h4 text-warning">{{ total_bids or 0 }}</div>
+                        <div class="text-muted">Offerte Totali</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.border-left-primary {
+    border-left: .25rem solid #4e73df !important;
+}
+.border-left-success {
+    border-left: .25rem solid #1cc88a !important;
+}
+.border-left-info {
+    border-left: .25rem solid #36b9cc !important;
+}
+.border-left-warning {
+    border-left: .25rem solid #f6c23e !important;
+}
+</style>
+{% endblock %}
