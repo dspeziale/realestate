@@ -89,6 +89,7 @@
                                     <th>Città</th>
                                     <th>Prezzo Base</th>
                                     <th>Stato</th>
+                                    <th>Azioni</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -100,15 +101,33 @@
                                     <td>
                                         <span class="badge bg-secondary">{{ property.status_label }}</span>
                                     </td>
+                                    <td>
+                                        <a href="{{ url_for('properties.show', property_id=property.id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('properties.index') }}" class="btn btn-primary">
+                            <i class="bi bi-building me-1"></i>
+                            Vedi Tutti gli Immobili
+                        </a>
+                    </div>
                 {% else %}
                     <div class="text-center py-4">
                         <i class="bi bi-building display-4 text-muted"></i>
                         <p class="text-muted mt-3">Nessun immobile ancora registrato.</p>
+                        {% if current_user.is_admin %}
+                            <a href="{{ url_for('properties.create') }}" class="btn btn-success">
+                                <i class="bi bi-plus-circle me-1"></i>
+                                Crea il Primo Immobile
+                            </a>
+                        {% endif %}
                     </div>
                 {% endif %}
             </div>
@@ -123,24 +142,28 @@
             <div class="card-body">
                 <div class="d-grid gap-2">
                     {% if current_user.is_admin %}
-                        <a href="#" class="btn btn-success">
+                        <a href="{{ url_for('properties.create') }}" class="btn btn-success">
                             <i class="bi bi-plus-circle me-2"></i>
                             Nuovo Immobile
                         </a>
-                        <a href="#" class="btn btn-primary">
+                        <a href="{{ url_for('auctions.create') }}" class="btn btn-primary">
                             <i class="bi bi-calendar-plus me-2"></i>
                             Nuova Asta
                         </a>
                         <hr>
-                        <a href="#" class="btn btn-outline-secondary">
+                        <a href="{{ url_for('users.index') }}" class="btn btn-outline-secondary">
                             <i class="bi bi-people me-2"></i>
                             Gestisci Utenti
                         </a>
                     {% endif %}
 
-                    <a href="#" class="btn btn-outline-primary">
+                    <a href="{{ url_for('auctions.index') }}" class="btn btn-outline-primary">
                         <i class="bi bi-hammer me-2"></i>
                         Vedi Aste
+                    </a>
+                    <a href="{{ url_for('auctions.my_bids') }}" class="btn btn-outline-info">
+                        <i class="bi bi-hand-index me-2"></i>
+                        Le mie Offerte
                     </a>
                     <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-dark">
                         <i class="bi bi-person me-2"></i>

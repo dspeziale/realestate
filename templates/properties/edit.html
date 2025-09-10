@@ -1,0 +1,617 @@
+<!-- Copyright 2025 SILICONDEV SPA -->
+<!-- Filename: templates/properties/edit.html -->
+<!-- Description: Property edit form -->
+
+{% extends "base.html" %}
+
+{% block title %}Modifica {{ property.title }} - AsteImmobili{% endblock %}
+
+{% block page_title %}Modifica Immobile{% endblock %}
+
+{% block page_actions %}
+    <a href="{{ url_for('properties.show', property_id=property.id) }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-2"></i>
+        Torna ai Dettagli
+    </a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Alert Status -->
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Stato attuale:</strong> {{ property.status_label }}
+            {% if property.status in ['in_auction', 'sold'] %}
+                <br><small class="text-muted">⚠️ Alcune modifiche potrebbero essere limitate a causa dello stato dell'immobile.</small>
+            {% endif %}
+        </div>
+
+        <form method="POST" action="{{ url_for('properties.edit', property_id=property.id) }}" class="needs-validation" novalidate>
+
+            <!-- Informazioni Generali -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Informazioni Generali
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="title" class="form-label">Titolo Immobile *</label>
+                            <input type="text" class="form-control" id="title" name="title"
+                                   value="{{ property.title }}" maxlength="200" required>
+                            <div class="invalid-feedback">
+                                Il titolo è richiesto.
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="property_type" class="form-label">Tipo Immobile *</label>
+                            <select class="form-select" id="property_type" name="property_type" required>
+                                <option value="">Seleziona tipo...</option>
+                                <option value="apartment" {% if property.property_type == 'apartment' %}selected{% endif %}>Appartamento</option>
+                                <option value="villa" {% if property.property_type == 'villa' %}selected{% endif %}>Villa</option>
+                                <option value="house" {% if property.property_type == 'house' %}selected{% endif %}>Casa</option>
+                                <option value="office" {% if property.property_type == 'office' %}selected{% endif %}>Ufficio</option>
+                                <option value="commercial" {% if property.property_type == 'commercial' %}selected{% endif %}>Commerciale</option>
+                                <option value="industrial" {% if property.property_type == 'industrial' %}selected{% endif %}>Industriale</option>
+                                <option value="land" {% if property.property_type == 'land' %}selected{% endif %}>Terreno</option>
+                                <option value="garage" {% if property.property_type == 'garage' %}selected{% endif %}>Garage</option>
+                                <option value="other" {% if property.property_type == 'other' %}selected{% endif %}>Altro</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Seleziona il tipo di immobile.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descrizione</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ property.description or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ubicazione -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-geo-alt me-2"></i>
+                        Ubicazione
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="address" class="form-label">Indirizzo *</label>
+                            <input type="text" class="form-control" id="address" name="address"
+                                   value="{{ property.address }}" maxlength="200" required>
+                            <div class="invalid-feedback">
+                                L'indirizzo è richiesto.
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="postal_code" class="form-label">CAP</label>
+                            <input type="text" class="form-control" id="postal_code" name="postal_code"
+                                   value="{{ property.postal_code or '' }}" maxlength="20">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="city" class="form-label">Città *</label>
+                            <input type="text" class="form-control" id="city" name="city"
+                                   value="{{ property.city }}" maxlength="100" required>
+                            <div class="invalid-feedback">
+                                La città è richiesta.
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="province" class="form-label">Provincia *</label>
+                            <input type="text" class="form-control" id="province" name="province"
+                                   value="{{ property.province }}" maxlength="50" required>
+                            <div class="invalid-feedback">
+                                La provincia è richiesta.
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="region" class="form-label">Regione</label>
+                            <select class="form-select" id="region" name="region">
+                                <option value="">Seleziona regione...</option>
+                                {% for region in ['Abruzzo', 'Basilicata', 'Calabria', 'Campania', 'Emilia-Romagna', 'Friuli-Venezia Giulia', 'Lazio', 'Liguria', 'Lombardia', 'Marche', 'Molise', 'Piemonte', 'Puglia', 'Sardegna', 'Sicilia', 'Toscana', 'Trentino-Alto Adige', 'Umbria', "Valle d'Aosta", 'Veneto'] %}
+                                    <option value="{{ region }}" {% if property.region == region %}selected{% endif %}>{{ region }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Caratteristiche -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-house-door me-2"></i>
+                        Caratteristiche
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="condition" class="form-label">Condizioni</label>
+                            <select class="form-select" id="condition" name="condition">
+                                <option value="">Seleziona...</option>
+                                <option value="excellent" {% if property.condition == 'excellent' %}selected{% endif %}>Ottimo</option>
+                                <option value="good" {% if property.condition == 'good' %}selected{% endif %}>Buono</option>
+                                <option value="fair" {% if property.condition == 'fair' %}selected{% endif %}>Discreto</option>
+                                <option value="poor" {% if property.condition == 'poor' %}selected{% endif %}>Da ristrutturare</option>
+                                <option value="to_renovate" {% if property.condition == 'to_renovate' %}selected{% endif %}>Da rifare</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label for="surface_area" class="form-label">Superficie (mq)</label>
+                            <input type="number" class="form-control" id="surface_area" name="surface_area"
+                                   value="{{ property.surface_area or '' }}" step="0.1" min="1">
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label for="rooms" class="form-label">Vani</label>
+                            <input type="number" class="form-control" id="rooms" name="rooms"
+                                   value="{{ property.rooms or '' }}" min="1" max="20">
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label for="bathrooms" class="form-label">Bagni</label>
+                            <input type="number" class="form-control" id="bathrooms" name="bathrooms"
+                                   value="{{ property.bathrooms or '' }}" min="1" max="10">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="floor" class="form-label">Piano</label>
+                            <input type="text" class="form-control" id="floor" name="floor"
+                                   value="{{ property.floor or '' }}" maxlength="20">
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label for="year_built" class="form-label">Anno Costruzione</label>
+                            <input type="number" class="form-control" id="year_built" name="year_built"
+                                   value="{{ property.year_built or '' }}" min="1800" max="2024">
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label for="energy_class" class="form-label">Classe Energetica</label>
+                            <select class="form-select" id="energy_class" name="energy_class">
+                                <option value="">Seleziona...</option>
+                                {% for class in ['A+', 'A', 'B', 'C', 'D', 'E', 'F', 'G'] %}
+                                    <option value="{{ class }}" {% if property.energy_class == class %}selected{% endif %}>{{ class }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Features Checkboxes -->
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Dotazioni</label>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="has_garage" name="has_garage" {% if property.has_garage %}checked{% endif %}>
+                                        <label class="form-check-label" for="has_garage">
+                                            <i class="bi bi-car-front me-1"></i>
+                                            Garage/Posto Auto
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="has_garden" name="has_garden" {% if property.has_garden %}checked{% endif %}>
+                                        <label class="form-check-label" for="has_garden">
+                                            <i class="bi bi-tree me-1"></i>
+                                            Giardino
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="has_terrace" name="has_terrace" {% if property.has_terrace %}checked{% endif %}>
+                                        <label class="form-check-label" for="has_terrace">
+                                            <i class="bi bi-sun me-1"></i>
+                                            Terrazza/Balcone
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="has_elevator" name="has_elevator" {% if property.has_elevator %}checked{% endif %}>
+                                        <label class="form-check-label" for="has_elevator">
+                                            <i class="bi bi-arrow-up me-1"></i>
+                                            Ascensore
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informazioni Economiche -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-currency-euro me-2"></i>
+                        Informazioni Economiche
+                    </h5>
+                    {% if property.status in ['in_auction', 'sold'] %}
+                        <small class="text-muted">⚠️ Modifica limitata - immobile in asta o venduto</small>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="base_price" class="form-label">Prezzo Base Asta *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                <input type="number" class="form-control price-input" id="base_price" name="base_price"
+                                       value="{{ property.base_price }}" step="1000" min="1"
+                                       {% if property.status in ['in_auction', 'sold'] %}readonly{% endif %} required>
+                            </div>
+                            <div class="invalid-feedback">
+                                Il prezzo base deve essere maggiore di zero.
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="estimated_value" class="form-label">Valore di Stima</label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                <input type="number" class="form-control price-input" id="estimated_value" name="estimated_value"
+                                       value="{{ property.estimated_value or '' }}" step="1000" min="1">
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="minimum_bid" class="form-label">Offerta Minima</label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                <input type="number" class="form-control price-input" id="minimum_bid" name="minimum_bid"
+                                       value="{{ property.minimum_bid or '' }}" step="1000" min="1"
+                                       {% if property.status in ['in_auction', 'sold'] %}readonly{% endif %}>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="cadastral_income" class="form-label">Rendita Catastale</label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                <input type="number" class="form-control" id="cadastral_income" name="cadastral_income"
+                                       value="{{ property.cadastral_income or '' }}" step="0.01" min="0">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="has_debts" name="has_debts" {% if property.has_debts %}checked{% endif %}>
+                                <label class="form-check-label" for="has_debts">
+                                    <strong>L'immobile ha debiti/gravami</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="debt_info" {% if not property.has_debts %}style="display: none;"{% endif %}>
+                        <div class="col-md-6 mb-3">
+                            <label for="debt_amount" class="form-label">Importo Debiti</label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                <input type="number" class="form-control" id="debt_amount" name="debt_amount"
+                                       value="{{ property.debt_amount or '' }}" step="1000" min="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informazioni Legali -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-text me-2"></i>
+                        Informazioni Legali
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="court" class="form-label">Tribunale</label>
+                            <input type="text" class="form-control" id="court" name="court"
+                                   value="{{ property.court or '' }}" maxlength="100">
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="procedure_number" class="form-label">N° Procedura</label>
+                            <input type="text" class="form-control" id="procedure_number" name="procedure_number"
+                                   value="{{ property.procedure_number or '' }}" maxlength="50">
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="judge" class="form-label">Giudice</label>
+                            <input type="text" class="form-control" id="judge" name="judge"
+                                   value="{{ property.judge or '' }}" maxlength="100">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="cadastral_data" class="form-label">Dati Catastali</label>
+                        <textarea class="form-control" id="cadastral_data" name="cadastral_data" rows="2">{{ property.cadastral_data or '' }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_occupied" name="is_occupied" {% if property.is_occupied %}checked{% endif %}>
+                                <label class="form-check-label" for="is_occupied">
+                                    <i class="bi bi-people me-1"></i>
+                                    <strong>Immobile occupato</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assegnazione Agente (Solo Admin) -->
+            {% if current_user.is_admin and agents %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person me-2"></i>
+                        Assegnazione
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="col-md-6">
+                        <label for="agent_id" class="form-label">Agente Responsabile</label>
+                        <select class="form-select" id="agent_id" name="agent_id">
+                            {% for agent in agents %}
+                                <option value="{{ agent.id }}" {% if agent.id == property.agent_id %}selected{% endif %}>
+                                    {{ agent.full_name }}{% if agent.id == current_user.id %} (Me){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Status Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Informazioni Stato
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small class="text-muted">Stato attuale:</small>
+                            <div><strong>{{ property.status_label }}</strong></div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Data creazione:</small>
+                            <div>{{ property.created_at.strftime('%d/%m/%Y %H:%M') if property.created_at else 'N/A' }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Ultima modifica:</small>
+                            <div>{{ property.updated_at.strftime('%d/%m/%Y %H:%M') if property.updated_at else 'N/A' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <button type="submit" class="btn btn-success btn-lg me-3">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Salva Modifiche
+                    </button>
+
+                    <a href="{{ url_for('properties.show', property_id=property.id) }}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle me-2"></i>
+                        Annulla
+                    </a>
+
+                    {% if current_user.is_admin and property.status == 'pre_auction' %}
+                        <button type="button" class="btn btn-danger btn-lg ms-3" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="bi bi-trash me-2"></i>
+                            Elimina
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+{% if current_user.is_admin and property.status == 'pre_auction' %}
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Conferma Eliminazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler eliminare definitivamente l'immobile <strong>"{{ property.title }}"</strong>?</p>
+                <p class="text-danger"><strong>Attenzione:</strong> Questa operazione non può essere annullata.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form method="POST" action="{{ url_for('properties.delete', property_id=property.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Elimina Definitivamente</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card-header h5 {
+    font-weight: 600;
+}
+
+.price-input {
+    font-weight: 600;
+    text-align: right;
+}
+
+.form-check-label {
+    font-weight: 500;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-color: #ced4da;
+}
+
+.form-control[readonly] {
+    background-color: #e9ecef;
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const forms = document.querySelectorAll('.needs-validation');
+    forms.forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    });
+
+    // Show/hide debt information
+    const hasDebtsCheckbox = document.getElementById('has_debts');
+    const debtInfo = document.getElementById('debt_info');
+
+    hasDebtsCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            debtInfo.style.display = 'block';
+            debtInfo.querySelector('#debt_amount').required = true;
+        } else {
+            debtInfo.style.display = 'none';
+            debtInfo.querySelector('#debt_amount').required = false;
+            debtInfo.querySelector('#debt_amount').value = '';
+        }
+    });
+
+    // Auto-format price inputs
+    const priceInputs = document.querySelectorAll('.price-input:not([readonly])');
+    priceInputs.forEach(function(input) {
+        input.addEventListener('blur', function() {
+            const value = parseFloat(this.value);
+            if (!isNaN(value)) {
+                this.value = value.toLocaleString('it-IT');
+            }
+        });
+
+        input.addEventListener('focus', function() {
+            this.value = this.value.replace(/\./g, '');
+        });
+    });
+
+    // Auto-uppercase province input
+    const provinceInput = document.getElementById('province');
+    provinceInput.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+
+    // Validate year built
+    const yearBuiltInput = document.getElementById('year_built');
+    yearBuiltInput.addEventListener('blur', function() {
+        const year = parseInt(this.value);
+        const currentYear = new Date().getFullYear();
+
+        if (year > currentYear) {
+            this.setCustomValidity('L\'anno di costruzione non può essere nel futuro');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+
+    // Confirm form submission
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(event) {
+        if (form.checkValidity()) {
+            const button = form.querySelector('button[type="submit"]');
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio in corso...';
+        }
+    });
+
+    // Check for unsaved changes
+    let formChanged = false;
+    const formInputs = form.querySelectorAll('input, select, textarea');
+
+    formInputs.forEach(function(input) {
+        input.addEventListener('change', function() {
+            formChanged = true;
+        });
+    });
+
+    window.addEventListener('beforeunload', function(e) {
+        if (formChanged) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    form.addEventListener('submit', function() {
+        formChanged = false;
+    });
+});
+</script>
+{% endblock %}
