@@ -1,0 +1,177 @@
+<!-- Filename: templates/email/compose.html -->
+<!-- Copyright 2025 SILICONDEV SPA -->
+
+{% extends "base.html" %}
+
+{% block title %}Componi Email - {{ super() }}{% endblock %}
+
+{% block extra_head %}
+<!-- TinyMCE Editor -->
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-pencil-square me-2"></i>
+            Componi Email
+        </h1>
+        <div class="btn-group">
+            <a href="{{ url_for('email.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>
+                Indietro
+            </a>
+        </div>
+    </div>
+
+    <!-- Email Compose Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="emailForm">
+                        <!-- Recipients -->
+                        <div class="mb-3">
+                            <label for="to_emails" class="form-label">
+                                <i class="bi bi-envelope me-1"></i>
+                                Destinatari *
+                            </label>
+                            <input type="email" class="form-control" id="to_emails" name="to_emails"
+                                   placeholder="email1@example.com, email2@example.com" required multiple>
+                            <small class="form-text text-muted">
+                                Separare più email con la virgola
+                            </small>
+                        </div>
+
+                        <!-- Optional Recipients -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="cc_emails" class="form-label">
+                                    <i class="bi bi-envelope-plus me-1"></i>
+                                    CC (Copia)
+                                </label>
+                                <input type="email" class="form-control" id="cc_emails" name="cc_emails"
+                                       placeholder="cc@example.com" multiple>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="bcc_emails" class="form-label">
+                                    <i class="bi bi-envelope-dash me-1"></i>
+                                    BCC (Copia nascosta)
+                                </label>
+                                <input type="email" class="form-control" id="bcc_emails" name="bcc_emails"
+                                       placeholder="bcc@example.com" multiple>
+                            </div>
+                        </div>
+
+                        <!-- Sender Name -->
+                        <div class="mb-3">
+                            <label for="from_name" class="form-label">
+                                <i class="bi bi-person me-1"></i>
+                                Nome Mittente
+                            </label>
+                            <input type="text" class="form-control" id="from_name" name="from_name"
+                                   placeholder="Sistema Aste Immobiliari"
+                                   value="{{ current_user.full_name }}">
+                        </div>
+
+                        <!-- Subject -->
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">
+                                <i class="bi bi-chat-quote me-1"></i>
+                                Oggetto *
+                            </label>
+                            <input type="text" class="form-control" id="subject" name="subject"
+                                   placeholder="Oggetto dell'email" required>
+                        </div>
+
+                        <!-- Tabs for content -->
+                        <ul class="nav nav-tabs" id="contentTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="text-tab" data-bs-toggle="tab"
+                                        data-bs-target="#text-content" type="button" role="tab">
+                                    <i class="bi bi-file-text me-1"></i>
+                                    Testo
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="html-tab" data-bs-toggle="tab"
+                                        data-bs-target="#html-content" type="button" role="tab">
+                                    <i class="bi bi-code-slash me-1"></i>
+                                    HTML
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content border border-top-0 p-3" id="contentTabContent">
+                            <!-- Text Content -->
+                            <div class="tab-pane fade show active" id="text-content" role="tabpanel">
+                                <label for="body" class="form-label">Contenuto Testo *</label>
+                                <textarea class="form-control" id="body" name="body" rows="10"
+                                          placeholder="Scrivi qui il contenuto dell'email in formato testo..."></textarea>
+                            </div>
+
+                            <!-- HTML Content -->
+                            <div class="tab-pane fade" id="html-content" role="tabpanel">
+                                <label for="html_body" class="form-label">Contenuto HTML</label>
+                                <textarea class="form-control" id="html_body" name="html_body" rows="15"
+                                          placeholder="<html><body><h1>Il tuo contenuto HTML qui</h1></body></html>"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Attachments -->
+                        <div class="mb-3 mt-3">
+                            <label for="attachments" class="form-label">
+                                <i class="bi bi-paperclip me-1"></i>
+                                Allegati
+                            </label>
+                            <input type="file" class="form-control" id="attachments" name="attachments" multiple>
+                            <small class="form-text text-muted">
+                                Puoi selezionare più file contemporaneamente
+                            </small>
+                        </div>
+
+                        <!-- Preview Section -->
+                        <div class="card bg-light mb-3" id="previewSection" style="display: none;">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-eye me-1"></i>
+                                    Anteprima Email
+                                </h6>
+                            </div>
+                            <div class="card-body" id="previewContent">
+                                <!-- Preview content will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <button type="button" class="btn btn-info" id="previewBtn">
+                                    <i class="bi bi-eye me-1"></i>
+                                    Anteprima
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-secondary me-2" onclick="history.back()">
+                                    <i class="bi bi-x-circle me-1"></i>
+                                    Annulla
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="sendBtn">
+                                    <i class="bi bi-send me-1"></i>
+                                    Invia Email
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/email-compose.js"></script>
+{% endblock %}

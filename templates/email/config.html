@@ -1,0 +1,278 @@
+<!-- Filename: templates/email/config.html -->
+<!-- Copyright 2025 SILICONDEV SPA -->
+
+{% extends "base.html" %}
+
+{% block title %}Configurazione Email - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-gear me-2"></i>
+            Configurazione Email
+        </h1>
+        <div class="btn-group">
+            <a href="{{ url_for('email.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>
+                Indietro
+            </a>
+            <a href="{{ url_for('email.test') }}" class="btn btn-info">
+                <i class="bi bi-send me-1"></i>
+                Test Email
+            </a>
+        </div>
+    </div>
+
+    <!-- Configuration Status -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Stato Configurazione Gmail
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="config-item">
+                                <div class="d-flex align-items-center mb-2">
+                                    {% if config.gmail_user %}
+                                        <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">Gmail User</h6>
+                                            <small class="text-success">Configurato</small>
+                                        </div>
+                                    {% else %}
+                                        <i class="bi bi-x-circle-fill text-danger fs-4 me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">Gmail User</h6>
+                                            <small class="text-danger">Non configurato</small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                {% if config.gmail_user %}
+                                <div class="ps-5">
+                                    <code class="bg-light p-1 rounded">{{ config.gmail_user_value }}</code>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="config-item">
+                                <div class="d-flex align-items-center mb-2">
+                                    {% if config.gmail_password %}
+                                        <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">App Password</h6>
+                                            <small class="text-success">Configurata</small>
+                                        </div>
+                                    {% else %}
+                                        <i class="bi bi-x-circle-fill text-danger fs-4 me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">App Password</h6>
+                                            <small class="text-danger">Non configurata</small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                {% if config.gmail_password %}
+                                <div class="ps-5">
+                                    <code class="bg-light p-1 rounded">••••••••••••••••</code>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Overall Status -->
+                    <div class="alert {{ 'alert-success' if config.gmail_user and config.gmail_password else 'alert-warning' }} mt-3">
+                        {% if config.gmail_user and config.gmail_password %}
+                            <h6><i class="bi bi-check-circle me-2"></i>Configurazione Completa</h6>
+                            <p class="mb-0">Il sistema è pronto per inviare email tramite Gmail SMTP.</p>
+                        {% else %}
+                            <h6><i class="bi bi-exclamation-triangle me-2"></i>Configurazione Incompleta</h6>
+                            <p class="mb-0">Completa la configurazione per abilitare l'invio email.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Guide -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        Guida Configurazione
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="step-guide">
+                        <div class="step mb-3">
+                            <div class="step-number bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 12px;">1</div>
+                            <div class="step-content d-inline-block">
+                                <strong>Abilita 2FA</strong>
+                                <small class="d-block text-muted">Sul tuo account Google</small>
+                            </div>
+                        </div>
+
+                        <div class="step mb-3">
+                            <div class="step-number bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 12px;">2</div>
+                            <div class="step-content d-inline-block">
+                                <strong>Genera App Password</strong>
+                                <small class="d-block text-muted">Account Google > Sicurezza > Password per le app</small>
+                            </div>
+                        </div>
+
+                        <div class="step mb-3">
+                            <div class="step-number bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 12px;">3</div>
+                            <div class="step-content d-inline-block">
+                                <strong>Configura .env</strong>
+                                <small class="d-block text-muted">Aggiungi GMAIL_USER e GMAIL_APP_PASSWORD</small>
+                            </div>
+                        </div>
+
+                        <div class="step">
+                            <div class="step-number bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 12px;">4</div>
+                            <div class="step-content d-inline-block">
+                                <strong>Test</strong>
+                                <small class="d-block text-muted">Usa la funzione di test email</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h6>Link utili:</h6>
+                        <ul class="list-unstyled small">
+                            <li><a href="https://myaccount.google.com/security" target="_blank" class="text-decoration-none">
+                                <i class="bi bi-box-arrow-up-right me-1"></i>Google Account Security
+                            </a></li>
+                            <li><a href="https://support.google.com/accounts/answer/185833" target="_blank" class="text-decoration-none">
+                                <i class="bi bi-box-arrow-up-right me-1"></i>App Passwords Help
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Details -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-code-slash me-2"></i>
+                        Esempio Configurazione .env
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-3 rounded"><code># Gmail Configuration
+GMAIL_USER=tuo_email@gmail.com
+GMAIL_APP_PASSWORD=abcd efgh ijkl mnop  # Password di 16 caratteri
+
+# Opzionali
+EMAIL_SENDER_NAME=Sistema Aste Immobiliari
+EMAIL_REPLY_TO=noreply@tuodominio.com</code></pre>
+
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="bi bi-shield-exclamation me-2"></i>Sicurezza</h6>
+                        <ul class="mb-0 small">
+                            <li>Non condividere mai la tua App Password</li>
+                            <li>L'App Password è diversa dalla password del tuo account Google</li>
+                            <li>Rimuovi gli spazi dalla App Password quando la copi nel file .env</li>
+                            <li>Riavvia l'applicazione dopo aver modificato il file .env</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SMTP Configuration Details -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-server me-2"></i>
+                        Dettagli Configurazione SMTP
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td><strong>Server SMTP:</strong></td>
+                                    <td><code>smtp.gmail.com</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Porta:</strong></td>
+                                    <td><code>587</code> (STARTTLS)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sicurezza:</strong></td>
+                                    <td><code>TLS</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Autenticazione:</strong></td>
+                                    <td><code>Required</code></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-light p-3 rounded">
+                                <h6>Limiti Gmail:</h6>
+                                <ul class="small mb-0">
+                                    <li>500 email/giorno per account gratuito</li>
+                                    <li>Max 25MB per allegato</li>
+                                    <li>Max 500 destinatari per email</li>
+                                    <li>Rate limit: ~1-2 email/secondo</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.step-guide .step {
+    border-left: 2px solid #e9ecef;
+    padding-left: 1rem;
+    position: relative;
+}
+
+.step-guide .step:last-child {
+    border-left: none;
+}
+
+.step-guide .step:not(:last-child):after {
+    content: '';
+    position: absolute;
+    left: -6px;
+    bottom: -15px;
+    width: 10px;
+    height: 30px;
+    background: linear-gradient(to bottom, #e9ecef, transparent);
+}
+
+.config-item {
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+}
+</style>
+{% endblock %}

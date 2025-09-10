@@ -29,6 +29,14 @@ class BaseConfig:
     USER_EMAIL_VERIFICATION_REQUIRED = os.environ.get('USER_EMAIL_VERIFICATION_REQUIRED', 'False').lower() == 'true'
     USER_PASSWORD_MIN_LENGTH = int(os.environ.get('USER_PASSWORD_MIN_LENGTH', '6'))
 
+    # Gmail Configuration
+    GMAIL_USER = os.environ.get('GMAIL_USER')
+    GMAIL_APP_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD')
+
+    # Email Settings
+    EMAIL_SENDER_NAME = os.environ.get('EMAIL_SENDER_NAME', 'Sistema Aste Immobiliari')
+    EMAIL_REPLY_TO = os.environ.get('EMAIL_REPLY_TO')
+
 
 class DevelopmentConfig(BaseConfig):
     """Development configuration"""

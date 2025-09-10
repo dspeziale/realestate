@@ -1,0 +1,119 @@
+<!-- Filename: templates/email/test.html -->
+<!-- Copyright 2025 SILICONDEV SPA -->
+
+{% extends "base.html" %}
+
+{% block title %}Test Email - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-bug me-2"></i>
+            Test Email
+        </h1>
+        <div class="btn-group">
+            <a href="{{ url_for('email.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>
+                Indietro
+            </a>
+        </div>
+    </div>
+
+    <!-- Test Form -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-send me-2"></i>
+                        Testa Configurazione Gmail
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <h6><i class="bi bi-info-circle me-2"></i>Test della configurazione</h6>
+                        <p class="mb-0">
+                            Questo test invierà una email di prova per verificare che la configurazione Gmail
+                            sia corretta. Assicurati di aver configurato GMAIL_USER e GMAIL_APP_PASSWORD.
+                        </p>
+                    </div>
+
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="test_email" class="form-label">
+                                <i class="bi bi-envelope me-1"></i>
+                                Email di Test
+                            </label>
+                            <input type="email" class="form-control" id="test_email" name="test_email"
+                                   value="{{ current_user.email }}" required>
+                            <small class="form-text text-muted">
+                                L'email di test verrà inviata a questo indirizzo
+                            </small>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-send me-2"></i>
+                                Invia Email di Test
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Configuration Status -->
+            <div class="card mt-4">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-gear me-2"></i>
+                        Stato Configurazione
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-2">
+                                {% if config.get('GMAIL_USER') %}
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    <span class="text-success">GMAIL_USER configurato</span>
+                                {% else %}
+                                    <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                    <span class="text-danger">GMAIL_USER mancante</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-2">
+                                {% if config.get('GMAIL_APP_PASSWORD') %}
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    <span class="text-success">GMAIL_APP_PASSWORD configurato</span>
+                                {% else %}
+                                    <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                    <span class="text-danger">GMAIL_APP_PASSWORD mancante</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if not config.get('GMAIL_USER') or not config.get('GMAIL_APP_PASSWORD') %}
+                    <div class="alert alert-warning mt-3" role="alert">
+                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Configurazione incompleta</h6>
+                        <p class="mb-2">Per utilizzare il servizio email, configura:</p>
+                        <ul class="mb-0">
+                            {% if not config.get('GMAIL_USER') %}
+                            <li>GMAIL_USER nel file .env</li>
+                            {% endif %}
+                            {% if not config.get('GMAIL_APP_PASSWORD') %}
+                            <li>GMAIL_APP_PASSWORD nel file .env</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -179,6 +179,12 @@ def register_context_processors(app):
         return {}
 
     @app.context_processor
+    def inject_current_year():
+        """Inject current year"""
+        from datetime import datetime
+        return {'current_year': datetime.now().year}
+
+    @app.context_processor
     def inject_navigation():
         """Inject navigation helpers"""
         return {

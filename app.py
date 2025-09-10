@@ -1,5 +1,5 @@
-# Copyright 2025 SILICONDEV SPA
 # Filename: app.py
+# Copyright 2025 SILICONDEV SPA
 # Description: Main Flask Application for Real Estate Auction Management
 
 import os
@@ -13,6 +13,8 @@ from blueprints.auth import auth_bp
 from blueprints.users import users_bp
 from blueprints.properties import properties_bp
 from blueprints.auctions import auctions_bp
+# 🔥 AGGIUNGI QUESTA RIGA
+from blueprints.email import email_bp
 from utils.template_helpers import register_template_filters, register_context_processors
 from models.user import User
 
@@ -72,6 +74,8 @@ def create_app(config_name=None):
     app.register_blueprint(users_bp)
     app.register_blueprint(properties_bp)
     app.register_blueprint(auctions_bp)
+    # 🔥 AGGIUNGI QUESTA RIGA
+    app.register_blueprint(email_bp)
 
     # Register template helpers
     register_template_filters(app)
@@ -94,8 +98,8 @@ def create_app(config_name=None):
 
     return app
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     app = create_app()
     # Fix per Windows - usa localhost invece di 0.0.0.0
     app.run(host='127.0.0.1', port=5000, debug=True)
