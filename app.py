@@ -1,22 +1,23 @@
 # Filename: app.py
 # Copyright 2025 SILICONDEV SPA
-# Description: Main Flask Application for Real Estate Auction Management
+# Description: Main Flask application - Emergency Fix
 
 import os
 import logging
 import secrets
 from flask import Flask, render_template
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from config import config_dict
 from database import init_db, db
 from blueprints.auth import auth_bp
 from blueprints.users import users_bp
 from blueprints.properties import properties_bp
 from blueprints.auctions import auctions_bp
-# 🔥 AGGIUNGI QUESTA RIGA
 from blueprints.email import email_bp
 from utils.template_helpers import register_template_filters, register_context_processors
 from models.user import User
+from models.property import Property
+from models.auction import Auction, Bid
 
 from utils.db_helper import (
     execute_query, execute_select, execute_select_one, execute_insert,
@@ -65,7 +66,8 @@ def create_app(config_name=None):
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        # Fix SQLAlchemy 2.0 compatibility - use db.session.get() instead of Query.get()
+        return db.session.get(User, int(user_id))
 
     logger.info("Flask-Login initialized successfully")
 
@@ -74,16 +76,17 @@ def create_app(config_name=None):
     app.register_blueprint(users_bp)
     app.register_blueprint(properties_bp)
     app.register_blueprint(auctions_bp)
-    # 🔥 AGGIUNGI QUESTA RIGA
     app.register_blueprint(email_bp)
 
     # Register template helpers
     register_template_filters(app)
     register_context_processors(app)
 
-    # Main route
+    # Main route - FIXED VERSION
     @app.route('/')
     def index():
+        """Dashboard principale - versione sicura"""
+        # Usa sempre il template esistente per evitare errori
         return render_template('dashboard/index.html')
 
     # Error handlers
@@ -101,5 +104,4 @@ def create_app(config_name=None):
 
 if __name__ == '__main__':
     app = create_app()
-    # Fix per Windows - usa localhost invece di 0.0.0.0
     app.run(host='127.0.0.1', port=5000, debug=True)
