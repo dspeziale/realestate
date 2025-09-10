@@ -1,0 +1,639 @@
+<!-- Copyright 2025 SILICONDEV SPA -->
+<!-- Filename: templates/users/index.html -->
+<!-- Description: Users listing page for admin management -->
+
+{% extends "base.html" %}
+
+{% block title %}Gestione Utenti - AsteImmobili{% endblock %}
+
+{% block page_title %}Gestione Utenti{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group">
+        <a href="{{ url_for('users.create') }}" class="btn btn-success">
+            <i class="bi bi-person-plus me-2"></i>
+            Nuovo Utente
+        </a>
+        <a href="{{ url_for('users.stats') }}" class="btn btn-outline-info">
+            <i class="bi bi-bar-chart me-2"></i>
+            Statistiche
+        </a>
+        <a href="{{ url_for('users.export') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-download me-2"></i>
+            Esporta CSV
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+<!-- Search and Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Cerca Utenti</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control" id="search" name="search"
+                                   placeholder="Nome, email, azienda..."
+                                   value="{{ search }}">
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="status_filter" class="form-label">Stato</label>
+                        <select class="form-select" id="status_filter" name="status">
+                            <option value="">Tutti</option>
+                            <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>Attivi</option>
+                            <option value="inactive" {% if request.args.get('status') == 'inactive' %}selected{% endif %}>Disattivi</option>
+                            <option value="verified" {% if request.args.get('status') == 'verified' %}selected{% endif %}>Verificati</option>
+                            <option value="unverified" {% if request.args.get('status') == 'unverified' %}selected{% endif %}>Non Verificati</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="role_filter" class="form-label">Ruolo</label>
+                        <select class="form-select" id="role_filter" name="role">
+                            <option value="">Tutti</option>
+                            <option value="admin" {% if request.args.get('role') == 'admin' %}selected{% endif %}>Admin</option>
+                            <option value="user" {% if request.args.get('role') == 'user' %}selected{% endif %}>Utenti</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="sort_by" class="form-label">Ordina per</label>
+                        <select class="form-select" id="sort_by" name="sort">
+                            <option value="created_desc" {% if request.args.get('sort') == 'created_desc' %}selected{% endif %}>Più Recenti</option>
+                            <option value="created_asc" {% if request.args.get('sort') == 'created_asc' %}selected{% endif %}>Più Vecchi</option>
+                            <option value="name_asc" {% if request.args.get('sort') == 'name_asc' %}selected{% endif %}>Nome A-Z</option>
+                            <option value="name_desc" {% if request.args.get('sort') == 'name_desc' %}selected{% endif %}>Nome Z-A</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-funnel me-1"></i>
+                                Filtra
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                {% if search or request.args.get('status') or request.args.get('role') %}
+                <div class="mt-3">
+                    <a href="{{ url_for('users.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x-circle me-1"></i>
+                        Rimuovi Filtri
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-people display-6 mb-2"></i>
+                <h3>{{ users.total }}</h3>
+                <p class="mb-0">Utenti Totali</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-6 mb-2"></i>
+                <h3>
+                    {% set active_count = 0 %}
+                    {% for user in users.items %}
+                        {% if user.is_active %}
+                            {% set active_count = active_count + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ active_count }}
+                </h3>
+                <p class="mb-0">Utenti Attivi</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-shield-check display-6 mb-2"></i>
+                <h3>
+                    {% set verified_count = 0 %}
+                    {% for user in users.items %}
+                        {% if user.is_verified %}
+                            {% set verified_count = verified_count + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ verified_count }}
+                </h3>
+                <p class="mb-0">Verificati</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-star display-6 mb-2"></i>
+                <h3>
+                    {% set admin_count = 0 %}
+                    {% for user in users.items %}
+                        {% if user.is_admin %}
+                            {% set admin_count = admin_count + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ admin_count }}
+                </h3>
+                <p class="mb-0">Amministratori</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Summary -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-0">
+                    Trovati {{ users.total }} utenti
+                    {% if search or request.args.get('status') or request.args.get('role') %}
+                        (filtrati)
+                    {% endif %}
+                </h6>
+            </div>
+            <div>
+                <span class="text-muted">
+                    Pagina {{ users.page }} di {{ users.pages }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Users List -->
+{% if users.items %}
+    <div class="row">
+        {% for user in users.items %}
+            <div class="col-xl-6 col-lg-12 mb-4">
+                <div class="card user-card h-100 {% if not user.is_active %}border-danger{% elif user.is_admin %}border-primary{% endif %}">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <!-- User Avatar and Basic Info -->
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center">
+                                    <!-- Avatar -->
+                                    <div class="me-3">
+                                        {% if user.profile_picture %}
+                                            <img src="{{ user.profile_picture }}" alt="Avatar"
+                                                 class="rounded-circle user-avatar" width="60" height="60">
+                                        {% elif user.google_id %}
+                                            <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center user-avatar">
+                                                <i class="bi bi-google text-white fs-4"></i>
+                                            </div>
+                                        {% else %}
+                                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center user-avatar">
+                                                <i class="bi bi-person text-white fs-4"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- User Details -->
+                                    <div class="flex-grow-1">
+                                        <h5 class="mb-1 user-name">
+                                            {{ user.full_name }}
+                                            {% if user.username %}
+                                                <small class="text-muted">(@{{ user.username }})</small>
+                                            {% endif %}
+                                        </h5>
+
+                                        <div class="user-email">
+                                            <i class="bi bi-envelope me-1"></i>
+                                            {{ user.email }}
+                                            {% if user.google_id %}
+                                                <span class="badge bg-danger badge-sm ms-1">
+                                                    <i class="bi bi-google me-1"></i>Google
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        {% if user.phone %}
+                                        <div class="user-info">
+                                            <i class="bi bi-telephone me-1"></i>
+                                            {{ user.phone }}
+                                        </div>
+                                        {% endif %}
+
+                                        {% if user.company_name %}
+                                        <div class="user-info">
+                                            <i class="bi bi-building me-1"></i>
+                                            {{ user.company_name }}
+                                        </div>
+                                        {% endif %}
+
+                                        <!-- Status Badges -->
+                                        <div class="mt-2">
+                                            <span class="badge bg-{{ 'success' if user.is_active else 'danger' }} status-badge">
+                                                <i class="bi bi-{{ 'check-circle' if user.is_active else 'x-circle' }} me-1"></i>
+                                                {{ 'Attivo' if user.is_active else 'Disattivo' }}
+                                            </span>
+
+                                            {% if user.is_verified %}
+                                                <span class="badge bg-info status-badge">
+                                                    <i class="bi bi-patch-check me-1"></i>
+                                                    Verificato
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-warning status-badge">
+                                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                                    Non Verificato
+                                                </span>
+                                            {% endif %}
+
+                                            {% if user.is_admin %}
+                                                <span class="badge bg-primary status-badge">
+                                                    <i class="bi bi-star me-1"></i>
+                                                    Admin
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- User Stats and Actions -->
+                            <div class="col-md-4 text-md-end">
+                                <!-- User Statistics -->
+                                <div class="mb-3">
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <div class="h6 text-primary mb-0">{{ user.properties.count() }}</div>
+                                            <small class="text-muted">Immobili</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="h6 text-success mb-0">{{ user.bids.count() }}</div>
+                                            <small class="text-muted">Offerte</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="h6 text-warning mb-0">{{ user.bids.filter_by(is_winning=True).count() }}</div>
+                                            <small class="text-muted">Vincenti</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Registration Info -->
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Registrato:</small>
+                                    <div class="text-sm">{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</div>
+                                    {% if user.last_login %}
+                                        <small class="text-muted d-block mt-1">Ultimo accesso:</small>
+                                        <div class="text-sm">{{ user.last_login.strftime('%d/%m/%Y %H:%M') }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="btn-group-vertical d-grid gap-1">
+                                    <a href="{{ url_for('users.show', user_id=user.id) }}"
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye me-1"></i>
+                                        Dettagli
+                                    </a>
+
+                                    <a href="{{ url_for('users.edit', user_id=user.id) }}"
+                                       class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-pencil me-1"></i>
+                                        Modifica
+                                    </a>
+
+                                    {% if user.id != current_user.id %}
+                                        <form method="POST" action="{{ url_for('users.toggle_status', user_id=user.id) }}"
+                                              style="display: inline;" onsubmit="return confirmToggleStatus('{{ user.full_name }}', {{ 'false' if user.is_active else 'true' }})">
+                                            <button type="submit" class="btn btn-outline-{{ 'warning' if user.is_active else 'success' }} btn-sm w-100">
+                                                <i class="bi bi-{{ 'pause' if user.is_active else 'play' }} me-1"></i>
+                                                {{ 'Disattiva' if user.is_active else 'Attiva' }}
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <small class="text-muted fst-italic">Il tuo account</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if users.pages > 1 %}
+        <div class="row">
+            <div class="col-12">
+                <nav aria-label="Users pagination">
+                    <ul class="pagination justify-content-center">
+                        <!-- Previous -->
+                        {% if users.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('users.index', page=users.prev_num,
+                                    search=search, status=request.args.get('status'), role=request.args.get('role')) }}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    <i class="bi bi-chevron-left"></i>
+                                </span>
+                            </li>
+                        {% endif %}
+
+                        <!-- Page Numbers -->
+                        {% for page_num in users.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                            {% if page_num %}
+                                {% if page_num != users.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('users.index', page=page_num,
+                                            search=search, status=request.args.get('status'), role=request.args.get('role')) }}">
+                                            {{ page_num }}
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">…</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        <!-- Next -->
+                        {% if users.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('users.index', page=users.next_num,
+                                    search=search, status=request.args.get('status'), role=request.args.get('role')) }}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    <i class="bi bi-chevron-right"></i>
+                                </span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    {% endif %}
+
+{% else %}
+    <!-- No Results -->
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="bi bi-people display-1 text-muted mb-4"></i>
+                <h4 class="text-muted">Nessun utente trovato</h4>
+                {% if search or request.args.get('status') or request.args.get('role') %}
+                    <p class="text-muted">Prova a modificare i filtri di ricerca.</p>
+                    <a href="{{ url_for('users.index') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>
+                        Rimuovi Filtri
+                    </a>
+                {% else %}
+                    <p class="text-muted">Non ci sono ancora utenti registrati nel sistema.</p>
+                    <a href="{{ url_for('users.create') }}" class="btn btn-success">
+                        <i class="bi bi-person-plus me-1"></i>
+                        Crea Primo Utente
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.user-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border: 1px solid #dee2e6;
+}
+
+.user-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.user-card.border-danger {
+    border-left: 4px solid #dc3545 !important;
+    background-color: rgba(248, 215, 218, 0.1);
+}
+
+.user-card.border-primary {
+    border-left: 4px solid #0d6efd !important;
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.user-avatar {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-name {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.25rem;
+}
+
+.user-email {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.user-info {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.status-badge {
+    font-size: 0.7rem;
+    padding: 0.25em 0.5em;
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.btn-group-vertical .btn {
+    border-radius: 0.375rem !important;
+    margin-bottom: 0.25rem;
+}
+
+.btn-group-vertical .btn:last-child {
+    margin-bottom: 0;
+}
+
+.pagination .page-link {
+    color: #0d6efd;
+    border-color: #dee2e6;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+@media (max-width: 768px) {
+    .user-card .row > .col-md-4 {
+        margin-top: 1rem;
+        text-align: left !important;
+    }
+
+    .btn-group-vertical {
+        display: flex !important;
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+
+    .btn-group-vertical .btn {
+        flex: 1;
+        margin-bottom: 0;
+    }
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Custom scrollbar for mobile */
+@media (max-width: 576px) {
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit form on filter change
+    const filterSelects = document.querySelectorAll('#status_filter, #role_filter, #sort_by');
+    filterSelects.forEach(function(select) {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+
+    // Search functionality with debounce
+    const searchInput = document.getElementById('search');
+    let searchTimeout;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            if (this.value.length === 0 || this.value.length >= 2) {
+                this.form.submit();
+            }
+        }, 500);
+    });
+
+    // Clear search on Escape key
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            this.value = '';
+            this.form.submit();
+        }
+    });
+
+    // Animate cards on load
+    const userCards = document.querySelectorAll('.user-card');
+    userCards.forEach(function(card, index) {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+
+        setTimeout(() => {
+            card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 50);
+    });
+});
+
+// Confirmation for status toggle
+function confirmToggleStatus(userName, willActivate) {
+    const action = willActivate ? 'attivare' : 'disattivare';
+    const message = `Sei sicuro di voler ${action} l'utente "${userName}"?`;
+    return confirm(message);
+}
+
+// Bulk actions (future enhancement)
+function selectAllUsers() {
+    const checkboxes = document.querySelectorAll('input[name="selected_users"]');
+    const selectAllCheckbox = document.getElementById('select_all');
+
+    checkboxes.forEach(function(checkbox) {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const selectedCheckboxes = document.querySelectorAll('input[name="selected_users"]:checked');
+    const bulkActionsBtn = document.getElementById('bulk_actions');
+
+    if (bulkActionsBtn) {
+        bulkActionsBtn.style.display = selectedCheckboxes.length > 0 ? 'block' : 'none';
+    }
+}
+
+// Export functionality
+function exportUsers() {
+    const params = new URLSearchParams(window.location.search);
+    const exportUrl = new URL('{{ url_for("users.export") }}', window.location.origin);
+
+    // Add current filters to export
+    for (const [key, value] of params) {
+        exportUrl.searchParams.append(key, value);
+    }
+
+    window.location.href = exportUrl.toString();
+}
+
+// Real-time user count updates (WebSocket enhancement)
+function connectWebSocket() {
+    // Future enhancement for real-time updates
+    console.log('WebSocket connection for real-time updates can be implemented here');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,550 @@
+<!-- Copyright 2025 SILICONDEV SPA -->
+<!-- Filename: templates/auctions/create.html -->
+<!-- Description: Auction creation form -->
+
+{% extends "base.html" %}
+
+{% block title %}Nuova Asta - AsteImmobili{% endblock %}
+
+{% block page_title %}Nuova Asta{% endblock %}
+
+{% block page_actions %}
+    <a href="{{ url_for('auctions.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-2"></i>
+        Torna alle Aste
+    </a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <form method="POST" action="{{ url_for('auctions.create') }}" class="needs-validation" novalidate>
+
+            <!-- Informazioni Generali -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Informazioni Generali
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="title" class="form-label">Titolo Asta *</label>
+                            <input type="text" class="form-control" id="title" name="title"
+                                   placeholder="Es: Asta Immobiliare - Appartamento Roma Centro"
+                                   maxlength="200" required>
+                            <div class="invalid-feedback">
+                                Il titolo è richiesto.
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="auction_type" class="form-label">Tipo Asta *</label>
+                            <select class="form-select" id="auction_type" name="auction_type" required>
+                                <option value="">Seleziona tipo...</option>
+                                <option value="synchronous">Sincrona</option>
+                                <option value="asynchronous">Asincrona</option>
+                                <option value="telematic">Telematica</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Seleziona il tipo di asta.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descrizione</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="Descrizione dettagliata dell'asta..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Immobile -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-building me-2"></i>
+                        Immobile
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="property_id" class="form-label">Seleziona Immobile *</label>
+                        <select class="form-select" id="property_id" name="property_id" required>
+                            <option value="">Seleziona immobile...</option>
+                            {% for property in properties %}
+                                <option value="{{ property.id }}"
+                                        {% if request.args.get('property_id')|int == property.id %}selected{% endif %}>
+                                    {{ property.title }} - {{ property.city }} (€{{ "{:,.0f}".format(property.base_price) }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Seleziona l'immobile per l'asta.
+                        </div>
+                        {% if not properties %}
+                            <small class="form-text text-warning">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                Nessun immobile disponibile per l'asta.
+                                <a href="{{ url_for('properties.create') }}">Crea un nuovo immobile</a>.
+                            </small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Property Info Preview -->
+                    <div id="property-preview" class="d-none">
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Anteprima Immobile
+                            </h6>
+                            <div id="property-details"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date e Orari -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calendar me-2"></i>
+                        Date e Orari
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="start_date" class="form-label">Data e Ora Inizio *</label>
+                            <input type="datetime-local" class="form-control" id="start_date" name="start_date" required>
+                            <div class="invalid-feedback">
+                                Data e ora di inizio sono richieste.
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="end_date" class="form-label">Data e Ora Fine</label>
+                            <input type="datetime-local" class="form-control" id="end_date" name="end_date">
+                            <small class="form-text text-muted">
+                                Opzionale. Se non specificata, l'asta continuerà indefinitamente fino alla chiusura manuale.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="registration_deadline" class="form-label">Scadenza Registrazione</label>
+                        <input type="datetime-local" class="form-control" id="registration_deadline" name="registration_deadline">
+                        <small class="form-text text-muted">
+                            Data limite per registrarsi all'asta. Se non specificata, sarà possibile registrarsi fino all'inizio.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Condizioni Economiche -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-currency-euro me-2"></i>
+                        Condizioni Economiche
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="starting_price" class="form-label">Prezzo di Partenza *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                <input type="number" class="form-control price-input" id="starting_price" name="starting_price"
+                                       placeholder="100000" step="1000" min="1" required>
+                            </div>
+                            <div class="invalid-feedback">
+                                Il prezzo di partenza deve essere maggiore di zero.
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="minimum_bid_increment" class="form-label">Incremento Minimo *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                <input type="number" class="form-control price-input" id="minimum_bid_increment" name="minimum_bid_increment"
+                                       placeholder="1000" step="100" min="100" value="1000" required>
+                            </div>
+                            <div class="invalid-feedback">
+                                L'incremento minimo deve essere maggiore di zero.
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="deposit_percentage" class="form-label">Percentuale Cauzione *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="deposit_percentage" name="deposit_percentage"
+                                       placeholder="10" step="0.5" min="1" max="100" value="10" required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <div class="invalid-feedback">
+                                La percentuale cauzione deve essere tra 1 e 100.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Importo Cauzione Calcolato</label>
+                            <div class="form-control-plaintext bg-light p-2 rounded">
+                                <strong id="deposit-amount">€0,00</strong>
+                            </div>
+                            <small class="form-text text-muted">
+                                Calcolato automaticamente: Prezzo di Partenza × Percentuale Cauzione
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informazioni Legali -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-text me-2"></i>
+                        Informazioni Legali
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="court" class="form-label">Tribunale</label>
+                            <input type="text" class="form-control" id="court" name="court"
+                                   placeholder="Tribunale di Roma" maxlength="100">
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="procedure_number" class="form-label">N° Procedura</label>
+                            <input type="text" class="form-control" id="procedure_number" name="procedure_number"
+                                   placeholder="R.G.E. 123/2024" maxlength="50">
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="professional_delegate" class="form-label">Professionista Delegato</label>
+                            <input type="text" class="form-control" id="professional_delegate" name="professional_delegate"
+                                   placeholder="Nome professionista" maxlength="200">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="special_conditions" class="form-label">Condizioni Speciali</label>
+                        <textarea class="form-control" id="special_conditions" name="special_conditions" rows="3"
+                                  placeholder="Eventuali condizioni particolari per l'asta..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modalità di Partecipazione -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people me-2"></i>
+                        Modalità di Partecipazione
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="requires_registration" name="requires_registration" checked>
+                                <label class="form-check-label" for="requires_registration">
+                                    <strong>Richiede Registrazione</strong>
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">
+                                Se attivato, gli utenti devono registrarsi all'asta prima di poter fare offerte.
+                            </small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="allows_remote_bidding" name="allows_remote_bidding" checked>
+                                <label class="form-check-label" for="allows_remote_bidding">
+                                    <strong>Consenti Offerte Telematiche</strong>
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">
+                                Se attivato, sarà possibile fare offerte online tramite la piattaforma.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="viewing_schedule" class="form-label">Orari Visite</label>
+                        <textarea class="form-control" id="viewing_schedule" name="viewing_schedule" rows="3"
+                                  placeholder="Es: Visite tutti i martedì dalle 10:00 alle 12:00, previa prenotazione telefonica..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <button type="submit" class="btn btn-success btn-lg me-3">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Crea Asta
+                    </button>
+
+                    <a href="{{ url_for('auctions.index') }}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle me-2"></i>
+                        Annulla
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card-header h5 {
+    font-weight: 600;
+}
+
+.price-input {
+    font-weight: 600;
+    text-align: right;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-color: #ced4da;
+}
+
+#deposit-amount {
+    color: #198754;
+    font-size: 1.25rem;
+}
+
+.property-info {
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    padding: 1rem;
+}
+
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+}
+
+.form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.datetime-local-info {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const forms = document.querySelectorAll('.needs-validation');
+    forms.forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    });
+
+    // Calculate deposit amount
+    const startingPriceInput = document.getElementById('starting_price');
+    const depositPercentageInput = document.getElementById('deposit_percentage');
+    const depositAmountDisplay = document.getElementById('deposit-amount');
+
+    function calculateDeposit() {
+        const startingPrice = parseFloat(startingPriceInput.value) || 0;
+        const depositPercentage = parseFloat(depositPercentageInput.value) || 0;
+        const depositAmount = (startingPrice * depositPercentage) / 100;
+
+        depositAmountDisplay.textContent = '€' + depositAmount.toLocaleString('it-IT', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    startingPriceInput.addEventListener('input', calculateDeposit);
+    depositPercentageInput.addEventListener('input', calculateDeposit);
+
+    // Initial calculation
+    calculateDeposit();
+
+    // Auto-format price inputs
+    const priceInputs = document.querySelectorAll('.price-input');
+    priceInputs.forEach(function(input) {
+        input.addEventListener('blur', function() {
+            const value = parseFloat(this.value);
+            if (!isNaN(value)) {
+                this.value = value.toLocaleString('it-IT');
+            }
+        });
+
+        input.addEventListener('focus', function() {
+            this.value = this.value.replace(/\./g, '');
+        });
+    });
+
+    // Property selection handler
+    const propertySelect = document.getElementById('property_id');
+    const propertyPreview = document.getElementById('property-preview');
+    const propertyDetails = document.getElementById('property-details');
+
+    // Property data (passed from backend)
+    const propertyData = {
+        {% for property in properties %}
+        {{ property.id }}: {
+            title: "{{ property.title }}",
+            address: "{{ property.full_address }}",
+            type: "{{ property.property_type_label }}",
+            surface: {{ property.surface_area or 0 }},
+            rooms: {{ property.rooms or 0 }},
+            basePrice: {{ property.base_price }},
+            condition: "{{ property.condition or '' }}"
+        },
+        {% endfor %}
+    };
+
+    propertySelect.addEventListener('change', function() {
+        const propertyId = parseInt(this.value);
+
+        if (propertyId && propertyData[propertyId]) {
+            const property = propertyData[propertyId];
+
+            // Auto-fill starting price from property base price
+            if (!startingPriceInput.value) {
+                startingPriceInput.value = property.basePrice;
+                calculateDeposit();
+            }
+
+            // Show property preview
+            propertyDetails.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Indirizzo:</strong> ${property.address}<br>
+                        <strong>Tipo:</strong> ${property.type}<br>
+                        ${property.condition ? '<strong>Condizioni:</strong> ' + property.condition + '<br>' : ''}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Prezzo Base:</strong> €${property.basePrice.toLocaleString('it-IT')}<br>
+                        ${property.surface ? '<strong>Superficie:</strong> ' + property.surface + ' mq<br>' : ''}
+                        ${property.rooms ? '<strong>Vani:</strong> ' + property.rooms + '<br>' : ''}
+                    </div>
+                </div>
+            `;
+
+            propertyPreview.classList.remove('d-none');
+        } else {
+            propertyPreview.classList.add('d-none');
+        }
+    });
+
+    // Date validation
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    const registrationDeadlineInput = document.getElementById('registration_deadline');
+
+    function validateDates() {
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
+        const registrationDeadline = new Date(registrationDeadlineInput.value);
+        const now = new Date();
+
+        // Start date must be in the future
+        if (startDateInput.value && startDate <= now) {
+            startDateInput.setCustomValidity('La data di inizio deve essere futura');
+        } else {
+            startDateInput.setCustomValidity('');
+        }
+
+        // End date must be after start date
+        if (startDateInput.value && endDateInput.value && endDate <= startDate) {
+            endDateInput.setCustomValidity('La data di fine deve essere successiva alla data di inizio');
+        } else {
+            endDateInput.setCustomValidity('');
+        }
+
+        // Registration deadline must be before start date
+        if (startDateInput.value && registrationDeadlineInput.value && registrationDeadline >= startDate) {
+            registrationDeadlineInput.setCustomValidity('La scadenza registrazione deve essere prima dell\'inizio asta');
+        } else {
+            registrationDeadlineInput.setCustomValidity('');
+        }
+    }
+
+    startDateInput.addEventListener('change', validateDates);
+    endDateInput.addEventListener('change', validateDates);
+    registrationDeadlineInput.addEventListener('change', validateDates);
+
+    // Auto-generate auction number preview
+    const titleInput = document.getElementById('title');
+    const auctionTypeSelect = document.getElementById('auction_type');
+
+    function generateAuctionNumberPreview() {
+        const today = new Date();
+        const dateString = today.getFullYear().toString() +
+                          (today.getMonth() + 1).toString().padStart(2, '0') +
+                          today.getDate().toString().padStart(2, '0');
+        const randomNum = Math.floor(Math.random() * 9999) + 1;
+        const auctionNumber = `AST${dateString}${randomNum.toString().padStart(4, '0')}`;
+
+        // Could show this preview somewhere in the UI
+        console.log('Generated auction number preview:', auctionNumber);
+    }
+
+    titleInput.addEventListener('blur', generateAuctionNumberPreview);
+    auctionTypeSelect.addEventListener('change', generateAuctionNumberPreview);
+
+    // Form submission loading state
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(event) {
+        if (form.checkValidity()) {
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creazione in corso...';
+        }
+    });
+
+    // Auto-set default dates
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0);
+
+    if (!startDateInput.value) {
+        startDateInput.value = tomorrow.toISOString().slice(0, 16);
+    }
+
+    // Trigger property selection if pre-selected
+    if (propertySelect.value) {
+        propertySelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+{% endblock %}

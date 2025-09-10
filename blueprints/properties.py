@@ -204,7 +204,7 @@ def create():
             for error in errors:
                 flash(error, 'error')
             # Get agents for form
-            agents = User.query.filter_by(is_active=True).order_by(User.full_name).all() if current_user.is_admin else []
+            agents = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
             return render_template('properties/create.html', agents=agents)
         
         # Create property
@@ -254,7 +254,7 @@ def create():
             flash(f'Errore nella creazione dell\'immobile: {str(e)}', 'error')
     
     # Get agents for form (admin only)
-    agents = User.query.filter_by(is_active=True).order_by(User.full_name).all() if current_user.is_admin else []
+    agents = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all() if current_user.is_admin else []
     
     return render_template('properties/create.html', agents=agents)
 
@@ -291,7 +291,7 @@ def edit(property_id):
             flash(f'Errore nell\'aggiornamento dell\'immobile: {str(e)}', 'error')
     
     # Get agents for form (admin only)
-    agents = User.query.filter_by(is_active=True).order_by(User.full_name).all() if current_user.is_admin else []
+    agents = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all() if current_user.is_admin else []
     
     return render_template('properties/edit.html', property=property, agents=agents)
 

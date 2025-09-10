@@ -1,0 +1,642 @@
+<!-- Copyright 2025 SILICONDEV SPA -->
+<!-- Filename: templates/users/stats.html -->
+<!-- Description: User statistics and analytics dashboard for admin -->
+
+{% extends "base.html" %}
+
+{% block title %}Statistiche Utenti - AsteImmobili{% endblock %}
+
+{% block page_title %}Statistiche Utenti{% endblock %}
+
+{% block page_actions %}
+    <div class="btn-group">
+        <a href="{{ url_for('users.index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-2"></i>
+            Torna agli Utenti
+        </a>
+
+        <a href="{{ url_for('users.export') }}" class="btn btn-success">
+            <i class="bi bi-download me-2"></i>
+            Esporta CSV
+        </a>
+
+        <button type="button" class="btn btn-outline-primary" onclick="refreshStats()">
+            <i class="bi bi-arrow-clockwise me-2"></i>
+            Aggiorna
+        </button>
+    </div>
+{% endblock %}
+
+{% block content %}
+<!-- Overview Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Utenti Totali
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.total_users }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-people display-4 text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Utenti Attivi
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.active_users }}
+                        </div>
+                        <div class="text-xs text-muted">
+                            {{ "%.1f"|format((stats.active_users / stats.total_users * 100) if stats.total_users > 0 else 0) }}% del totale
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-check-circle display-4 text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Utenti Verificati
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.verified_users }}
+                        </div>
+                        <div class="text-xs text-muted">
+                            {{ "%.1f"|format((stats.verified_users / stats.total_users * 100) if stats.total_users > 0 else 0) }}% del totale
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-patch-check display-4 text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Amministratori
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.admin_users }}
+                        </div>
+                        <div class="text-xs text-muted">
+                            {{ "%.1f"|format((stats.admin_users / stats.total_users * 100) if stats.total_users > 0 else 0) }}% del totale
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-star display-4 text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Stats Row -->
+<div class="row mb-4">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Account Google
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.google_users }}
+                        </div>
+                        <div class="text-xs text-muted">
+                            {{ "%.1f"|format((stats.google_users / stats.total_users * 100) if stats.total_users > 0 else 0) }}% del totale
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-google display-4 text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-secondary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                            Registrazioni Recenti
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.recent_registrations }}
+                        </div>
+                        <div class="text-xs text-muted">
+                            Ultimi 30 giorni
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-person-plus display-4 text-secondary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-dark shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">
+                            Utenti Disattivi
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ stats.total_users - stats.active_users }}
+                        </div>
+                        <div class="text-xs text-muted">
+                            {{ "%.1f"|format(((stats.total_users - stats.active_users) / stats.total_users * 100) if stats.total_users > 0 else 0) }}% del totale
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-x-circle display-4 text-dark"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row">
+    <!-- Monthly Registrations Chart -->
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-bar-chart me-2"></i>
+                    Registrazioni per Mese (Ultimi 12 Mesi)
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-area">
+                    <canvas id="monthlyChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Status Pie Chart -->
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-pie-chart me-2"></i>
+                    Distribuzione Utenti
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2">
+                    <canvas id="statusChart" width="300" height="300"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    <span class="mr-2">
+                        <i class="bi bi-circle-fill text-success"></i>
+                        Attivi
+                    </span>
+                    <span class="mr-2">
+                        <i class="bi bi-circle-fill text-info"></i>
+                        Verificati
+                    </span>
+                    <span class="mr-2">
+                        <i class="bi bi-circle-fill text-warning"></i>
+                        Admin
+                    </span>
+                    <span class="mr-2">
+                        <i class="bi bi-circle-fill text-danger"></i>
+                        Google
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-activity me-2"></i>
+                    Attività Recente degli Utenti
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Utente</th>
+                                <th>Email</th>
+                                <th>Data Registrazione</th>
+                                <th>Ultimo Accesso</th>
+                                <th>Immobili</th>
+                                <th>Offerte</th>
+                                <th>Stato</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Funzionalità in sviluppo - Dati attività utenti verranno caricati via AJAX
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Insights Cards -->
+<div class="row">
+    <div class="col-xl-6 col-md-6 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    Insights e Metriche
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="small text-muted">Tasso di Verifica</div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-info" role="progressbar"
+                             style="width: {{ (stats.verified_users / stats.total_users * 100) if stats.total_users > 0 else 0 }}%">
+                        </div>
+                    </div>
+                    <div class="text-xs">
+                        {{ stats.verified_users }} su {{ stats.total_users }} utenti verificati
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="small text-muted">Tasso di Attivazione</div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: {{ (stats.active_users / stats.total_users * 100) if stats.total_users > 0 else 0 }}%">
+                        </div>
+                    </div>
+                    <div class="text-xs">
+                        {{ stats.active_users }} su {{ stats.total_users }} utenti attivi
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="small text-muted">Adozione Google OAuth</div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-danger" role="progressbar"
+                             style="width: {{ (stats.google_users / stats.total_users * 100) if stats.total_users > 0 else 0 }}%">
+                        </div>
+                    </div>
+                    <div class="text-xs">
+                        {{ stats.google_users }} su {{ stats.total_users }} account Google
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-6 col-md-6 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-graph-up me-2"></i>
+                    Trend e Previsioni
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="small text-muted">Crescita Mensile:</span>
+                        <span class="text-success fw-bold">
+                            +{{ stats.recent_registrations }} utenti
+                        </span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="small text-muted">Media giornaliera:</span>
+                        <span class="text-info fw-bold">
+                            {{ "%.1f"|format(stats.recent_registrations / 30) }} utenti/giorno
+                        </span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="small text-muted">Proiezione trimestre:</span>
+                        <span class="text-warning fw-bold">
+                            +{{ (stats.recent_registrations * 3)|int }} utenti
+                        </span>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Raccomandazione:</strong>
+                    {% set verification_rate = (stats.verified_users / stats.total_users * 100) if stats.total_users > 0 else 0 %}
+                    {% if verification_rate < 50 %}
+                        Migliorare il processo di verifica utenti.
+                    {% elif stats.recent_registrations < 10 %}
+                        Intensificare le attività di marketing per aumentare le registrazioni.
+                    {% else %}
+                        Ottima crescita! Continuare con le strategie attuali.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.border-left-primary {
+    border-left: .25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: .25rem solid #1cc88a !important;
+}
+
+.border-left-info {
+    border-left: .25rem solid #36b9cc !important;
+}
+
+.border-left-warning {
+    border-left: .25rem solid #f6c23e !important;
+}
+
+.border-left-danger {
+    border-left: .25rem solid #e74a3b !important;
+}
+
+.border-left-secondary {
+    border-left: .25rem solid #858796 !important;
+}
+
+.border-left-dark {
+    border-left: .25rem solid #5a5c69 !important;
+}
+
+.text-gray-800 {
+    color: #5a5c69 !important;
+}
+
+.text-gray-300 {
+    color: #dddfeb !important;
+}
+
+.font-weight-bold {
+    font-weight: 700 !important;
+}
+
+.text-xs {
+    font-size: .7rem;
+}
+
+.chart-area {
+    position: relative;
+    height: 10rem;
+    width: 100%;
+}
+
+.chart-pie {
+    position: relative;
+    height: 15rem;
+    width: 100%;
+}
+
+.progress {
+    height: 0.5rem;
+    border-radius: 10rem;
+}
+
+.card {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    border: 1px solid #e3e6f0;
+}
+
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+.table th {
+    background-color: #f8f9fc;
+    border-color: #e3e6f0;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2rem;
+    }
+
+    .chart-area {
+        height: 8rem;
+    }
+
+    .chart-pie {
+        height: 12rem;
+    }
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Monthly Registrations Chart
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+
+    // Prepare monthly data
+    const monthlyData = [
+        {% for stat in stats.monthly_stats %}
+            {{ stat.count }},
+        {% endfor %}
+    ];
+
+    const monthLabels = [
+        {% for stat in stats.monthly_stats %}
+            "{{ stat.month }}/{{ stat.year }}",
+        {% endfor %}
+    ];
+
+    const monthlyChart = new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: monthLabels.slice(-12),
+            datasets: [{
+                label: 'Registrazioni',
+                data: monthlyData.slice(-12),
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // User Status Pie Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+
+    const statusChart = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Attivi', 'Verificati', 'Admin', 'Google'],
+            datasets: [{
+                data: [
+                    {{ stats.active_users }},
+                    {{ stats.verified_users }},
+                    {{ stats.admin_users }},
+                    {{ stats.google_users }}
+                ],
+                backgroundColor: ['#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+                borderColor: ['#17a2b8', '#17a2b8', '#17a2b8', '#17a2b8'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Auto-refresh every 5 minutes
+    setInterval(refreshStats, 300000);
+});
+
+function refreshStats() {
+    const refreshBtn = document.querySelector('button[onclick="refreshStats()"]');
+    const originalContent = refreshBtn.innerHTML;
+
+    refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2 spinner-border spinner-border-sm"></i>Aggiornamento...';
+    refreshBtn.disabled = true;
+
+    setTimeout(() => {
+        refreshBtn.innerHTML = originalContent;
+        refreshBtn.disabled = false;
+        showNotification('Statistiche aggiornate con successo!', 'success');
+    }, 2000);
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

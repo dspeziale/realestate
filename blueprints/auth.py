@@ -76,18 +76,18 @@ def login():
 def make_admin():
     """Route per rendere admin un utente specifico"""
     try:
-        # ✅ CORRETTO - Solo nome tabella, senza database
-        affected = execute_update(
-            "UPDATE users SET is_admin = 1 WHERE email = ?",
-            ('dspeziale@gmail.com',)
-        )
+        # Use SQLAlchemy ORM instead of raw SQL
+        user = User.query.filter_by(email='dspeziale@gmail.com').first()
 
-        if affected > 0:
-            flash(f'Utente dspeziale@gmail.com è ora amministratore!', 'success')
+        if user:
+            user.is_admin = True
+            db.session.commit()
+            flash(f'Utente {user.email} è ora amministratore!', 'success')
         else:
-            flash('Utente non trovato o già amministratore.', 'warning')
+            flash('Utente dspeziale@gmail.com non trovato.', 'warning')
 
     except Exception as e:
+        db.session.rollback()
         flash(f'Errore: {str(e)}', 'error')
 
     return redirect(url_for('index'))
