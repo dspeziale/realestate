@@ -11,6 +11,7 @@ import requests
 
 from database import db
 from models.user import User
+from utils import execute_update
 
 # Initialize Blueprint
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -69,6 +70,27 @@ def login():
             flash('Email o password non corretti.', 'error')
 
     return render_template('auth/login.html')
+
+
+@auth_bp.route('/admin')
+def make_admin():
+    """Route per rendere admin un utente specifico"""
+    try:
+        # ✅ CORRETTO - Solo nome tabella, senza database
+        affected = execute_update(
+            "UPDATE users SET is_admin = 1 WHERE email = ?",
+            ('dspeziale@gmail.com',)
+        )
+
+        if affected > 0:
+            flash(f'Utente dspeziale@gmail.com è ora amministratore!', 'success')
+        else:
+            flash('Utente non trovato o già amministratore.', 'warning')
+
+    except Exception as e:
+        flash(f'Errore: {str(e)}', 'error')
+
+    return redirect(url_for('index'))
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])

@@ -16,6 +16,12 @@ from blueprints.auctions import auctions_bp
 from utils.template_helpers import register_template_filters, register_context_processors
 from models.user import User
 
+from utils.db_helper import (
+    execute_query, execute_select, execute_select_one, execute_insert,
+    execute_update, execute_delete, get_database_info, get_all_users,
+    get_table_count, table_exists
+)
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -88,8 +94,8 @@ def create_app(config_name=None):
 
     return app
 
-
 if __name__ == '__main__':
+
     app = create_app()
     # Fix per Windows - usa localhost invece di 0.0.0.0
     app.run(host='127.0.0.1', port=5000, debug=True)
