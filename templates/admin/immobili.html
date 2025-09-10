@@ -1,0 +1,392 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Gestione Immobili - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Gestione Immobili</h1>
+    <a href="{{ url_for('nuovo_immobile') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Nuovo Immobile
+    </a>
+</div>
+
+<!-- Statistiche rapide -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-left-success shadow py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Disponibili</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ immobili|selectattr("disponibile")|list|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-left-warning shadow py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">In Vendita</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ immobili|selectattr("contratto", "equalto", "vendita")|list|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-home fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-left-info shadow py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">In Affitto</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ immobili|selectattr("contratto", "equalto", "affitto")|list|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-key fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-left-primary shadow py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Totale</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ immobili|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-building fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtri -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Tipo</label>
+                <select name="tipo_filter" class="form-select">
+                    <option value="">Tutti i tipi</option>
+                    <option value="appartamento">Appartamento</option>
+                    <option value="villa">Villa</option>
+                    <option value="ufficio">Ufficio</option>
+                    <option value="negozio">Negozio</option>
+                    <option value="garage">Garage</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Contratto</label>
+                <select name="contratto_filter" class="form-select">
+                    <option value="">Tutti</option>
+                    <option value="vendita">Vendita</option>
+                    <option value="affitto">Affitto</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Disponibilità</label>
+                <select name="disponibile_filter" class="form-select">
+                    <option value="">Tutti</option>
+                    <option value="true">Disponibili</option>
+                    <option value="false">Non Disponibili</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-filter me-1"></i>Filtra
+                </button>
+                <a href="{{ url_for('admin_immobili') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-undo me-1"></i>Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabella Immobili -->
+<div class="card shadow">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Lista Immobili</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered data-table" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Titolo</th>
+                        <th>Tipo</th>
+                        <th>Contratto</th>
+                        <th>Prezzo</th>
+                        <th>Superficie</th>
+                        <th>Città</th>
+                        <th>Stato</th>
+                        <th>Data</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for immobile in immobili %}
+                    <tr>
+                        <td>{{ immobile.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="property-thumb me-3"></div>
+                                <div>
+                                    <strong>{{ immobile.titolo }}</strong>
+                                    {% if immobile.indirizzo %}
+                                    <br><small class="text-muted">{{ immobile.indirizzo }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ immobile.tipo.title() }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if immobile.contratto == 'vendita' else 'info' }}">
+                                {{ immobile.contratto.title() }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>€{{ "{:,.0f}".format(immobile.prezzo) }}</strong>
+                            {% if immobile.contratto == 'affitto' %}
+                            <small>/mese</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ immobile.superficie }} mq</td>
+                        <td>{{ immobile.citta }}</td>
+                        <td>
+                            {% if immobile.disponibile %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check me-1"></i>Disponibile
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-times me-1"></i>Non Disponibile
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ immobile.data_inserimento.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('dettaglio_immobile', id=immobile.id) }}"
+                                   class="btn btn-sm btn-outline-info"
+                                   title="Visualizza" target="_blank">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('modifica_immobile', id=immobile.id) }}"
+                                   class="btn btn-sm btn-outline-primary"
+                                   title="Modifica">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-warning"
+                                        title="Cambia Disponibilità"
+                                        onclick="toggleDisponibilita({{ immobile.id }}, {{ 'true' if not immobile.disponibile else 'false' }})">
+                                    <i class="fas fa-{{ 'eye' if not immobile.disponibile else 'eye-slash' }}"></i>
+                                </button>
+                                <form method="POST"
+                                      action="{{ url_for('elimina_immobile', id=immobile.id) }}"
+                                      class="d-inline"
+                                      onsubmit="return confirmDelete('Sei sicuro di voler eliminare questo immobile?')">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Elimina">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            <i class="fas fa-home fa-3x mb-3"></i>
+                            <br>Nessun immobile trovato
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per cambio rapido stato -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cambia Stato Immobile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Vuoi cambiare lo stato di disponibilità di questo immobile?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="confirmStatusChange">Conferma</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-primary {
+    border-left: 4px solid #4e73df !important;
+}
+.border-left-success {
+    border-left: 4px solid #1cc88a !important;
+}
+.border-left-info {
+    border-left: 4px solid #36b9cc !important;
+}
+.border-left-warning {
+    border-left: 4px solid #f6c23e !important;
+}
+
+.property-thumb {
+    width: 50px;
+    height: 35px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    background-image: url('https://images.unsplash.com/photo-1570129477492-45c003edd2be?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80');
+    background-size: cover;
+    background-position: center;
+    border-radius: 4px;
+}
+
+.btn-group .btn {
+    margin: 0 1px;
+}
+
+.table th {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.table td {
+    vertical-align: middle;
+    font-size: 0.9rem;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.data-table_wrapper {
+    padding: 0;
+}
+
+.dataTables_filter {
+    margin-bottom: 1rem;
+}
+
+.dataTables_filter input {
+    border: 1px solid #d1d3e2;
+    border-radius: 0.35rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.dataTables_length select {
+    border: 1px solid #d1d3e2;
+    border-radius: 0.35rem;
+    padding: 0.375rem 0.75rem;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Toggle disponibilità immobile
+let currentImmobileId = null;
+let newStatus = null;
+
+function toggleDisponibilita(immobileId, disponibile) {
+    currentImmobileId = immobileId;
+    newStatus = disponibile;
+    $('#statusModal').modal('show');
+}
+
+document.getElementById('confirmStatusChange').addEventListener('click', function() {
+    if (currentImmobileId && newStatus !== null) {
+        // Qui faresti una chiamata AJAX per aggiornare lo stato
+        fetch(`/admin/immobile/${currentImmobileId}/toggle-disponibilita`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            },
+            body: JSON.stringify({
+                disponibile: newStatus === 'true'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Errore nell\'aggiornamento dello stato');
+            }
+        })
+        .catch(error => {
+            alert('Errore di connessione');
+        });
+    }
+    $('#statusModal').modal('hide');
+});
+
+// Inizializza DataTables con opzioni personalizzate
+$(document).ready(function() {
+    $('.data-table').DataTable({
+        "pageLength": 25,
+        "responsive": true,
+        "order": [[ 8, "desc" ]], // Ordina per data inserimento (colonna 8)
+        "columnDefs": [
+            { "orderable": false, "targets": 9 } // Disabilita ordinamento per colonna azioni
+        ],
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/it-IT.json"
+        },
+        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>t<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+    });
+});
+
+// Filtri automatici (se implementati)
+document.querySelectorAll('select[name$="_filter"]').forEach(select => {
+    select.addEventListener('change', function() {
+        // Opzionale: auto-submit del form filtri
+        // this.form.submit();
+    });
+});
+
+// Esportazione dati (opzionale)
+function exportData(format) {
+    const table = $('.data-table').DataTable();
+    if (format === 'csv') {
+        // Implementa esportazione CSV
+        window.location.href = '/admin/immobili/export/csv';
+    } else if (format === 'excel') {
+        // Implementa esportazione Excel
+        window.location.href = '/admin/immobili/export/excel';
+    }
+}
+</script>
+{% endblock %}
