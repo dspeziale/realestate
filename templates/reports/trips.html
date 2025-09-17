@@ -304,6 +304,28 @@
 
 {% block scripts %}
 <script>
+// Configurazione italiana DataTables inline
+const italianDTLanguage = {
+    "decimal": "",
+    "emptyTable": "Nessun dato disponibile",
+    "info": "Elementi da _START_ a _END_ di _TOTAL_ totali",
+    "infoEmpty": "Elementi da 0 a 0 di 0 totali",
+    "infoFiltered": "(filtrati da _MAX_ elementi totali)",
+    "infoPostFix": "",
+    "thousands": ".",
+    "lengthMenu": "Mostra _MENU_ elementi",
+    "loadingRecords": "Caricamento...",
+    "processing": "Elaborazione...",
+    "search": "Cerca:",
+    "zeroRecords": "Nessun elemento trovato",
+    "paginate": {
+        "first": "Primo",
+        "last": "Ultimo",
+        "next": "Successivo",
+        "previous": "Precedente"
+    }
+};
+
 $(document).ready(function() {
     // Inizializza Select2 per dispositivi
     $('#deviceIds').select2({

@@ -119,6 +119,47 @@ def format_datetime_filter(value, format='%d/%m/%Y %H:%M'):
     """Alias per datetime_format per compatibilità"""
     return datetime_format(value, format)
 
+@app.template_filter('datetime_to_timestamp')
+def datetime_to_timestamp(datetime_str):
+    """Converte datetime ISO string in timestamp Unix"""
+    if not datetime_str:
+        return 0
+    try:
+        if isinstance(datetime_str, str):
+            dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+        else:
+            dt = datetime_str
+        return dt.timestamp()
+    except:
+        return 0
+
+@app.template_filter('tojson')
+def to_json_filter(obj):
+    """Converte oggetto in JSON per JavaScript"""
+    import json
+    return json.dumps(obj, default=str)
+
+
+@app.template_filter('datetime_format')
+def datetime_format(value, format='%d/%m/%Y %H:%M'):
+    """Formatta datetime con gestione migliorata"""
+    if not value:
+        return 'N/A'
+
+    if isinstance(value, str):
+        try:
+            # Gestisci diversi formati ISO
+            if 'T' in value:
+                value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+            else:
+                value = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+        except:
+            return value
+
+    if isinstance(value, datetime):
+        return value.strftime(format)
+    return str(value)
+
 @app.route('/')
 def dashboard():
     """Dashboard principale"""
