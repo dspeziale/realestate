@@ -101,6 +101,24 @@ def inject_template_vars():
     }
 
 
+@app.template_filter('speed_format')
+def speed_format(speed_knots):
+    """Converte velocità da nodi a km/h e formatta"""
+    if speed_knots is None or speed_knots == 0:
+        return "0 km/h"
+
+    try:
+        speed_kmh = float(speed_knots) * 1.852
+        return f"{speed_kmh:.1f} km/h"
+    except (ValueError, TypeError):
+        return "0 km/h"
+
+
+@app.template_filter('format_datetime')
+def format_datetime_filter(value, format='%d/%m/%Y %H:%M'):
+    """Alias per datetime_format per compatibilità"""
+    return datetime_format(value, format)
+
 @app.route('/')
 def dashboard():
     """Dashboard principale"""

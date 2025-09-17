@@ -229,6 +229,10 @@ class DeviceManager:
     def __init__(self, client: TraccarClient):
         self.client = client
 
+    def get_device(self, device_id: int) -> Dict:
+        """Ottieni singolo dispositivo per ID"""
+        return self.client.get(f"/devices/{device_id}")
+
     def get_devices(self, all: bool = False, user_id: int = None,
                    device_id: Union[int, List[int]] = None,
                    unique_id: Union[str, List[str]] = None) -> List[Dict]:
@@ -278,7 +282,8 @@ class PositionManager:
         self.client = client
 
     def get_positions(self, device_id: int = None, from_time: datetime = None,
-                     to_time: datetime = None, position_id: Union[int, List[int]] = None) -> List[Dict]:
+                      to_time: datetime = None, position_id: Union[int, List[int]] = None,
+                      limit: int = None) -> List[Dict]:
         """Ottieni lista delle posizioni"""
         params = {}
         if device_id:
@@ -293,9 +298,10 @@ class PositionManager:
                     params[f'id'] = pid
             else:
                 params['id'] = position_id
+        if limit:
+            params['limit'] = limit  # AGGIUNTO: supporto limit
 
         return self.client.get("/positions", params)
-
 
 class CommandManager:
     """Gestione dei comandi"""
@@ -528,6 +534,16 @@ class ReportManager:
             params['to'] = to_time.isoformat() + 'Z'
 
         return self.client.get("/reports/route", params)
+
+    def get_trips(self, device_ids: List[int] = None, group_ids: List[int] = None,
+                  from_time: datetime = None, to_time: datetime = None) -> List[Dict]:
+        """Ottieni report dei viaggi (alias per get_trips_report)"""
+        return self.get_trips_report(device_ids, group_ids, from_time, to_time)
+
+    def get_summary(self, device_ids: List[int] = None, group_ids: List[int] = None,
+                    from_time: datetime = None, to_time: datetime = None) -> List[Dict]:
+        """Ottieni report riepilogativo (alias per get_summary_report)"""
+        return self.get_summary_report(device_ids, group_ids, from_time, to_time)
 
 
 class NotificationManager:
