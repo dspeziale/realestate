@@ -162,23 +162,27 @@
 
 {% block scripts %}
 <script>
-// ✅ VARIABILI GLOBALI - COME DASHBOARD
+// ===============================================
+// LIVE TRACKING MAP SYSTEM - VERSIONE CORRETTA
+// ===============================================
+
 let map = null;
 let deviceMarkers = {};
 let autoRefreshInterval = null;
 let isAutoRefreshEnabled = true;
+let mapInitialized = false;
 
 $(document).ready(function() {
-    console.log('🗺️ Inizializzazione Live Tracking Map');
+    console.log('🗺️ Inizializzazione Live Tracking Map System');
 
-    // ✅ CONTROLLO LEAFLET - COME DASHBOARD
+    // Controlla se Leaflet è caricato
     if (typeof L === 'undefined') {
-        console.error('❌ Leaflet non è caricato!');
-        showToast('Errore: libreria mappa non caricata', 'error');
+        console.error('❌ Leaflet non caricato!');
+        showError('Errore: libreria mappa non caricata');
         return;
     }
 
-    // ✅ INIZIALIZZAZIONE - COME DASHBOARD
+    // Inizializza mappa
     if ($('#live-map').length) {
         initializeMap();
     }
@@ -187,26 +191,47 @@ $(document).ready(function() {
     console.log('✅ Live Tracking inizializzato');
 });
 
-// ✅ INIZIALIZZAZIONE MAPPA - ESATTAMENTE COME DASHBOARD
 function initializeMap() {
-    console.log('🔧 Inizializzazione mappa Leaflet...');
+    try {
+        console.log('🔧 Inizializzazione mappa Live Tracking...');
 
-    // Inizializza mappa Leaflet
-    map = L.map('live-map').setView([41.9028, 12.4964], 6);
+        // Crea mappa Leaflet
+        map = L.map('live-map', {
+            zoomControl: true,
+            dragging: true,
+            scrollWheelZoom: true
+        }).setView([41.9028, 12.4964], 6);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+        // Tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18
+        }).addTo(map);
 
-    // Carica posizioni iniziali
-    loadDevicePositions();
+        mapInitialized = true;
+        console.log('✅ Mappa Live Tracking inizializzata');
 
-    console.log('✅ Mappa inizializzata');
+        // Carica posizioni iniziali
+        loadDevicePositions();
+
+        // Force resize
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
+
+    } catch (error) {
+        console.error('❌ Errore inizializzazione Live Tracking:', error);
+        showError('Errore inizializzazione: ' + error.message);
+    }
 }
 
-// ✅ CARICAMENTO POSIZIONI - ESATTAMENTE COME DASHBOARD (con fetch invece di $.get)
 function loadDevicePositions() {
-    console.log('🔍 Caricamento posizioni dispositivi...');
+    if (!mapInitialized) {
+        console.warn('⚠️ Mappa non inizializzata');
+        return;
+    }
+
+    console.log('🔍 Caricamento posizioni Live Tracking...');
 
     const deviceFilter = document.getElementById('device-filter')?.value || '';
     let url = '/api/devices/positions';
@@ -217,9 +242,8 @@ function loadDevicePositions() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            console.log('✅ Dati ricevuti:', data);
+            console.log('✅ Dati Live Tracking ricevuti:', data);
 
-            // ✅ GESTIONE DATI - COME DASHBOARD (data è già l'array)
             const devices = Array.isArray(data) ? data : (data.positions || []);
 
             if (devices.length === 0) {
@@ -229,7 +253,7 @@ function loadDevicePositions() {
                 return;
             }
 
-            // ✅ AGGIORNA MAPPA E PANNELLO
+            // Aggiorna tutto
             updateMapMarkers(devices);
             updateDevicesPanel(devices);
             updateDeviceStats(devices);
@@ -237,19 +261,18 @@ function loadDevicePositions() {
 
         })
         .catch(error => {
-            console.error('❌ Errore caricamento posizioni:', error);
-            showToast('Errore aggiornamento posizioni: ' + error.message, 'error');
+            console.error('❌ Errore caricamento Live Tracking:', error);
+            showError('Errore aggiornamento: ' + error.message);
         });
 }
 
-// ✅ AGGIORNAMENTO MARKERS - COME DASHBOARD
 function updateMapMarkers(devices) {
-    if (!map) {
-        console.warn('⚠️ Mappa non inizializzata');
+    if (!mapInitialized || !map) {
+        console.warn('⚠️ Mappa non disponibile');
         return;
     }
 
-    console.log('🔧 Aggiornamento markers per', devices.length, 'dispositivi');
+    console.log('🔧 Aggiornamento markers Live Tracking per', devices.length, 'dispositivi');
 
     // Pulisci marker esistenti
     Object.values(deviceMarkers).forEach(marker => {
@@ -259,221 +282,165 @@ function updateMapMarkers(devices) {
 
     let bounds = [];
 
-    // Aggiungi nuovi marker - ESATTAMENTE COME DASHBOARD
+    // Aggiungi nuovi marker
     devices.forEach(function(device) {
         if (device.position && device.position.latitude && device.position.longitude) {
             const lat = device.position.latitude;
             const lng = device.position.longitude;
 
-            // Crea marker - STILE SEMPLICE COME DASHBOARD
-            const marker = L.marker([lat, lng]).addTo(map);
+            // Crea marker moderno
+            const marker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    html: `<div class="modern-device-marker ${device.status || 'unknown'}">
+                             <i class="fas fa-mobile-alt"></i>
+                           </div>`,
+                    className: 'custom-div-icon',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                })
+            });
 
             const popupContent = `
-                <div>
-                    <h6><i class="fas fa-mobile-alt"></i> ${device.deviceName || device.name || 'Dispositivo ' + device.deviceId}</h6>
-                    <table class="table table-sm table-borderless">
-                        <tr><td><strong>Stato:</strong></td><td><span class="badge badge-${getStatusBadgeClass(device.status)}">${device.status}</span></td></tr>
-                        <tr><td><strong>Velocità:</strong></td><td>${(device.speed || 0).toFixed(1)} km/h</td></tr>
-                        <tr><td><strong>Coordinate:</strong></td><td>${lat.toFixed(6)}, ${lng.toFixed(6)}</td></tr>
-                    </table>
-                    <div class="text-center">
-                        <a href="/devices/${device.deviceId}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-eye"></i> Dettagli
-                        </a>
-                    </div>
+                <div class="modern-popup">
+                    <h6><i class="fas fa-mobile-alt"></i> ${device.deviceName || 'Dispositivo'}</h6>
+                    <p><strong>Stato:</strong> ${device.status || 'Unknown'}</p>
+                    <p><strong>Velocità:</strong> ${(device.speed || 0).toFixed(1)} km/h</p>
+                    <p><strong>Posizione:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
                 </div>
             `;
 
             marker.bindPopup(popupContent);
+            marker.addTo(map);
+
             deviceMarkers[device.deviceId] = marker;
             bounds.push([lat, lng]);
-
-            console.log(`✅ Marker aggiunto per ${device.deviceName || device.deviceId}`);
         }
     });
 
-    // Adatta vista se ci sono dispositivi - COME DASHBOARD
+    // Adatta vista
     if (bounds.length > 0) {
         if (bounds.length === 1) {
             map.setView(bounds[0], 15);
         } else {
             map.fitBounds(bounds, { padding: [20, 20] });
         }
-        console.log('🎯 Mappa centrata sui dispositivi');
     }
+
+    console.log(`✅ Aggiornati ${Object.keys(deviceMarkers).length} markers Live Tracking`);
 }
 
-// ✅ AGGIORNAMENTO PANNELLO DISPOSITIVI
 function updateDevicesPanel(devices) {
-    const container = document.getElementById('devices-list');
-
-    if (devices.length === 0) {
-        container.innerHTML = `
-            <div class="text-center p-4">
-                <i class="fas fa-search fa-2x text-muted mb-2"></i>
-                <p class="text-muted">Nessun dispositivo attivo trovato</p>
-            </div>
-        `;
-        return;
-    }
+    const devicesList = document.getElementById('devices-list');
+    if (!devicesList) return;
 
     let html = '';
     devices.forEach(device => {
-        const deviceName = device.deviceName || device.name || 'Dispositivo ' + device.deviceId;
-        const status = device.status || 'unknown';
-        const speed = device.speed || 0;
-
         html += `
-            <div class="device-info ${status}" data-device-id="${device.deviceId}">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <h6 class="mb-1">
-                            <i class="fas fa-mobile-alt mr-1"></i>
-                            ${deviceName}
-                        </h6>
-                        <p class="mb-1">
-                            <small class="text-muted">ID: ${device.uniqueId || device.deviceId}</small>
-                        </p>
-                        ${device.position ? `
-                        <p class="mb-1">
-                            <i class="fas fa-map-marker-alt mr-1"></i>
-                            <small>${device.position.latitude.toFixed(4)}, ${device.position.longitude.toFixed(4)}</small>
-                        </p>
-                        <p class="mb-1">
-                            <i class="fas fa-tachometer-alt mr-1"></i>
-                            <small>${speed.toFixed(1)} km/h</small>
-                        </p>
-                        ` : `
-                        <p class="mb-0 text-muted">
-                            <i class="fas fa-exclamation-circle mr-1"></i>
-                            <small>Nessuna posizione disponibile</small>
-                        </p>
-                        `}
+            <div class="list-group-item" onclick="focusDevice('${device.deviceId}')">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1">${device.deviceName || 'Dispositivo'}</h6>
+                        <small class="text-muted">${device.status || 'Unknown'}</small>
                     </div>
-                    <div class="text-right">
-                        <span class="badge badge-${getStatusBadgeClass(status)}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
-                        <div class="mt-1">
-                            <button class="btn btn-sm btn-outline-primary" onclick="centerOnDevice(${device.deviceId})" title="Centra su mappa">
-                                <i class="fas fa-crosshairs"></i>
-                            </button>
-                            <a href="/devices/${device.deviceId}" class="btn btn-sm btn-outline-info" title="Dettagli">
-                                <i class="fas fa-info-circle"></i>
-                            </a>
-                        </div>
-                    </div>
+                    <span class="badge badge-${getStatusBadgeClass(device.status)}">${(device.speed || 0).toFixed(1)} km/h</span>
                 </div>
             </div>
         `;
     });
 
-    container.innerHTML = html;
-}
-
-// ✅ STATISTICHE - COME DASHBOARD
-function getStatusBadgeClass(status) {
-    switch(status) {
-        case 'online': return 'success';
-        case 'moving': return 'primary';
-        case 'stopped': return 'info';
-        default: return 'secondary';
-    }
+    devicesList.innerHTML = html || '<div class="text-center p-3"><i class="fas fa-info-circle"></i> Nessun dispositivo</div>';
 }
 
 function updateDeviceStats(devices) {
-    const total = devices.length;
-    const online = devices.filter(d => ['online', 'moving', 'stopped'].includes(d.status)).length;
-    const moving = devices.filter(d => d.status === 'moving').length;
-    const stopped = devices.filter(d => d.status === 'stopped').length;
-
-    document.getElementById('total-devices').textContent = total;
-    document.getElementById('online-count').textContent = online;
-    document.getElementById('moving-count').textContent = moving;
-    document.getElementById('stopped-count').textContent = stopped;
+    // Aggiorna statistiche se necessario
+    const online = devices.filter(d => d.status === 'online' || d.status === 'moving').length;
+    console.log(`📊 Statistiche: ${online}/${devices.length} online`);
 }
 
 function updateLastUpdateTime() {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('it-IT');
-    const updateElement = document.getElementById('last-update');
-    if (updateElement) {
-        updateElement.textContent = timeStr;
+    const lastUpdateElement = document.getElementById('last-update');
+    if (lastUpdateElement) {
+        lastUpdateElement.textContent = new Date().toLocaleTimeString();
     }
 }
 
-// ✅ AUTO-REFRESH
 function startAutoRefresh() {
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
     }
 
-    autoRefreshInterval = setInterval(function() {
-        if (isAutoRefreshEnabled && !document.hidden) {
-            console.log('🔄 Auto-refresh posizioni dispositivi');
+    autoRefreshInterval = setInterval(() => {
+        if (isAutoRefreshEnabled && mapInitialized) {
             loadDevicePositions();
         }
-    }, 30000); // Ogni 30 secondi
+    }, 15000); // Ogni 15 secondi
+
+    console.log('📡 Auto-refresh attivato (15s)');
 }
 
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+    console.log('📡 Auto-refresh disattivato');
+}
+
+// Funzioni UI
 function toggleAutoRefresh() {
     isAutoRefreshEnabled = !isAutoRefreshEnabled;
-
     const button = document.getElementById('toggle-refresh');
-    const indicator = document.getElementById('auto-refresh-indicator');
 
     if (isAutoRefreshEnabled) {
         button.innerHTML = '<i class="fas fa-pause"></i> Pausa';
-        indicator.style.display = '';
-        indicator.classList.add('auto-refresh');
-        showToast('Auto-refresh attivato', 'success');
+        button.classList.remove('btn-success');
+        button.classList.add('btn-warning');
+        startAutoRefresh();
     } else {
-        button.innerHTML = '<i class="fas fa-play"></i> Riprendi';
-        indicator.style.display = 'none';
-        indicator.classList.remove('auto-refresh');
-        showToast('Auto-refresh in pausa', 'info');
+        button.innerHTML = '<i class="fas fa-play"></i> Avvia';
+        button.classList.remove('btn-warning');
+        button.classList.add('btn-success');
+        stopAutoRefresh();
     }
 }
 
 function refreshMap() {
-    console.log('🔄 Refresh manuale mappa');
-    showToast('Aggiornamento mappa...', 'info');
+    console.log('🔄 Refresh manuale Live Tracking');
     loadDevicePositions();
 }
 
 function centerMap() {
-    if (!map) return;
-
-    const bounds = Object.values(deviceMarkers).map(marker => marker.getLatLng());
-    if (bounds.length > 0) {
-        if (bounds.length === 1) {
-            map.setView(bounds[0], 15);
-        } else {
-            map.fitBounds(bounds, { padding: [20, 20] });
-        }
-        console.log('🎯 Mappa centrata');
-    } else {
-        map.setView([41.9028, 12.4964], 6);
+    if (mapInitialized && Object.keys(deviceMarkers).length > 0) {
+        const bounds = Object.values(deviceMarkers).map(marker => marker.getLatLng());
+        map.fitBounds(bounds, { padding: [20, 20] });
     }
 }
 
-function centerOnDevice(deviceId) {
+function focusDevice(deviceId) {
     const marker = deviceMarkers[deviceId];
-    if (marker && map) {
-        map.setView(marker.getLatLng(), 16);
+    if (marker && mapInitialized) {
+        map.setView(marker.getLatLng(), 15);
         marker.openPopup();
-        console.log('🎯 Centrato su dispositivo', deviceId);
     }
 }
 
-function filterDevices() {
-    console.log('🔍 Filtro dispositivi cambiato');
-    loadDevicePositions();
+function getStatusBadgeClass(status) {
+    const statusMap = {
+        'online': 'success',
+        'moving': 'primary',
+        'stopped': 'info',
+        'offline': 'secondary'
+    };
+    return statusMap[status] || 'secondary';
 }
 
-// Cleanup
-$(window).on('beforeunload', function() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
+function showError(message) {
+    if (typeof showToast === 'function') {
+        showToast(message, 'error');
+    } else {
+        console.error('Error:', message);
     }
-});
+}
+
 </script>
 {% endblock %}

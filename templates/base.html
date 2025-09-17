@@ -2,23 +2,55 @@
 <html lang="it">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}{% endblock %} - {{ app_name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}{% endblock %} - {{ app_name or 'Traccar Fleet Management' }}</title>
+
+    <!-- ============================================
+         CSS ASSETS - ORDINE CRITICO PER MAPPE
+         ============================================ -->
 
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+          crossorigin="anonymous">
 
     <!-- AdminLTE Theme -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css"
+          integrity="sha512-IuO+tczf4J43RzbCMEFggCWW5JuX78IrCJRFFBoQEXNvGI6gkUw4OjuwMidiS4Lm9Q2lILzpJwZuMWuSEeT9UQ=="
+          crossorigin="anonymous">
 
     <!-- DataTables Bootstrap 4 -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
 
-    <!-- Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <!-- ⚠️ CRITICO: Leaflet CSS - DEVE essere caricato PRIMA di custom.css -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="anonymous">
 
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <!-- Select2 per dropdowns avanzati -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap4-theme@1.0.0/dist/select2-bootstrap4.min.css" rel="stylesheet">
+
+    <!-- ✅ Custom Styles - DOPO tutte le altre librerie -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}?v={{ current_timestamp or '1.0' }}">
+
+    <!-- ============================================
+         META TAGS E SEO
+         ============================================ -->
+    <meta name="description" content="{% block meta_description %}Sistema di gestione flotta GPS Traccar{% endblock %}">
+    <meta name="keywords" content="GPS, tracking, flotta, veicoli, traccar, gestione">
+    <meta name="author" content="Traccar Fleet Management">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+
+    <!-- PWA Support -->
+    <meta name="theme-color" content="#007bff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
     {% block head %}{% endblock %}
 </head>
@@ -26,27 +58,47 @@
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
 
-    <!-- Navbar -->
+    <!-- ============================================
+         NAVIGATION BAR
+         ============================================ -->
     <nav class="main-header navbar navbar-expand navbar-white navbar-light">
         <!-- Left navbar links -->
         <ul class="navbar-nav">
             <li class="nav-item">
-                <a class="nav-link" data-widget="pushmenu" href="#" role="button">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button" title="Toggle Navigation">
                     <i class="fas fa-bars"></i>
+                </a>
+            </li>
+            <li class="nav-item d-none d-sm-inline-block">
+                <a href="{{ url_for('dashboard') }}" class="nav-link">
+                    <i class="fas fa-home"></i> Home
                 </a>
             </li>
         </ul>
 
         <!-- Right navbar links -->
         <ul class="navbar-nav ml-auto">
+            <!-- Real-time Status -->
+            <li class="nav-item">
+                <span class="nav-link">
+                    <span id="connection-status" class="badge badge-success">
+                        <i class="fas fa-wifi"></i> Online
+                    </span>
+                </span>
+            </li>
+
+            <!-- User Dropdown -->
             <li class="nav-item dropdown">
-                <a class="nav-link" data-toggle="dropdown" href="#">
-                    <i class="fas fa-user"></i>
-                    {{ current_user }}
+                <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="d-none d-md-inline">{{ session.user_name or session.user_email or 'Utente' }}</span>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right">
                     <a href="{{ url_for('profile') }}" class="dropdown-item">
                         <i class="fas fa-user-cog mr-2"></i> Profilo
+                    </a>
+                    <a href="{{ url_for('settings') if url_for('settings') else '#' }}" class="dropdown-item">
+                        <i class="fas fa-cogs mr-2"></i> Impostazioni
                     </a>
                     <div class="dropdown-divider"></div>
                     <a href="{{ url_for('logout') }}" class="dropdown-item">
@@ -54,23 +106,50 @@
                     </a>
                 </div>
             </li>
+
+            <!-- Fullscreen Toggle -->
+            <li class="nav-item">
+                <a class="nav-link" data-widget="fullscreen" href="#" role="button" title="Toggle Fullscreen">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                </a>
+            </li>
         </ul>
     </nav>
 
-    <!-- Main Sidebar -->
+    <!-- ============================================
+         MAIN SIDEBAR
+         ============================================ -->
     <aside class="main-sidebar sidebar-dark-primary elevation-4">
         <!-- Brand Logo -->
         <a href="{{ url_for('dashboard') }}" class="brand-link">
-            <i class="fas fa-car-side brand-image"></i>
-            <span class="brand-text font-weight-light">{{ app_name }}</span>
+            <i class="fas fa-satellite-dish brand-image img-circle elevation-3" style="opacity: .8; margin-left: 10px;"></i>
+            <span class="brand-text font-weight-light">{{ app_name or 'Traccar Fleet' }}</span>
         </a>
 
         <!-- Sidebar -->
         <div class="sidebar">
+            <!-- User Panel -->
+            <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                <div class="image">
+                    <i class="fas fa-user-circle fa-2x text-white" style="opacity: 0.8;"></i>
+                </div>
+                <div class="info">
+                    <a href="{{ url_for('profile') }}" class="d-block">{{ session.user_name or 'Utente' }}</a>
+                    <small class="text-muted">
+                        {% if session.is_admin %}
+                            <i class="fas fa-crown text-warning"></i> Admin
+                        {% else %}
+                            <i class="fas fa-user text-info"></i> User
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+
             <!-- Sidebar Menu -->
             <nav class="mt-2">
-                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
+                    <!-- Dashboard -->
                     <li class="nav-item">
                         <a href="{{ url_for('dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'dashboard' }}">
                             <i class="nav-icon fas fa-tachometer-alt"></i>
@@ -78,6 +157,7 @@
                         </a>
                     </li>
 
+                    <!-- Dispositivi -->
                     <li class="nav-item {{ 'menu-open' if request.blueprint == 'devices' }}">
                         <a href="#" class="nav-link {{ 'active' if request.blueprint == 'devices' }}">
                             <i class="nav-icon fas fa-mobile-alt"></i>
@@ -87,18 +167,25 @@
                             <li class="nav-item">
                                 <a href="{{ url_for('devices.list_devices') }}" class="nav-link {{ 'active' if request.endpoint == 'devices.list_devices' }}">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Lista Dispositivi</p>
+                                    <p>Tutti i Dispositivi</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href="{{ url_for('devices.add_device') }}" class="nav-link {{ 'active' if request.endpoint == 'devices.add_device' }}">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="far fa-plus-square nav-icon"></i>
                                     <p>Aggiungi Dispositivo</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ url_for('devices.device_groups') if url_for('devices.device_groups') else '#' }}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Gruppi</p>
                                 </a>
                             </li>
                         </ul>
                     </li>
 
+                    <!-- Posizioni -->
                     <li class="nav-item {{ 'menu-open' if request.blueprint == 'positions' }}">
                         <a href="#" class="nav-link {{ 'active' if request.blueprint == 'positions' }}">
                             <i class="nav-icon fas fa-map-marker-alt"></i>
@@ -107,19 +194,20 @@
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
                                 <a href="{{ url_for('positions.live_tracking') }}" class="nav-link {{ 'active' if request.endpoint == 'positions.live_tracking' }}">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="far fa-dot-circle nav-icon text-success"></i>
                                     <p>Tracciamento Live</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href="{{ url_for('positions.history') }}" class="nav-link {{ 'active' if request.endpoint == 'positions.history' }}">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="far fa-clock nav-icon"></i>
                                     <p>Storico Posizioni</p>
                                 </a>
                             </li>
                         </ul>
                     </li>
 
+                    <!-- Report -->
                     <li class="nav-item {{ 'menu-open' if request.blueprint == 'reports' }}">
                         <a href="#" class="nav-link {{ 'active' if request.blueprint == 'reports' }}">
                             <i class="nav-icon fas fa-chart-bar"></i>
@@ -127,7 +215,7 @@
                         </a>
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
-                                <a href="{{ url_for('reports.summary') }}" class="nav-link {{ 'active' if request.endpoint == 'reports.summary' }}">
+                                <a href="{{ url_for('reports.summary') if url_for('reports.summary') else '#' }}" class="nav-link {{ 'active' if request.endpoint == 'reports.summary' }}">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Riepilogo</p>
                                 </a>
@@ -141,19 +229,40 @@
                         </ul>
                     </li>
 
+                    <!-- Sezione Admin -->
+                    {% if session.is_admin %}
+                    <li class="nav-header">AMMINISTRAZIONE</li>
+                    <li class="nav-item">
+                        <a href="{{ url_for('admin.users') if url_for('admin.users') else '#' }}" class="nav-link">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>Gestione Utenti</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ url_for('admin.settings') if url_for('admin.settings') else '#' }}" class="nav-link">
+                            <i class="nav-icon fas fa-cogs"></i>
+                            <p>Impostazioni Sistema</p>
+                        </a>
+                    </li>
+                    {% endif %}
+
                 </ul>
             </nav>
         </div>
     </aside>
 
-    <!-- Content Wrapper -->
+    <!-- ============================================
+         CONTENT WRAPPER
+         ============================================ -->
     <div class="content-wrapper">
-        <!-- Content Header -->
+        <!-- Content Header (Page header) -->
         <div class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1 class="m-0">{% block page_title %}{% endblock %}</h1>
+                        <h1 class="m-0">
+                            {% block page_title %}Dashboard{% endblock %}
+                        </h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
@@ -172,9 +281,10 @@
                 <div class="container-fluid">
                     {% for category, message in messages %}
                         <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'warning' else 'info-circle' if category == 'info' else 'check' if category == 'success' else 'exclamation-circle' }}"></i>
                             {{ message }}
-                            <button type="button" class="close" data-dismiss="alert">
-                                <span>&times;</span>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
                     {% endfor %}
@@ -184,92 +294,209 @@
 
         <!-- Main content -->
         <section class="content">
-            {% block content %}{% endblock %}
+            <div class="container-fluid">
+                {% block content %}{% endblock %}
+            </div>
         </section>
     </div>
 
-    <!-- Footer -->
+    <!-- ============================================
+         FOOTER
+         ============================================ -->
     <footer class="main-footer">
-        <strong>© {{ current_year }} <a href="#">{{ app_name }}</a>.</strong>
+        <strong>© {{ current_year or 2025 }} <a href="#">{{ app_name or 'Traccar Fleet Management' }}</a>.</strong>
         Tutti i diritti riservati.
         <div class="float-right d-none d-sm-inline-block">
-            <b>Versione</b> {{ app_version }}
+            <b>Versione</b> {{ app_version or '1.0.0' }}
         </div>
     </footer>
+
+    <!-- Control Sidebar -->
+    <aside class="control-sidebar control-sidebar-dark">
+        <!-- Control sidebar content goes here -->
+    </aside>
 </div>
 
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- ============================================
+     JAVASCRIPT ASSETS - ORDINE CRITICO
+     ============================================ -->
 
-<!-- Bootstrap 4 -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- ✅ CORE LIBRARIES - Caricamento in ordine specifico -->
 
-<!-- AdminLTE -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+<!-- 1. jQuery PRIMO - Richiesto da tutti gli altri -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+        crossorigin="anonymous"></script>
 
-<!-- DataTables -->
+<!-- 2. Bootstrap SECONDO - Richiede jQuery -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha512-ioc4is/L/l8SzV7nM9G3hkWNd6Q1LIohI8eLMNJ8k7/y5M8lHF5M6lmH0lRRZ6L3Vt4qD3bD7fSa7JChtD7Eg=="
+        crossorigin="anonymous"></script>
+
+<!-- 3. AdminLTE TERZO - Richiede jQuery e Bootstrap -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"
+        integrity="sha512-KBeR1NhClUySj9xBB0+KRqYLPkM6VvXiiWaSz/8LCQNdRpUm38SWUrj0ccNDNSkwCD9qPA4KobLliG26yPppJA=="
+        crossorigin="anonymous"></script>
+
+<!-- ✅ DATA PROCESSING LIBRARIES -->
+
+<!-- DataTables - Per tabelle avanzate -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap4.min.js"></script>
 
-<!-- Leaflet -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Select2 - Per dropdowns avanzati -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- ⚠️ CRITICO: Leaflet MAPS - Caricamento garantito -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin="anonymous"></script>
 
-<!-- ✅ APP.JS PRINCIPALE - DEVE ESSERE CARICATO PRIMA DEGLI SCRIPT SPECIFICI -->
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<!-- ✅ UI ENHANCEMENT LIBRARIES -->
 
-<!-- ✅ SCRIPT SPECIFICI DELLA PAGINA -->
+<!-- SweetAlert2 - Per alert moderne -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"
+        integrity="sha256-l05K2B1PnFT1oW3UlaMXDyuZWn4bhwqIhHBLf3lnP5k="
+        crossorigin="anonymous"></script>
+
+<!-- Chart.js - Per grafici (se necessario) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"
+        integrity="sha512-ElRFoEQdI5Ht6kZvyzXhYG9NqjtkmlkfYk0wr6wHxU9JEHakS7UJZNeml5ALk+8IKlU6jDgMabC3vkumRokgJA=="
+        crossorigin="anonymous"></script>
+
+<!-- ✅ APPLICATION SCRIPTS - Caricamento controllato -->
+
+<!-- App.js Principale - PRIMA dei template scripts -->
+<script src="{{ url_for('static', filename='js/app.js') }}?v={{ current_timestamp or '1.0' }}"></script>
+
+<!-- ✅ TEMPLATE-SPECIFIC SCRIPTS - ULTIMI -->
 {% block scripts %}{% endblock %}
 
+<!-- ============================================
+     GLOBAL INITIALIZATION SCRIPT
+     ============================================ -->
 <script>
-// ✅ SCRIPT DI BASE SICURO - NON INIZIALIZZA AUTOMATICAMENTE DATATABLES
+// ===============================================
+// GLOBAL APP INITIALIZATION - SICURO E ROBUSTO
+// ===============================================
+
+// Variabili globali controllate
+window.TraccarFleet = window.TraccarFleet || {};
+window.TraccarFleet.config = {
+    debug: {{ 'true' if config.DEBUG else 'false' }},
+    apiBaseUrl: '{{ url_for("api.api_root") if url_for("api.api_root") else "/api" }}',
+    mapDefaultCenter: [41.9028, 12.4964],
+    mapDefaultZoom: 6
+};
+
 $(document).ready(function() {
-    // ✅ SOLO INIZIALIZZAZIONE DELLE FUNZIONALITÀ BASE
+    console.log('🚀 Traccar Fleet - Inizializzazione globale');
+
+    // ✅ CONTROLLI LIBRERIE CRITICHE
+    const libraryChecks = {
+        'jQuery': typeof $ !== 'undefined',
+        'Bootstrap': typeof bootstrap !== 'undefined' || typeof $.fn.modal !== 'undefined',
+        'Leaflet': typeof L !== 'undefined',
+        'AdminLTE': typeof AdminLTE !== 'undefined'
+    };
+
+    console.log('📚 Librerie caricate:', libraryChecks);
+
+    // Verifica librerie critiche mancanti
+    const missing = Object.entries(libraryChecks)
+        .filter(([name, loaded]) => !loaded)
+        .map(([name]) => name);
+
+    if (missing.length > 0) {
+        console.error('❌ Librerie mancanti:', missing);
+
+        // Mostra errore utente solo per Leaflet (critico per mappe)
+        if (missing.includes('Leaflet')) {
+            setTimeout(() => {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Errore Caricamento',
+                        text: 'Errore caricamento libreria mappe. Ricarica la pagina.',
+                        confirmButtonText: 'Ricarica',
+                        allowOutsideClick: false
+                    }).then(() => location.reload());
+                } else {
+                    alert('Errore caricamento mappe. Ricarica la pagina.');
+                    location.reload();
+                }
+            }, 1000);
+        }
+    }
+
+    // ✅ INIZIALIZZAZIONE COMPONENTI GLOBALI
 
     // Auto-hide alerts dopo 5 secondi
     setTimeout(function() {
-        $('.alert:not(.alert-permanent)').fadeOut();
+        $('.alert:not(.alert-permanent)').fadeOut('slow');
     }, 5000);
 
-    // ✅ GESTIONE TOOLTIPS GLOBALI
+    // Tooltips globali
     if (typeof $.fn.tooltip !== 'undefined') {
-        $(document).on('mouseenter', '[data-toggle="tooltip"]:not([data-original-title])', function() {
-            $(this).tooltip('show');
+        $('[data-toggle="tooltip"]').tooltip({
+            trigger: 'hover',
+            delay: { show: 500, hide: 100 }
         });
     }
+
+    // Connection status monitoring
+    monitorConnectionStatus();
+
+    // ✅ GESTIONE FULLSCREEN
+    $('[data-widget="fullscreen"]').click(function(e) {
+        e.preventDefault();
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else {
+            document.documentElement.requestFullscreen();
+        }
+    });
+
+    console.log('✅ Inizializzazione globale completata');
 });
 
-// ✅ FUNZIONE TOAST GLOBALE SICURA
-window.showToast = function(message, type = 'info') {
-    if (typeof TraccarFleet !== 'undefined' && TraccarFleet.showToast) {
-        TraccarFleet.showToast(message, type);
-    } else if (typeof Swal !== 'undefined') {
+// ✅ FUNZIONI UTILITY GLOBALI
+
+// Toast notifications sicure
+window.showToast = function(message, type = 'info', duration = 3000) {
+    console.log(`Toast ${type}: ${message}`);
+
+    if (typeof Swal !== 'undefined') {
         Swal.fire({
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
-            timer: 3000,
+            timer: duration,
             timerProgressBar: true,
-            icon: type,
-            title: message
+            icon: type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info',
+            title: message,
+            customClass: {
+                popup: 'colored-toast'
+            }
         });
     } else {
-        console.log(`Toast ${type}: ${message}`);
+        // Fallback - Alert nativo
+        alert(`${type.toUpperCase()}: ${message}`);
     }
 };
 
-// ✅ FUNZIONE HELPER PER CONFERME
-window.confirmAction = function(message, callback) {
+// Conferme azioni sicure
+window.confirmAction = function(message, callback, title = 'Conferma Azione') {
     if (typeof Swal !== 'undefined') {
         Swal.fire({
-            title: 'Conferma Azione',
+            title: title,
             text: message,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
+            confirmButtonColor: '#007bff',
+            cancelButtonColor: '#6c757d',
             confirmButtonText: 'Sì, continua',
             cancelButtonText: 'Annulla'
         }).then((result) => {
@@ -278,11 +505,53 @@ window.confirmAction = function(message, callback) {
             }
         });
     } else {
+        // Fallback - Confirm nativo
         if (confirm(message) && typeof callback === 'function') {
             callback();
         }
     }
 };
+
+// Monitor connessione
+function monitorConnectionStatus() {
+    const statusElement = document.getElementById('connection-status');
+    if (!statusElement) return;
+
+    function updateStatus() {
+        if (navigator.onLine) {
+            statusElement.className = 'badge badge-success';
+            statusElement.innerHTML = '<i class="fas fa-wifi"></i> Online';
+        } else {
+            statusElement.className = 'badge badge-danger';
+            statusElement.innerHTML = '<i class="fas fa-wifi"></i> Offline';
+        }
+    }
+
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    updateStatus();
+}
+
+// Error handling globale
+window.addEventListener('error', function(e) {
+    console.error('Global Error:', e.error);
+
+    // Solo per errori JavaScript critici in produzione
+    if (!window.TraccarFleet.config.debug && e.error.stack) {
+        showToast('Si è verificato un errore. Ricarica la pagina se il problema persiste.', 'error', 5000);
+    }
+});
+
+// Unhandled promise rejection
+window.addEventListener('unhandledrejection', function(e) {
+    console.error('Unhandled Promise Rejection:', e.reason);
+    e.preventDefault();
+
+    if (!window.TraccarFleet.config.debug) {
+        showToast('Errore di connessione. Verifica la tua connessione internet.', 'warning', 5000);
+    }
+});
+
 </script>
 
 </body>

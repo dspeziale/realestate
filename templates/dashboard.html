@@ -395,151 +395,324 @@
 {% endblock %}
 
 {% block scripts %}
+
 <script>
+// ===============================================
+// DASHBOARD MAP SYSTEM - VERSIONE CORRETTA
+// ===============================================
+
 let map = null;
 let deviceMarkers = {};
+let mapInitialized = false;
 
 $(document).ready(function() {
-    console.log('🚀 Dashboard inizializzazione');
+    console.log('🚀 Inizializzazione Dashboard Map System');
 
-    // Inizializza mappa se presente
-    if ($('#live-map').length) {
-        initializeMap();
+    // Controlla se Leaflet è caricato
+    if (typeof L === 'undefined') {
+        console.error('❌ Leaflet non caricato! Controlla base.html');
+        showError('Errore: libreria mappa non caricata');
+        return;
     }
 
-    // Auto-refresh ogni 30 secondi
-    setInterval(refreshDashboard, 30000);
+    // Inizializza mappa se il container esiste
+    if ($('#live-map').length > 0) {
+        console.log('📍 Container mappa trovato, inizializzazione...');
+        initializeMap();
+    } else {
+        console.log('ℹ️ Container mappa non presente in questa pagina');
+    }
 
-    console.log('✅ Dashboard caricata con successo');
+    // Auto-refresh ogni 30 secondi solo se la mappa è attiva
+    if (mapInitialized) {
+        setInterval(refreshDashboard, 30000);
+    }
+
+    console.log('✅ Dashboard inizializzata con successo');
 });
 
 function initializeMap() {
-    // Inizializza mappa Leaflet
-    map = L.map('live-map').setView([41.9028, 12.4964], 6);
+    try {
+        console.log('🗺️ Creazione mappa Leaflet...');
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+        // Crea mappa centrata sull'Italia
+        map = L.map('live-map', {
+            zoomControl: true,
+            dragging: true,
+            doubleClickZoom: true,
+            scrollWheelZoom: true
+        }).setView([41.9028, 12.4964], 6);
 
-    loadDevicePositions();
-}
+        // Aggiungi tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18
+        }).addTo(map);
 
-function loadDevicePositions() {
-    fetch('/api/devices/positions')
-        .then(response => response.json())
-        .then(data => {
-            if (data.length === 0) {
-                console.log('Nessuna posizione dispositivo disponibile');
-                return;
-            }
+        mapInitialized = true;
+        console.log('✅ Mappa creata con successo');
 
-            // Pulisci marker esistenti
-            Object.values(deviceMarkers).forEach(marker => {
-                map.removeLayer(marker);
-            });
-            deviceMarkers = {};
+        // Carica posizioni dispositivi
+        loadDevicePositions();
 
-            let bounds = [];
+        // Force resize dopo inizializzazione
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
 
-            // Aggiungi nuovi marker
-            data.forEach(function(device) {
-                if (device.position && device.position.latitude && device.position.longitude) {
-                    const lat = device.position.latitude;
-                    const lng = device.position.longitude;
-
-                    // Crea marker
-                    const marker = L.marker([lat, lng]).addTo(map);
-
-                    const popupContent = `
-                        <div>
-                            <h6><i class="fas fa-mobile-alt"></i> ${device.deviceName}</h6>
-                            <table class="table table-sm table-borderless">
-                                <tr><td><strong>Stato:</strong></td><td><span class="badge badge-${getStatusBadgeClass(device.status)}">${device.status}</span></td></tr>
-                                <tr><td><strong>Velocità:</strong></td><td>${device.speed.toFixed(1)} km/h</td></tr>
-                                <tr><td><strong>Coordinate:</strong></td><td>${lat.toFixed(6)}, ${lng.toFixed(6)}</td></tr>
-                            </table>
-                            <div class="text-center">
-                                <a href="/devices/${device.deviceId}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-eye"></i> Dettagli
-                                </a>
-                            </div>
-                        </div>
-                    `;
-
-                    marker.bindPopup(popupContent);
-                    deviceMarkers[device.deviceId] = marker;
-                    bounds.push([lat, lng]);
-                }
-            });
-
-            // Adatta vista se ci sono dispositivi
-            if (bounds.length > 0) {
-                if (bounds.length === 1) {
-                    map.setView(bounds[0], 15);
-                } else {
-                    map.fitBounds(bounds, { padding: [20, 20] });
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Errore caricamento posizioni:', error);
-        });
-}
-
-function getStatusBadgeClass(status) {
-    switch(status) {
-        case 'online': return 'success';
-        case 'moving': return 'primary';
-        case 'stopped': return 'info';
-        default: return 'secondary';
+    } catch (error) {
+        console.error('❌ Errore inizializzazione mappa:', error);
+        showError('Errore inizializzazione mappa: ' + error.message);
     }
 }
 
+function loadDevicePositions() {
+    if (!mapInitialized) {
+        console.warn('⚠️ Mappa non inizializzata, skip caricamento posizioni');
+        return;
+    }
+
+    console.log('🔍 Caricamento posizioni dispositivi...');
+
+    fetch('/api/devices/positions')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('✅ Ricevuti dati:', data);
+
+            // Gestisci diversi formati di risposta
+            const devices = Array.isArray(data) ? data : (data.positions || data.devices || []);
+
+            if (devices.length === 0) {
+                console.log('ℹ️ Nessuna posizione dispositivo disponibile');
+                showNoDevicesMessage();
+                return;
+            }
+
+            updateMapMarkers(devices);
+            console.log(`📍 Aggiornati ${devices.length} dispositivi sulla mappa`);
+        })
+        .catch(error => {
+            console.error('❌ Errore caricamento posizioni:', error);
+            showError('Errore caricamento posizioni: ' + error.message);
+        });
+}
+
+function updateMapMarkers(devices) {
+    if (!mapInitialized || !map) {
+        console.warn('⚠️ Mappa non disponibile per aggiornamento markers');
+        return;
+    }
+
+    console.log('🔧 Aggiornamento markers...');
+
+    // Pulisci markers esistenti
+    Object.values(deviceMarkers).forEach(marker => {
+        try {
+            map.removeLayer(marker);
+        } catch (e) {
+            console.warn('Errore rimozione marker:', e);
+        }
+    });
+    deviceMarkers = {};
+
+    let bounds = [];
+    let validDevices = 0;
+
+    // Aggiungi nuovi markers
+    devices.forEach(function(device, index) {
+        try {
+            // Diverse strutture dati possibili
+            const position = device.position || device;
+            const lat = position.latitude || position.lat;
+            const lng = position.longitude || position.lng || position.lon;
+
+            if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                console.warn('⚠️ Posizione non valida per dispositivo:', device);
+                return;
+            }
+
+            // Crea marker con stile moderno
+            const marker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    html: `<div class="modern-device-marker ${device.status || 'unknown'}">
+                             <i class="fas fa-mobile-alt"></i>
+                           </div>`,
+                    className: 'custom-div-icon',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                })
+            });
+
+            // Popup informazioni
+            const deviceName = device.deviceName || device.name || `Dispositivo ${index + 1}`;
+            const status = device.status || 'unknown';
+            const speed = (device.speed || 0).toFixed(1);
+
+            const popupContent = `
+                <div class="modern-popup">
+                    <h6><i class="fas fa-mobile-alt"></i> ${deviceName}</h6>
+                    <p><strong>Stato:</strong> <span class="badge badge-${getStatusBadgeClass(status)}">${status}</span></p>
+                    <p><strong>Velocità:</strong> ${speed} km/h</p>
+                    <p><strong>Coordinate:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                    ${device.deviceId ? `<a href="/devices/${device.deviceId}" class="btn btn-sm btn-primary">Dettagli</a>` : ''}
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+            marker.addTo(map);
+
+            deviceMarkers[device.deviceId || index] = marker;
+            bounds.push([lat, lng]);
+            validDevices++;
+
+        } catch (error) {
+            console.error('❌ Errore creazione marker per dispositivo:', device, error);
+        }
+    });
+
+    // Adatta vista se ci sono dispositivi validi
+    if (bounds.length > 0) {
+        try {
+            if (bounds.length === 1) {
+                map.setView(bounds[0], 15);
+            } else {
+                map.fitBounds(bounds, {
+                    padding: [20, 20],
+                    maxZoom: 16
+                });
+            }
+        } catch (error) {
+            console.error('❌ Errore fit bounds:', error);
+        }
+    }
+
+    console.log(`✅ Aggiornati ${validDevices} markers validi di ${devices.length} dispositivi`);
+}
+
+function getStatusBadgeClass(status) {
+    const statusMap = {
+        'online': 'success',
+        'moving': 'primary',
+        'stopped': 'info',
+        'offline': 'secondary',
+        'unknown': 'secondary'
+    };
+    return statusMap[status] || 'secondary';
+}
+
+function showNoDevicesMessage() {
+    if (mapInitialized && map) {
+        L.popup()
+            .setLatLng([41.9028, 12.4964])
+            .setContent(`
+                <div class="text-center p-2">
+                    <i class="fas fa-info-circle text-primary mb-2" style="font-size: 24px;"></i>
+                    <p class="mb-0">Nessun dispositivo attivo</p>
+                    <small class="text-muted">Aggiungi dispositivi per visualizzarli sulla mappa</small>
+                </div>
+            `)
+            .openOn(map);
+    }
+}
+
+function showError(message) {
+    if (typeof showToast === 'function') {
+        showToast(message, 'error');
+    } else {
+        console.error('Error:', message);
+        // Fallback: show in map container
+        const mapContainer = document.getElementById('live-map');
+        if (mapContainer) {
+            mapContainer.innerHTML = `
+                <div class="d-flex align-items-center justify-content-center h-100">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+                        <p class="text-muted">${message}</p>
+                        <button onclick="location.reload()" class="btn btn-sm btn-primary">Ricarica</button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
+// Funzioni pubbliche per controlli UI
 function refreshMap() {
+    console.log('🔄 Refresh mappa manuale');
     if (typeof showToast === 'function') {
         showToast('Aggiornamento mappa...', 'info');
     }
     loadDevicePositions();
 }
 
+function centerMap() {
+    if (mapInitialized && map && Object.keys(deviceMarkers).length > 0) {
+        const bounds = Object.values(deviceMarkers).map(marker => marker.getLatLng());
+        map.fitBounds(bounds, { padding: [20, 20] });
+    }
+}
+
 function focusMapOnPosition(lat, lng) {
-    if (map && lat && lng) {
+    if (mapInitialized && map && lat && lng) {
         map.setView([lat, lng], 15);
 
         // Marker temporaneo
         const tempMarker = L.marker([lat, lng], {
             icon: L.divIcon({
-                html: '<div style="background: #ffc107; border: 2px solid white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-star" style="font-size: 10px; color: white;"></i></div>',
-                className: '',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
+                html: '<div style="background: #ffc107; border: 3px solid white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-star" style="font-size: 12px; color: white;"></i></div>',
+                className: 'custom-div-icon',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
             })
         }).addTo(map);
 
         // Rimuovi dopo 3 secondi
         setTimeout(() => {
-            map.removeLayer(tempMarker);
+            if (map && map.hasLayer(tempMarker)) {
+                map.removeLayer(tempMarker);
+            }
         }, 3000);
     }
 }
 
 function refreshDashboard() {
+    if (!mapInitialized) {
+        return;
+    }
+
     fetch('/api/dashboard/stats')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 // Aggiorna contatori se necessario
-                document.querySelector('.info-box-number').textContent = data.total || '0';
+                const counters = document.querySelectorAll('.info-box-number');
+                if (counters.length > 0 && data.total !== undefined) {
+                    counters[0].textContent = data.total;
+                }
 
                 // Ricarica mappa
-                if (map) {
-                    loadDevicePositions();
-                }
+                loadDevicePositions();
             }
         })
         .catch(error => {
-            console.error('Errore aggiornamento dashboard:', error);
+            console.error('❌ Errore refresh dashboard:', error);
         });
 }
+
+// Debug helpers
+window.debugMap = function() {
+    console.log('🔧 DEBUG MAP STATE:', {
+        mapInitialized,
+        mapObject: map,
+        markersCount: Object.keys(deviceMarkers).length,
+        leafletLoaded: typeof L !== 'undefined'
+    });
+};
+
 </script>
 {% endblock %}

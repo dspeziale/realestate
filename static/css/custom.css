@@ -437,33 +437,104 @@ body {
     margin: 0;
 }
 
-/* ============================================
-   MAPPE
+//* ============================================
+   SISTEMA MAPPE MODERNO - VERSIONE CORRETTA
    ============================================ */
-.map-container {
-    border-radius: var(--border-radius);
+
+/* Map Container - ALTEZZA OBBLIGATORIA */
+.map-container,
+#live-map,
+#historyMap,
+#deviceMap {
+    height: 500px !important;
+    min-height: 400px !important;
+    width: 100% !important;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: var(--box-shadow);
-    background-color: #f8f9fa;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    background: #f8f9fa;
 }
 
 .leaflet-container {
-    border-radius: var(--border-radius);
+    height: 100% !important;
+    width: 100% !important;
+    border-radius: inherit;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.custom-div-icon {
-    background: none;
-    border: none;
+/* Device Markers Moderni */
+.modern-device-marker {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: 3px solid white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
+.modern-device-marker:hover {
+    transform: scale(1.1);
+}
+
+.modern-device-marker.online {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
+
+.modern-device-marker.moving {
+    background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%);
+    animation: pulse 2s infinite;
+}
+
+.modern-device-marker.stopped {
+    background: linear-gradient(135deg, #ffc107 0%, #d39e00 100%);
+}
+
+.modern-device-marker.offline {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Custom Popup */
 .leaflet-popup-content-wrapper {
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow-lg);
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
-.leaflet-popup-content {
-    margin: 0.75rem;
-    line-height: 1.4;
+.modern-popup {
+    padding: 15px;
+    min-width: 250px;
+}
+
+.modern-popup h6 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .map-container,
+    #live-map,
+    #historyMap,
+    #deviceMap {
+        height: 350px !important;
+    }
 }
 
 /* ============================================
