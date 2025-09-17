@@ -12,29 +12,10 @@
 
 {% block head_css %}
 <style>
-.device-marker {
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    border: 3px solid white;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-
 .device-online { background-color: #28a745; }
 .device-offline { background-color: #6c757d; }
 .device-moving { background-color: #007bff; }
 .device-stopped { background-color: #17a2b8; }
-
-.map-controls {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 1000;
-    background: white;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
 
 .device-info {
     background: white;
@@ -50,10 +31,10 @@
 .device-info.moving { border-left-color: #007bff; }
 .device-info.stopped { border-left-color: #17a2b8; }
 
+/* ✅ MAPPA STYLE - ESATTAMENTE COME DASHBOARD */
 #live-map {
-    height: 600px;
+    height: 400px;
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .auto-refresh {
@@ -90,7 +71,7 @@
             </span>
             <div class="info-box-content">
                 <span class="info-box-text">Online</span>
-                <span class="info-box-number" id="online-count">{{ device_positions|selectattr('status', 'equalto', 'online')|list|length + device_positions|selectattr('status', 'equalto', 'moving')|list|length + device_positions|selectattr('status', 'equalto', 'stopped')|list|length }}</span>
+                <span class="info-box-number" id="online-count">0</span>
             </div>
         </div>
     </div>
@@ -101,7 +82,7 @@
             </span>
             <div class="info-box-content">
                 <span class="info-box-text">In Movimento</span>
-                <span class="info-box-number" id="moving-count">{{ device_positions|selectattr('status', 'equalto', 'moving')|list|length }}</span>
+                <span class="info-box-number" id="moving-count">0</span>
             </div>
         </div>
     </div>
@@ -112,7 +93,7 @@
             </span>
             <div class="info-box-content">
                 <span class="info-box-text">Fermi</span>
-                <span class="info-box-number" id="stopped-count">{{ device_positions|selectattr('status', 'equalto', 'stopped')|list|length }}</span>
+                <span class="info-box-number" id="stopped-count">0</span>
             </div>
         </div>
     </div>
@@ -131,6 +112,12 @@
                     </span>
                 </h3>
                 <div class="card-tools">
+                    <select class="form-control form-control-sm d-inline-block mr-2" id="device-filter" onchange="filterDevices()" style="width: auto;">
+                        <option value="">Tutti</option>
+                        {% for device in devices %}
+                        <option value="{{ device.id }}">{{ device.name }}</option>
+                        {% endfor %}
+                    </select>
                     <button type="button" class="btn btn-sm btn-success" onclick="toggleAutoRefresh()" id="toggle-refresh">
                         <i class="fas fa-pause"></i> Pausa
                     </button>
@@ -140,30 +127,13 @@
                     <button type="button" class="btn btn-sm btn-info" onclick="centerMap()">
                         <i class="fas fa-crosshairs"></i> Centra
                     </button>
+                    <small class="text-muted ml-2">
+                        <i class="fas fa-clock"></i> <span id="last-update">--:--</span>
+                    </small>
                 </div>
             </div>
-            <div class="card-body p-0" style="position: relative;">
+            <div class="card-body p-0">
                 <div id="live-map"></div>
-
-                <!-- Controlli mappa -->
-                <div class="map-controls">
-                    <div class="form-group mb-2">
-                        <label class="form-label">Filtro Dispositivo:</label>
-                        <select class="form-control form-control-sm" id="device-filter" onchange="filterDevices()">
-                            <option value="">Tutti i dispositivi</option>
-                            {% for device in devices %}
-                            <option value="{{ device.id }}" {{ 'selected' if selected_device and selected_device.id == device.id }}>
-                                {{ device.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group mb-0">
-                        <small class="text-muted">
-                            <i class="fas fa-clock"></i> Aggiornato: <span id="last-update">--:--</span>
-                        </small>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -178,72 +148,12 @@
                 </h3>
             </div>
             <div class="card-body p-0" style="max-height: 580px; overflow-y: auto;">
-                {% if device_positions %}
-                    {% for item in device_positions %}
-                    <div class="device-info {{ item.status }}" data-device-id="{{ item.device.id }}">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">
-                                    <i class="fas fa-mobile-alt mr-1"></i>
-                                    {{ item.device.name }}
-                                </h6>
-                                <p class="mb-1">
-                                    <small class="text-muted">ID: {{ item.device.uniqueId }}</small>
-                                </p>
-
-                                {% if item.position %}
-                                <p class="mb-1">
-                                    <i class="fas fa-map-marker-alt mr-1"></i>
-                                    <small>{{ "%.4f"|format(item.position.latitude) }}, {{ "%.4f"|format(item.position.longitude) }}</small>
-                                </p>
-                                <p class="mb-1">
-                                    <i class="fas fa-tachometer-alt mr-1"></i>
-                                    <small>{{ "%.1f"|format(item.speed_kmh) }} km/h</small>
-                                </p>
-                                {% if item.position.serverTime %}
-                                <p class="mb-0">
-                                    <i class="fas fa-clock mr-1"></i>
-                                    <small>{{ item.position.serverTime|datetime_format }}</small>
-                                </p>
-                                {% endif %}
-                                {% else %}
-                                <p class="mb-0 text-muted">
-                                    <i class="fas fa-exclamation-circle mr-1"></i>
-                                    <small>Nessuna posizione disponibile</small>
-                                </p>
-                                {% endif %}
-                            </div>
-
-                            <div class="text-right">
-                                {% if item.status == 'moving' %}
-                                    <span class="badge badge-primary">In Movimento</span>
-                                {% elif item.status == 'stopped' %}
-                                    <span class="badge badge-info">Fermo</span>
-                                {% elif item.status == 'online' %}
-                                    <span class="badge badge-success">Online</span>
-                                {% else %}
-                                    <span class="badge badge-secondary">Offline</span>
-                                {% endif %}
-
-                                <div class="mt-1">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="centerOnDevice({{ item.device.id }})" title="Centra su mappa">
-                                        <i class="fas fa-crosshairs"></i>
-                                    </button>
-                                    <a href="{{ url_for('devices.view_device', device_id=item.device.id) }}"
-                                       class="btn btn-sm btn-outline-info" title="Dettagli">
-                                        <i class="fas fa-info-circle"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                <div id="devices-list">
+                    <div class="text-center p-4">
+                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">Caricamento dispositivi...</p>
                     </div>
-                    {% endfor %}
-                {% else %}
-                <div class="text-center p-4">
-                    <i class="fas fa-search fa-2x text-muted mb-2"></i>
-                    <p class="text-muted">Nessun dispositivo attivo trovato</p>
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -252,51 +162,96 @@
 
 {% block scripts %}
 <script>
-$(document).ready(function() {
-    initializeLiveMap();
-    startAutoRefresh();
-});
-
-let map;
+// ✅ VARIABILI GLOBALI - COME DASHBOARD
+let map = null;
 let deviceMarkers = {};
-let autoRefreshInterval;
+let autoRefreshInterval = null;
 let isAutoRefreshEnabled = true;
 
-function initializeLiveMap() {
+$(document).ready(function() {
+    console.log('🗺️ Inizializzazione Live Tracking Map');
+
+    // ✅ CONTROLLO LEAFLET - COME DASHBOARD
+    if (typeof L === 'undefined') {
+        console.error('❌ Leaflet non è caricato!');
+        showToast('Errore: libreria mappa non caricata', 'error');
+        return;
+    }
+
+    // ✅ INIZIALIZZAZIONE - COME DASHBOARD
+    if ($('#live-map').length) {
+        initializeMap();
+    }
+
+    startAutoRefresh();
+    console.log('✅ Live Tracking inizializzato');
+});
+
+// ✅ INIZIALIZZAZIONE MAPPA - ESATTAMENTE COME DASHBOARD
+function initializeMap() {
+    console.log('🔧 Inizializzazione mappa Leaflet...');
+
     // Inizializza mappa Leaflet
     map = L.map('live-map').setView([41.9028, 12.4964], 6);
 
-    // Aggiungi layer mappa
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 18
+        attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
     // Carica posizioni iniziali
     loadDevicePositions();
+
+    console.log('✅ Mappa inizializzata');
 }
 
+// ✅ CARICAMENTO POSIZIONI - ESATTAMENTE COME DASHBOARD (con fetch invece di $.get)
 function loadDevicePositions() {
-    const deviceFilter = $('#device-filter').val();
+    console.log('🔍 Caricamento posizioni dispositivi...');
+
+    const deviceFilter = document.getElementById('device-filter')?.value || '';
     let url = '/api/devices/positions';
     if (deviceFilter) {
         url += '?device_id=' + deviceFilter;
     }
 
-    $.get(url)
-        .done(function(data) {
-            updateMapMarkers(data);
-            updateDeviceStats(data);
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            console.log('✅ Dati ricevuti:', data);
+
+            // ✅ GESTIONE DATI - COME DASHBOARD (data è già l'array)
+            const devices = Array.isArray(data) ? data : (data.positions || []);
+
+            if (devices.length === 0) {
+                console.log('ℹ️ Nessuna posizione dispositivo disponibile');
+                updateDevicesPanel([]);
+                updateDeviceStats([]);
+                return;
+            }
+
+            // ✅ AGGIORNA MAPPA E PANNELLO
+            updateMapMarkers(devices);
+            updateDevicesPanel(devices);
+            updateDeviceStats(devices);
             updateLastUpdateTime();
+
         })
-        .fail(function() {
-            console.error('Errore caricamento posizioni dispositivi');
-            showToast('Errore aggiornamento posizioni', 'error');
+        .catch(error => {
+            console.error('❌ Errore caricamento posizioni:', error);
+            showToast('Errore aggiornamento posizioni: ' + error.message, 'error');
         });
 }
 
+// ✅ AGGIORNAMENTO MARKERS - COME DASHBOARD
 function updateMapMarkers(devices) {
-    // Rimuovi marker esistenti
+    if (!map) {
+        console.warn('⚠️ Mappa non inizializzata');
+        return;
+    }
+
+    console.log('🔧 Aggiornamento markers per', devices.length, 'dispositivi');
+
+    // Pulisci marker esistenti
     Object.values(deviceMarkers).forEach(marker => {
         map.removeLayer(marker);
     });
@@ -304,100 +259,124 @@ function updateMapMarkers(devices) {
 
     let bounds = [];
 
+    // Aggiungi nuovi marker - ESATTAMENTE COME DASHBOARD
     devices.forEach(function(device) {
         if (device.position && device.position.latitude && device.position.longitude) {
             const lat = device.position.latitude;
             const lng = device.position.longitude;
 
-            // Crea icona personalizzata in base allo stato
-            const iconHtml = getDeviceIconHtml(device.status);
-            const customIcon = L.divIcon({
-                html: iconHtml,
-                className: 'custom-device-marker',
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
-            });
+            // Crea marker - STILE SEMPLICE COME DASHBOARD
+            const marker = L.marker([lat, lng]).addTo(map);
 
-            // Crea marker
-            const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+            const popupContent = `
+                <div>
+                    <h6><i class="fas fa-mobile-alt"></i> ${device.deviceName || device.name || 'Dispositivo ' + device.deviceId}</h6>
+                    <table class="table table-sm table-borderless">
+                        <tr><td><strong>Stato:</strong></td><td><span class="badge badge-${getStatusBadgeClass(device.status)}">${device.status}</span></td></tr>
+                        <tr><td><strong>Velocità:</strong></td><td>${(device.speed || 0).toFixed(1)} km/h</td></tr>
+                        <tr><td><strong>Coordinate:</strong></td><td>${lat.toFixed(6)}, ${lng.toFixed(6)}</td></tr>
+                    </table>
+                    <div class="text-center">
+                        <a href="/devices/${device.deviceId}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i> Dettagli
+                        </a>
+                    </div>
+                </div>
+            `;
 
-            // Popup informativo
-            const popupContent = createPopupContent(device);
-            marker.bindPopup(popupContent, { maxWidth: 300 });
-
+            marker.bindPopup(popupContent);
             deviceMarkers[device.deviceId] = marker;
             bounds.push([lat, lng]);
+
+            console.log(`✅ Marker aggiunto per ${device.deviceName || device.deviceId}`);
         }
     });
 
-    // Adatta vista se ci sono dispositivi visibili
+    // Adatta vista se ci sono dispositivi - COME DASHBOARD
     if (bounds.length > 0) {
         if (bounds.length === 1) {
             map.setView(bounds[0], 15);
         } else {
             map.fitBounds(bounds, { padding: [20, 20] });
         }
+        console.log('🎯 Mappa centrata sui dispositivi');
     }
 }
 
-function getDeviceIconHtml(status) {
-    let color, icon;
+// ✅ AGGIORNAMENTO PANNELLO DISPOSITIVI
+function updateDevicesPanel(devices) {
+    const container = document.getElementById('devices-list');
 
-    switch(status) {
-        case 'moving':
-            color = '#007bff';
-            icon = 'fa-location-arrow';
-            break;
-        case 'stopped':
-            color = '#17a2b8';
-            icon = 'fa-pause-circle';
-            break;
-        case 'online':
-            color = '#28a745';
-            icon = 'fa-circle';
-            break;
-        default:
-            color = '#6c757d';
-            icon = 'fa-times-circle';
-    }
-
-    return `<div style="background: ${color}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
-                <i class="fas ${icon}" style="font-size: 10px;"></i>
-            </div>`;
-}
-
-function createPopupContent(device) {
-    const position = device.position;
-    const speed = device.speed ? device.speed.toFixed(1) : '0';
-    const lastUpdate = position && position.serverTime ?
-        new Date(position.serverTime).toLocaleString('it-IT') : 'N/A';
-
-    return `
-        <div>
-            <h6><i class="fas fa-mobile-alt"></i> ${device.deviceName}</h6>
-            <table class="table table-sm table-borderless mb-2">
-                <tr><td><strong>Stato:</strong></td><td><span class="badge badge-${getStatusBadgeClass(device.status)}">${device.status}</span></td></tr>
-                <tr><td><strong>Velocità:</strong></td><td>${speed} km/h</td></tr>
-                <tr><td><strong>Coordinate:</strong></td><td>${position ? position.latitude.toFixed(6) + ', ' + position.longitude.toFixed(6) : 'N/A'}</td></tr>
-                <tr><td><strong>Ultimo agg.:</strong></td><td><small>${lastUpdate}</small></td></tr>
-            </table>
-            <div class="text-center">
-                <a href="/devices/${device.deviceId}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-info-circle"></i> Dettagli
-                </a>
+    if (devices.length === 0) {
+        container.innerHTML = `
+            <div class="text-center p-4">
+                <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                <p class="text-muted">Nessun dispositivo attivo trovato</p>
             </div>
-        </div>
-    `;
+        `;
+        return;
+    }
+
+    let html = '';
+    devices.forEach(device => {
+        const deviceName = device.deviceName || device.name || 'Dispositivo ' + device.deviceId;
+        const status = device.status || 'unknown';
+        const speed = device.speed || 0;
+
+        html += `
+            <div class="device-info ${status}" data-device-id="${device.deviceId}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">
+                            <i class="fas fa-mobile-alt mr-1"></i>
+                            ${deviceName}
+                        </h6>
+                        <p class="mb-1">
+                            <small class="text-muted">ID: ${device.uniqueId || device.deviceId}</small>
+                        </p>
+                        ${device.position ? `
+                        <p class="mb-1">
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            <small>${device.position.latitude.toFixed(4)}, ${device.position.longitude.toFixed(4)}</small>
+                        </p>
+                        <p class="mb-1">
+                            <i class="fas fa-tachometer-alt mr-1"></i>
+                            <small>${speed.toFixed(1)} km/h</small>
+                        </p>
+                        ` : `
+                        <p class="mb-0 text-muted">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            <small>Nessuna posizione disponibile</small>
+                        </p>
+                        `}
+                    </div>
+                    <div class="text-right">
+                        <span class="badge badge-${getStatusBadgeClass(status)}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                        <div class="mt-1">
+                            <button class="btn btn-sm btn-outline-primary" onclick="centerOnDevice(${device.deviceId})" title="Centra su mappa">
+                                <i class="fas fa-crosshairs"></i>
+                            </button>
+                            <a href="/devices/${device.deviceId}" class="btn btn-sm btn-outline-info" title="Dettagli">
+                                <i class="fas fa-info-circle"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
 }
 
+// ✅ STATISTICHE - COME DASHBOARD
 function getStatusBadgeClass(status) {
-    const classes = {
-        'moving': 'primary',
-        'stopped': 'info',
-        'online': 'success',
-        'offline': 'secondary'
-    };
-    return classes[status] || 'secondary';
+    switch(status) {
+        case 'online': return 'success';
+        case 'moving': return 'primary';
+        case 'stopped': return 'info';
+        default: return 'secondary';
+    }
 }
 
 function updateDeviceStats(devices) {
@@ -406,17 +385,22 @@ function updateDeviceStats(devices) {
     const moving = devices.filter(d => d.status === 'moving').length;
     const stopped = devices.filter(d => d.status === 'stopped').length;
 
-    $('#total-devices').text(total);
-    $('#online-count').text(online);
-    $('#moving-count').text(moving);
-    $('#stopped-count').text(stopped);
+    document.getElementById('total-devices').textContent = total;
+    document.getElementById('online-count').textContent = online;
+    document.getElementById('moving-count').textContent = moving;
+    document.getElementById('stopped-count').textContent = stopped;
 }
 
 function updateLastUpdateTime() {
     const now = new Date();
-    $('#last-update').text(now.toLocaleTimeString('it-IT'));
+    const timeStr = now.toLocaleTimeString('it-IT');
+    const updateElement = document.getElementById('last-update');
+    if (updateElement) {
+        updateElement.textContent = timeStr;
+    }
 }
 
+// ✅ AUTO-REFRESH
 function startAutoRefresh() {
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
@@ -424,6 +408,7 @@ function startAutoRefresh() {
 
     autoRefreshInterval = setInterval(function() {
         if (isAutoRefreshEnabled && !document.hidden) {
+            console.log('🔄 Auto-refresh posizioni dispositivi');
             loadDevicePositions();
         }
     }, 30000); // Ogni 30 secondi
@@ -432,33 +417,39 @@ function startAutoRefresh() {
 function toggleAutoRefresh() {
     isAutoRefreshEnabled = !isAutoRefreshEnabled;
 
-    const button = $('#toggle-refresh');
-    const indicator = $('#auto-refresh-indicator');
+    const button = document.getElementById('toggle-refresh');
+    const indicator = document.getElementById('auto-refresh-indicator');
 
     if (isAutoRefreshEnabled) {
-        button.html('<i class="fas fa-pause"></i> Pausa');
-        indicator.show().addClass('auto-refresh');
+        button.innerHTML = '<i class="fas fa-pause"></i> Pausa';
+        indicator.style.display = '';
+        indicator.classList.add('auto-refresh');
         showToast('Auto-refresh attivato', 'success');
     } else {
-        button.html('<i class="fas fa-play"></i> Riprendi');
-        indicator.hide().removeClass('auto-refresh');
+        button.innerHTML = '<i class="fas fa-play"></i> Riprendi';
+        indicator.style.display = 'none';
+        indicator.classList.remove('auto-refresh');
         showToast('Auto-refresh in pausa', 'info');
     }
 }
 
 function refreshMap() {
+    console.log('🔄 Refresh manuale mappa');
     showToast('Aggiornamento mappa...', 'info');
     loadDevicePositions();
 }
 
 function centerMap() {
-    if (Object.keys(deviceMarkers).length > 0) {
-        const bounds = Object.values(deviceMarkers).map(marker => marker.getLatLng());
+    if (!map) return;
+
+    const bounds = Object.values(deviceMarkers).map(marker => marker.getLatLng());
+    if (bounds.length > 0) {
         if (bounds.length === 1) {
             map.setView(bounds[0], 15);
         } else {
             map.fitBounds(bounds, { padding: [20, 20] });
         }
+        console.log('🎯 Mappa centrata');
     } else {
         map.setView([41.9028, 12.4964], 6);
     }
@@ -466,17 +457,19 @@ function centerMap() {
 
 function centerOnDevice(deviceId) {
     const marker = deviceMarkers[deviceId];
-    if (marker) {
+    if (marker && map) {
         map.setView(marker.getLatLng(), 16);
         marker.openPopup();
+        console.log('🎯 Centrato su dispositivo', deviceId);
     }
 }
 
 function filterDevices() {
+    console.log('🔍 Filtro dispositivi cambiato');
     loadDevicePositions();
 }
 
-// Cleanup on page unload
+// Cleanup
 $(window).on('beforeunload', function() {
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
