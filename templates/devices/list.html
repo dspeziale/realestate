@@ -293,14 +293,14 @@ function refreshDeviceList() {
     location.reload();
 }
 
+// In devices/list.html, sostituisci la funzione refreshStats():
 function refreshStats() {
-    // Aggiorna solo le statistiche senza ricaricare tutta la pagina
-    $.get('{{ url_for("api.get_device_stats") }}')
+    $.get('{{ url_for("api.get_dashboard_stats") }}')
         .done(function(data) {
-            $('#total-devices').text(data.total || 0);
-            $('#online-devices').text(data.online || 0);
-            $('#offline-devices').text(data.offline || 0);
-            $('#moving-devices').text(data.moving || 0);
+            $('#total-devices').text(data.total_devices || 0);
+            $('#online-devices').text(data.online_devices || 0);
+            $('#offline-devices').text(data.offline_devices || 0);
+            $('#moving-devices').text(data.moving_devices || 0);
         })
         .fail(function() {
             console.warn('Impossibile aggiornare statistiche dispositivi');

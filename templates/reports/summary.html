@@ -1,0 +1,581 @@
+{% extends "base.html" %}
+
+{% block title %}Report Riepilogativo - {{ app_name }}{% endblock %}
+
+{% block page_title %}Report Riepilogativo{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('reports.reports_index') }}">Report</a></li>
+<li class="breadcrumb-item active">Riepilogativo</li>
+{% endblock %}
+
+{% block head_css %}
+<style>
+.summary-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid #28a745;
+    cursor: pointer;
+}
+.summary-card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+.summary-header {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white;
+}
+.metric-summary {
+    background: white;
+    border-radius: 8px;
+    transition: transform 0.2s;
+}
+.metric-summary:hover {
+    transform: scale(1.02);
+}
+.device-summary-row {
+    border-left: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+.device-summary-row:hover {
+    border-left-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.05);
+}
+.efficiency-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: #e9ecef;
+    overflow: hidden;
+}
+.efficiency-fill {
+    height: 100%;
+    transition: width 0.8s ease;
+}
+.efficiency-excellent { background: #28a745; }
+.efficiency-good { background: #ffc107; }
+.efficiency-fair { background: #fd7e14; }
+.efficiency-poor { background: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Filtri Report -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-filter"></i>
+            Filtri Report Riepilogativo
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('reports.summary') }}" class="form-inline">
+            <input type="hidden" name="generate" value="1">
+
+            <!-- Selezione Dispositivi -->
+            <div class="form-group mr-3 mb-3">
+                <label for="deviceIds" class="mr-2">Dispositivi:</label>
+                <select name="deviceId" id="deviceIds" class="form-control" multiple style="width: 250px;">
+                    {% for device in devices %}
+                    <option value="{{ device.id }}"
+                            {% if selected_devices and device.id in selected_devices %}selected{% endif %}>
+                        {{ device.name }} ({{ device.uniqueId }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Data Inizio -->
+            <div class="form-group mr-3 mb-3">
+                <label for="from" class="mr-2">Da:</label>
+                <input type="datetime-local"
+                       id="from"
+                       name="from"
+                       class="form-control"
+                       value="{{ from_date or '' }}">
+            </div>
+
+            <!-- Data Fine -->
+            <div class="form-group mr-3 mb-3">
+                <label for="to" class="mr-2">A:</label>
+                <input type="datetime-local"
+                       id="to"
+                       name="to"
+                       class="form-control"
+                       value="{{ to_date or '' }}">
+            </div>
+
+            <!-- Bottone Genera -->
+            <div class="form-group mb-3">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-chart-bar"></i>
+                    Genera Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Risultati Report -->
+{% if summary %}
+<!-- Statistiche Generali -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card summary-header">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="metric-summary p-3 text-center">
+                            <i class="fas fa-mobile-alt fa-2x text-success mb-2"></i>
+                            <h4 class="text-success">{{ summary|length }}</h4>
+                            <p class="text-muted mb-0">Dispositivi Attivi</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="metric-summary p-3 text-center">
+                            <i class="fas fa-road fa-2x text-primary mb-2"></i>
+                            <h4 class="text-primary">{{ "%.1f"|format(summary|sum(attribute='distance_km')|default(0)) }}</h4>
+                            <p class="text-muted mb-0">Km Totali</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="metric-summary p-3 text-center">
+                            <i class="fas fa-tachometer-alt fa-2x text-warning mb-2"></i>
+                            <h4 class="text-warning">{{ "%.0f"|format(summary|map(attribute='maxSpeed_kmh')|list|max|default(0)) }}</h4>
+                            <p class="text-muted mb-0">Vel. Max (km/h)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="metric-summary p-3 text-center">
+                            <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                            {% set total_engine_hours = summary|sum(attribute='engineHours')|default(0) %}
+                            <h4 class="text-info">{{ "%.1f"|format(total_engine_hours) }}</h4>
+                            <p class="text-muted mb-0">Ore Motore</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt"></i>
+                        Report per periodo: {{ from_date|datetime_format if from_date else 'N/A' }}
+                        - {{ to_date|datetime_format if to_date else 'N/A' }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabella Dettagliata -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title">
+            <i class="fas fa-table"></i>
+            Riepilogo per Dispositivo ({{ summary|length }})
+        </h3>
+        <div class="card-tools">
+            <button class="btn btn-sm btn-success" onclick="exportSummary()">
+                <i class="fas fa-download"></i>
+                Esporta
+            </button>
+            <button class="btn btn-sm btn-info" onclick="showCharts()">
+                <i class="fas fa-chart-pie"></i>
+                Grafici
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0" id="summaryTable">
+                <thead class="bg-light">
+                    <tr>
+                        <th><i class="fas fa-mobile-alt"></i> Dispositivo</th>
+                        <th><i class="fas fa-road"></i> Distanza</th>
+                        <th><i class="fas fa-tachometer-alt"></i> Vel. Max</th>
+                        <th><i class="fas fa-chart-line"></i> Vel. Media</th>
+                        <th><i class="fas fa-clock"></i> Ore Motore</th>
+                        <th><i class="fas fa-gas-pump"></i> Carburante</th>
+                        <th><i class="fas fa-chart-area"></i> Efficienza</th>
+                        <th><i class="fas fa-cogs"></i> Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in summary %}
+                    <tr class="device-summary-row" data-device-id="{{ item.deviceId }}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="mr-3">
+                                    <div class="status-indicator status-online"></div>
+                                </div>
+                                <div>
+                                    <strong>{{ item.device_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">ID: {{ item.deviceId }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if item.distance_km %}
+                                <span class="badge badge-primary badge-lg">
+                                    {{ "%.2f"|format(item.distance_km) }} km
+                                </span>
+                            {% else %}
+                                <span class="text-muted">0 km</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.maxSpeed_kmh %}
+                                <span class="badge badge-warning">
+                                    {{ "%.0f"|format(item.maxSpeed_kmh) }} km/h
+                                </span>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.averageSpeed_kmh %}
+                                <span class="badge badge-info">
+                                    {{ "%.0f"|format(item.averageSpeed_kmh) }} km/h
+                                </span>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.get('engineHours') %}
+                                <span class="badge badge-secondary">
+                                    {{ "%.1f"|format(item.engineHours) }}h
+                                </span>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.get('spentFuel') %}
+                                <span class="badge badge-danger">
+                                    {{ "%.2f"|format(item.spentFuel) }}L
+                                </span>
+                            {% else %}
+                                {% if item.distance_km %}
+                                    <!-- Stima carburante basata su 8L/100km -->
+                                    <span class="badge badge-light">
+                                        ~{{ "%.2f"|format(item.distance_km * 0.08) }}L
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.distance_km and item.get('engineHours') %}
+                                {% set efficiency = item.distance_km / item.engineHours %}
+                                {% if efficiency >= 40 %}
+                                    <div class="efficiency-bar">
+                                        <div class="efficiency-fill efficiency-excellent" style="width: 100%"></div>
+                                    </div>
+                                    <small class="text-success">Eccellente</small>
+                                {% elif efficiency >= 25 %}
+                                    <div class="efficiency-bar">
+                                        <div class="efficiency-fill efficiency-good" style="width: 75%"></div>
+                                    </div>
+                                    <small class="text-warning">Buona</small>
+                                {% elif efficiency >= 15 %}
+                                    <div class="efficiency-bar">
+                                        <div class="efficiency-fill efficiency-fair" style="width: 50%"></div>
+                                    </div>
+                                    <small class="text-orange">Media</small>
+                                {% else %}
+                                    <div class="efficiency-bar">
+                                        <div class="efficiency-fill efficiency-poor" style="width: 25%"></div>
+                                    </div>
+                                    <small class="text-danger">Bassa</small>
+                                {% endif %}
+                            {% else %}
+                                <small class="text-muted">N/A</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary device-details-btn"
+                                        data-device="{{ item|tojson|e }}"
+                                        title="Dettagli">
+                                    <i class="fas fa-info"></i>
+                                </button>
+                                <button class="btn btn-outline-success"
+                                        onclick="viewDeviceHistory({{ item.deviceId }})"
+                                        title="Storico">
+                                    <i class="fas fa-history"></i>
+                                </button>
+                                <button class="btn btn-outline-warning"
+                                        onclick="viewDeviceTrips({{ item.deviceId }})"
+                                        title="Viaggi">
+                                    <i class="fas fa-route"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Grafici (nascosti di default) -->
+<div id="chartsContainer" class="row mt-4" style="display: none;">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Distribuzione Distanze</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="distanceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Ore Motore per Dispositivo</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="engineHoursChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Nessun Risultato -->
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">Nessun dato disponibile</h4>
+        <p class="text-muted">
+            {% if request.args.get('generate') %}
+                Nessun dato trovato per i dispositivi e il periodo selezionati.
+            {% else %}
+                Seleziona dispositivi e intervallo di date per generare il report riepilogativo.
+            {% endif %}
+        </p>
+        {% if not devices %}
+        <div class="alert alert-warning mt-3">
+            <i class="fas fa-exclamation-triangle"></i>
+            Nessun dispositivo disponibile. <a href="{{ url_for('devices.add_device') }}">Aggiungi dispositivi</a> per iniziare.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal Dettagli Dispositivo -->
+<div class="modal fade" id="deviceDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <i class="fas fa-info-circle"></i>
+                    Dettagli Dispositivo
+                </h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="deviceDetailsContent">
+                <!-- Contenuto generato dinamicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let chartsVisible = false;
+
+$(document).ready(function() {
+    // Inizializza Select2 per dispositivi
+    $('#deviceIds').select2({
+        placeholder: 'Seleziona dispositivi...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Inizializza DataTables con helper sicuro
+    if ($('#summaryTable').length) {
+        TraccarFleet.initDataTable('#summaryTable', {
+            order: [[1, 'desc']], // Ordina per distanza decrescente
+            columnDefs: [
+                { orderable: false, targets: [7] }, // Disabilita ordinamento per colonna azioni
+                { width: '20%', targets: [0] },
+                { width: '12%', targets: [1] },
+                { width: '10%', targets: [2] },
+                { width: '10%', targets: [3] }
+            ],
+            pageLength: 25
+        });
+    }
+
+    // Event handlers per bottoni con data attributes
+    $(document).on('click', '.device-details-btn', function() {
+        const deviceData = $(this).data('device');
+        showDeviceDetails(deviceData);
+    });
+
+    // Imposta date predefinite se non specificate
+    if (!$('#from').val() && !$('#to').val()) {
+        const now = new Date();
+        const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        $('#from').val(lastWeek.toISOString().slice(0, 16));
+        $('#to').val(now.toISOString().slice(0, 16));
+    }
+});
+
+function showDeviceDetails(device) {
+    const content = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-mobile-alt"></i> Informazioni Dispositivo</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Nome:</strong></td><td>${device.device_name}</td></tr>
+                    <tr><td><strong>ID:</strong></td><td>${device.deviceId}</td></tr>
+                </table>
+
+                <h6><i class="fas fa-road"></i> Prestazioni</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Distanza:</strong></td><td>${device.distance_km ? device.distance_km.toFixed(2) + ' km' : 'N/A'}</td></tr>
+                    <tr><td><strong>Vel. Massima:</strong></td><td>${device.maxSpeed_kmh ? device.maxSpeed_kmh.toFixed(0) + ' km/h' : 'N/A'}</td></tr>
+                    <tr><td><strong>Vel. Media:</strong></td><td>${device.averageSpeed_kmh ? device.averageSpeed_kmh.toFixed(0) + ' km/h' : 'N/A'}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-clock"></i> Utilizzo</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Ore Motore:</strong></td><td>${device.engineHours ? device.engineHours.toFixed(1) + 'h' : 'N/A'}</td></tr>
+                    <tr><td><strong>Carburante:</strong></td><td>${device.spentFuel ? device.spentFuel.toFixed(2) + 'L' : 'Stimato: ' + (device.distance_km * 0.08).toFixed(2) + 'L'}</td></tr>
+                </table>
+
+                <h6><i class="fas fa-chart-area"></i> Efficienza</h6>
+                <div class="text-center">
+                    ${device.distance_km && device.engineHours ?
+                        `<h4 class="text-primary">${(device.distance_km / device.engineHours).toFixed(1)} km/h</h4>
+                         <small class="text-muted">Efficienza media</small>` :
+                        '<span class="text-muted">Dati insufficienti</span>'
+                    }
+                </div>
+
+                <h6 class="mt-3"><i class="fas fa-calculator"></i> Costi Stimati</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Carburante:</strong></td><td>€${device.distance_km ? (device.distance_km * 0.08 * 1.6).toFixed(2) : '0.00'}</td></tr>
+                    <tr><td><strong>Usura:</strong></td><td>€${device.distance_km ? (device.distance_km * 0.15).toFixed(2) : '0.00'}</td></tr>
+                </table>
+            </div>
+        </div>
+    `;
+
+    $('#deviceDetailsContent').html(content);
+    $('#deviceDetailsModal').modal('show');
+}
+
+function viewDeviceHistory(deviceId) {
+    const from = $('#from').val();
+    const to = $('#to').val();
+    const url = `{{ url_for('positions.position_history') }}?load=1&deviceId=${deviceId}&from=${from}&to=${to}`;
+    window.open(url, '_blank');
+}
+
+function viewDeviceTrips(deviceId) {
+    const from = $('#from').val();
+    const to = $('#to').val();
+    const url = `{{ url_for('reports.trips') }}?generate=1&deviceId=${deviceId}&from=${from}&to=${to}`;
+    window.open(url, '_blank');
+}
+
+function showCharts() {
+    if (!chartsVisible) {
+        $('#chartsContainer').slideDown();
+        createCharts();
+        chartsVisible = true;
+    } else {
+        $('#chartsContainer').slideUp();
+        chartsVisible = false;
+    }
+}
+
+function createCharts() {
+    // Dati dai template
+    const summaryData = [
+        {% if summary %}
+            {% for item in summary %}
+            {
+                deviceName: "{{ item.device_name }}",
+                distance: {{ item.distance_km or 0 }},
+                engineHours: {{ item.get('engineHours', 0) }},
+                maxSpeed: {{ item.maxSpeed_kmh or 0 }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        {% endif %}
+    ];
+
+    // Grafico distanze
+    const distanceCtx = document.getElementById('distanceChart').getContext('2d');
+    new Chart(distanceCtx, {
+        type: 'doughnut',
+        data: {
+            labels: summaryData.map(d => d.deviceName),
+            datasets: [{
+                data: summaryData.map(d => d.distance),
+                backgroundColor: [
+                    '#007bff', '#28a745', '#ffc107', '#dc3545',
+                    '#17a2b8', '#6610f2', '#fd7e14', '#20c997'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Grafico ore motore
+    const engineCtx = document.getElementById('engineHoursChart').getContext('2d');
+    new Chart(engineCtx, {
+        type: 'bar',
+        data: {
+            labels: summaryData.map(d => d.deviceName),
+            datasets: [{
+                label: 'Ore Motore',
+                data: summaryData.map(d => d.engineHours),
+                backgroundColor: '#28a745'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function exportSummary() {
+    // Implementa esportazione (CSV, Excel, PDF)
+    alert('Funzione di esportazione in sviluppo');
+}
+</script>
+
+<!-- Select2 CSS/JS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}

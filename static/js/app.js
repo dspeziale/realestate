@@ -7,7 +7,7 @@
 window.TraccarFleet = window.TraccarFleet || {};
 
 // Configurazione italiana per DataTables (inline per evitare errori 404)
-const italianDTLanguage = {
+window.italianDTLanguage = window.italianDTLanguage || {
     "decimal": "",
     "emptyTable": "Nessun dato disponibile",
     "info": "Elementi da _START_ a _END_ di _TOTAL_ totali",
@@ -79,7 +79,7 @@ TraccarFleet.init = function() {
 TraccarFleet.initializeDataTables = function() {
     if (typeof $.fn.DataTable !== 'undefined') {
         $.extend(true, $.fn.dataTable.defaults, {
-            language: italianDTLanguage, // ✅ USA CONFIGURAZIONE INLINE
+            language: window.italianDTLanguage, // ✅ USA CONFIGURAZIONE GLOBALE
             responsive: true,
             pageLength: 25,
             lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Tutti"]],
@@ -91,6 +91,31 @@ TraccarFleet.initializeDataTables = function() {
             }
         });
     }
+};
+
+/**
+ * Helper per inizializzare DataTable in modo sicuro
+ */
+TraccarFleet.initDataTable = function(selector, options = {}) {
+    const $table = $(selector);
+
+    if ($table.length === 0) {
+        console.warn(`DataTable: Tabella ${selector} non trovata`);
+        return null;
+    }
+
+    // Se già inizializzato, distruggi prima
+    if ($.fn.DataTable.isDataTable(selector)) {
+        $table.DataTable().destroy();
+    }
+
+    // Inizializza con opzioni predefinite + personalizzate
+    const defaultOptions = {
+        responsive: true,
+        language: window.italianDTLanguage
+    };
+
+    return $table.DataTable($.extend({}, defaultOptions, options));
 };
 
 /**

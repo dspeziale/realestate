@@ -221,3 +221,98 @@ def device_status():
         logger.error(f"Errore stato dispositivi: {e}")
         flash(f'Errore caricamento stato: {e}', 'danger')
         return render_template('devices/status.html', device_data=[])
+
+
+# AGGIUNTA in blueprints/devices.py - Aggiungi questo endpoint dopo device_status:
+
+@devices_bp.route('/<int:device_id>/send_command', methods=['POST'])
+def send_command(device_id):
+    """Invia comando a dispositivo"""
+    try:
+        traccar = get_traccar_api()
+
+        # Ottieni dati del comando dal form
+        command_type = request.form.get('type', '').strip()
+
+        if not command_type:
+            return jsonify({
+                'success': False,
+                'error': 'Tipo comando richiesto'
+            }), 400
+
+        # Parametri aggiuntivi del comando
+        attributes = {}
+
+        # Gestisci parametri comuni per tipo di comando
+        if command_type == 'positionSingle':
+            # Richiesta posizione singola - nessun parametro aggiuntivo
+            pass
+        elif command_type == 'engineStop':
+            # Arresta motore
+            pass
+        elif command_type == 'engineResume':
+            # Riavvia motore
+            pass
+        elif command_type == 'alarm':
+            # Suoneria/allarme
+            pass
+        elif command_type == 'custom':
+            # Comando personalizzato
+            data = request.form.get('data', '').strip()
+            if data:
+                attributes['data'] = data
+        else:
+            # Altri comandi con parametri specifici
+            for key in request.form:
+                if key not in ['type'] and request.form[key]:
+                    attributes[key] = request.form[key]
+
+        # Invia comando tramite API Traccar
+        result = traccar.commands.send_command(
+            device_id=device_id,
+            command_type=command_type,
+            **attributes
+        )
+
+        logger.info(f"Comando {command_type} inviato al dispositivo {device_id}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Comando {command_type} inviato con successo',
+            'result': result
+        })
+
+    except TraccarException as e:
+        logger.error(f"Errore invio comando al dispositivo {device_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Errore invio comando: {e}'
+        }), 500
+    except Exception as e:
+        logger.error(f"Errore generale invio comando: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Errore interno del server'
+        }), 500
+
+
+@devices_bp.route('/<int:device_id>/commands')
+def get_device_commands(device_id):
+    """Ottieni comandi supportati dal dispositivo"""
+    try:
+        traccar = get_traccar_api()
+
+        # Ottieni comandi supportati
+        commands = traccar.commands.get_supported_commands(device_id)
+
+        return jsonify({
+            'success': True,
+            'commands': commands
+        })
+
+    except TraccarException as e:
+        logger.error(f"Errore recupero comandi dispositivo {device_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

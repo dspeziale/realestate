@@ -246,8 +246,9 @@
                             <code class="text-primary">{{ "%.6f"|format(position.latitude) }}</code><br>
                             <code class="text-primary">{{ "%.6f"|format(position.longitude) }}</code>
                             <br>
-                            <button class="btn btn-xs btn-outline-info mt-1"
-                                    onclick="showPositionOnMap({{ position.latitude }}, {{ position.longitude }})">
+                            <button class="btn btn-xs btn-outline-info mt-1 map-pin-btn"
+                                    data-lat="{{ position.latitude }}"
+                                    data-lng="{{ position.longitude }}">
                                 <i class="fas fa-map-pin"></i>
                             </button>
                         </td>
@@ -297,13 +298,14 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary"
-                                        onclick="showPositionDetails({{ position|tojson|safe }})"
+                                <button class="btn btn-outline-primary position-details-btn"
+                                        data-position="{{ position|tojson|e }}"
                                         title="Dettagli">
                                     <i class="fas fa-info"></i>
                                 </button>
-                                <button class="btn btn-outline-success"
-                                        onclick="copyCoordinates({{ position.latitude }}, {{ position.longitude }})"
+                                <button class="btn btn-outline-success copy-coords-btn"
+                                        data-lat="{{ position.latitude }}"
+                                        data-lng="{{ position.longitude }}"
                                         title="Copia coordinate">
                                     <i class="fas fa-copy"></i>
                                 </button>
@@ -367,28 +369,6 @@
 
 {% block scripts %}
 <script>
-// Configurazione italiana DataTables inline
-const italianDTLanguage = {
-    "decimal": "",
-    "emptyTable": "Nessun dato disponibile",
-    "info": "Elementi da _START_ a _END_ di _TOTAL_ totali",
-    "infoEmpty": "Elementi da 0 a 0 di 0 totali",
-    "infoFiltered": "(filtrati da _MAX_ elementi totali)",
-    "infoPostFix": "",
-    "thousands": ".",
-    "lengthMenu": "Mostra _MENU_ elementi",
-    "loadingRecords": "Caricamento...",
-    "processing": "Elaborazione...",
-    "search": "Cerca:",
-    "zeroRecords": "Nessun elemento trovato",
-    "paginate": {
-        "first": "Primo",
-        "last": "Ultimo",
-        "next": "Successivo",
-        "previous": "Precedente"
-    }
-};
-
 let historyMap = null;
 let routeLine = null;
 
@@ -404,7 +384,7 @@ $(document).ready(function() {
     {% if positions %}
     $('#positionsTable').DataTable({
         responsive: true,
-        language: italianDTLanguage,
+        language: window.italianDTLanguage, // ✅ USA CONFIGURAZIONE GLOBALE
         order: [[0, 'desc']], // Ordina per timestamp decrescente
         columnDefs: [
             { orderable: false, targets: [7] }, // Disabilita ordinamento per colonna azioni
@@ -424,6 +404,24 @@ $(document).ready(function() {
         $('#from').val(yesterday.toISOString().slice(0, 16));
         $('#to').val(now.toISOString().slice(0, 16));
     }
+
+    // Event handlers per bottoni con data attributes
+    $(document).on('click', '.map-pin-btn', function() {
+        const lat = parseFloat($(this).data('lat'));
+        const lng = parseFloat($(this).data('lng'));
+        showPositionOnMap(lat, lng);
+    });
+
+    $(document).on('click', '.position-details-btn', function() {
+        const positionData = $(this).data('position');
+        showPositionDetails(positionData);
+    });
+
+    $(document).on('click', '.copy-coords-btn', function() {
+        const lat = parseFloat($(this).data('lat'));
+        const lng = parseFloat($(this).data('lng'));
+        copyCoordinates(lat, lng);
+    });
 });
 
 function showOnMap() {
@@ -439,12 +437,13 @@ function showOnMap() {
     }
 
     // Aggiungi posizioni alla mappa
-    const positions = [];
-    {% if positions %}
-        {% for position in positions %}
-        positions.push([{{ position.latitude }}, {{ position.longitude }}]);
-        {% endfor %}
-    {% endif %}
+    const positions = [
+        {% if positions %}
+            {% for position in positions %}
+            [{{ position.latitude }}, {{ position.longitude }}]{% if not loop.last %},{% endif %}
+            {% endfor %}
+        {% endif %}
+    ];
 
     if (positions.length > 0) {
         // Rimuovi linea esistente
