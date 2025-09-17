@@ -101,86 +101,31 @@ def inject_template_vars():
     }
 
 
-@app.template_filter('speed_format')
-def speed_format(speed_knots):
-    """Converte velocità da nodi a km/h e formatta"""
-    if speed_knots is None or speed_knots == 0:
-        return "0 km/h"
-
-    try:
-        speed_kmh = float(speed_knots) * 1.852
-        return f"{speed_kmh:.1f} km/h"
-    except (ValueError, TypeError):
-        return "0 km/h"
-
-
-@app.template_filter('format_datetime')
-def format_datetime_filter(value, format='%d/%m/%Y %H:%M'):
-    """Alias per datetime_format per compatibilità"""
-    return datetime_format(value, format)
-
-@app.template_filter('datetime_to_timestamp')
-def datetime_to_timestamp(datetime_str):
-    """Converte datetime ISO string in timestamp Unix"""
-    if not datetime_str:
-        return 0
-    try:
-        if isinstance(datetime_str, str):
-            dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
-        else:
-            dt = datetime_str
-        return dt.timestamp()
-    except:
-        return 0
-
-@app.template_filter('tojson')
-def to_json_filter(obj):
-    """Converte oggetto in JSON per JavaScript"""
-    import json
-    return json.dumps(obj, default=str)
-
-
-@app.template_filter('datetime_format')
-def datetime_format(value, format='%d/%m/%Y %H:%M'):
-    """Formatta datetime con gestione migliorata"""
-    if not value:
-        return 'N/A'
-
-    if isinstance(value, str):
-        try:
-            # Gestisci diversi formati ISO
-            if 'T' in value:
-                value = datetime.fromisoformat(value.replace('Z', '+00:00'))
-            else:
-                value = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
-        except:
-            return value
-
-    if isinstance(value, datetime):
-        return value.strftime(format)
-    return str(value)
-
 @app.route('/')
+@app.route('/dashboard')
 def dashboard():
     """Dashboard principale"""
     try:
         traccar = get_traccar_api()
-
-        # Statistiche generali
         devices = traccar.devices.get_devices()
 
+        # Statistiche dispositivi
         online_devices = sum(1 for d in devices if d.get('status') == 'online')
         offline_devices = len(devices) - online_devices
 
-        # Ultime posizioni
+        # Ultime posizioni per dispositivi online
         recent_positions = []
-        try:
-            for device in devices[:5]:  # Prime 5 devices
-                positions = traccar.positions.get_positions(device_id=device['id'], limit=1)
-                if positions:
-                    recent_positions.extend(positions)
-        except:
-            pass
+        for device in devices[:10]:
+            try:
+                if device.get('status') == 'online':
+                    positions = traccar.positions.get_positions(device_id=device['id'], limit=1)
+                    if positions:
+                        recent_positions.append({
+                            'device': device,
+                            'position': positions[0]
+                        })
+            except Exception as e:
+                logger.warning(f"Errore posizioni device {device.get('id')}: {e}")
 
         dashboard_stats = {
             'total_devices': len(devices),
@@ -235,6 +180,12 @@ def login():
                 session['user_email'] = user_info.get('email', username)
                 session['is_admin'] = user_info.get('administrator', False)
 
+                # ✅ SALVA LE CREDENZIALI TRACCAR PER RIUTILIZZO
+                session['traccar_host'] = app.config['TRACCAR_HOST']
+                session['traccar_port'] = app.config['TRACCAR_PORT']
+                session['traccar_username'] = username
+                session['traccar_password'] = password
+
                 flash(f'Benvenuto, {session["user_name"]}!', 'success')
                 return redirect(url_for('dashboard'))
             else:
@@ -243,6 +194,7 @@ def login():
         except TraccarException as e:
             flash(f'Errore autenticazione: {e}', 'danger')
         except Exception as e:
+            logger.error(f'Errore login: {e}')
             flash('Errore durante il login', 'danger')
 
     return render_template('auth/login.html')
@@ -257,18 +209,137 @@ def logout():
     return redirect(url_for('login'))
 
 
+# ✅ AGGIUNTA ROUTE PROFILE MANCANTE
+@app.route('/profile')
+def profile():
+    """Pagina profilo utente"""
+    try:
+        traccar = get_traccar_api()
+
+        # Ottieni informazioni aggiornate dell'utente
+        user_info = traccar.session.get_session()
+
+        # Statistiche utente
+        user_stats = {
+            'devices_count': 0,
+            'last_login': session.get('login_time', datetime.now()),
+            'session_duration': 'N/A'
+        }
+
+        try:
+            devices = traccar.devices.get_devices()
+            user_stats['devices_count'] = len(devices)
+        except:
+            pass
+
+        return render_template('auth/profile.html',
+                               user_info=user_info,
+                               user_stats=user_stats)
+
+    except TraccarException as e:
+        logger.error(f"Errore caricamento profilo: {e}")
+        flash(f'Errore caricamento profilo: {e}', 'danger')
+        return redirect(url_for('dashboard'))
+
+
+# ✅ ROUTE PER AGGIORNAMENTO PROFILO
+@app.route('/profile/update', methods=['POST'])
+def update_profile():
+    """Aggiornamento informazioni profilo"""
+    try:
+        traccar = get_traccar_api()
+
+        # Dati dal form
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+
+        if not name or not email:
+            flash('Nome e email sono richiesti', 'danger')
+            return redirect(url_for('profile'))
+
+        # Ottieni ID utente corrente
+        user_id = session.get('user_id')
+        if not user_id:
+            flash('Errore: utente non identificato', 'danger')
+            return redirect(url_for('login'))
+
+        # Aggiorna dati utente (se supportato dall'API)
+        update_data = {
+            'id': user_id,
+            'name': name,
+            'email': email
+        }
+
+        # Nota: Questo dipende dall'API Traccar disponibile
+        # Alcuni server potrebbero non permettere l'aggiornamento del profilo
+        try:
+            # Tentativo di aggiornamento (potrebbe non essere supportato)
+            result = traccar.session.update_user(user_id, update_data)
+
+            # Aggiorna sessione locale
+            session['user_name'] = name
+            session['user_email'] = email
+
+            flash('Profilo aggiornato con successo', 'success')
+
+        except Exception as api_error:
+            logger.warning(f"API update non supportata: {api_error}")
+            # Aggiorna solo la sessione locale
+            session['user_name'] = name
+            session['user_email'] = email
+            flash('Profilo aggiornato localmente (alcune modifiche potrebbero non essere permanenti)', 'warning')
+
+        return redirect(url_for('profile'))
+
+    except Exception as e:
+        logger.error(f"Errore aggiornamento profilo: {e}")
+        flash('Errore durante l\'aggiornamento', 'danger')
+        return redirect(url_for('profile'))
+
+
+# ✅ ROUTE DASHBOARD ALIAS
+@app.route('/index')
+def index():
+    """Alias per dashboard"""
+    return redirect(url_for('dashboard'))
+
+
+@app.template_filter('speed_format')
+def speed_format(speed_knots):
+    """Converte velocità da nodi a km/h e formatta"""
+    if speed_knots is None or speed_knots == 0:
+        return "0 km/h"
+
+    try:
+        speed_kmh = float(speed_knots) * 1.852
+        return f"{speed_kmh:.1f} km/h"
+    except (ValueError, TypeError):
+        return "0 km/h"
+
+
+@app.template_filter('format_datetime')
+def format_datetime_filter(value, format='%d/%m/%Y %H:%M'):
+    """Alias per datetime_format per compatibilità"""
+    return datetime_format(value, format)
+
+
 @app.template_filter('datetime_format')
 def datetime_format(value, format='%d/%m/%Y %H:%M'):
     """Formatta datetime"""
     if isinstance(value, str):
         try:
-            value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+            # Gestione ISO format con timezone
+            if 'T' in value:
+                value = value.replace('Z', '+00:00')
+                value = datetime.fromisoformat(value)
+            else:
+                value = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         except:
-            return value
+            return str(value)  # Ritorna stringa originale se non parsabile
 
     if isinstance(value, datetime):
         return value.strftime(format)
-    return value
+    return str(value)
 
 
 @app.template_filter('status_badge')
@@ -281,8 +352,23 @@ def status_badge(status):
         'moving': 'primary',
         'stopped': 'info'
     }
-    badge_class = status_map.get(status, 'secondary')
-    return f'<span class="badge badge-{badge_class}">{status.title()}</span>'
+    badge_class = status_map.get(str(status).lower(), 'secondary')
+    status_text = str(status).title()
+    return f'<span class="badge badge-{badge_class}">{status_text}</span>'
+
+
+# ✅ ERROR HANDLERS
+@app.errorhandler(404)
+def not_found_error(error):
+    """Gestione errori 404"""
+    return render_template('errors/404.html'), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Gestione errori 500"""
+    logger.error(f"Errore interno: {error}")
+    return render_template('errors/500.html'), 500
 
 
 if __name__ == '__main__':

@@ -1,13 +1,13 @@
 /**
- * Traccar Fleet Management - Main Application JavaScript
- * ====================================================
+ * Traccar Fleet Management - Main Application JavaScript (FIXED)
+ * ==============================================================
  */
 
 // Namespace globale
 window.TraccarFleet = window.TraccarFleet || {};
 
-// Configurazione italiana per DataTables (inline per evitare errori 404)
-window.italianDTLanguage = window.italianDTLanguage || {
+// Configurazione italiana per DataTables
+window.italianDTLanguage = {
     "decimal": "",
     "emptyTable": "Nessun dato disponibile",
     "info": "Elementi da _START_ a _END_ di _TOTAL_ totali",
@@ -74,27 +74,39 @@ TraccarFleet.init = function() {
 };
 
 /**
- * DATATABLES CONFIGURAZIONE
+ * DATATABLES CONFIGURAZIONE SICURA
  */
 TraccarFleet.initializeDataTables = function() {
     if (typeof $.fn.DataTable !== 'undefined') {
+        // ✅ CONFIGURAZIONE PREDEFINITA SICURA
         $.extend(true, $.fn.dataTable.defaults, {
-            language: window.italianDTLanguage, // ✅ USA CONFIGURAZIONE GLOBALE
+            language: window.italianDTLanguage,
             responsive: true,
             pageLength: 25,
             lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Tutti"]],
             dom: "<'row'<'col-sm-6'l><'col-sm-6'f>>" +
                  "<'row'<'col-sm-12'tr>>" +
                  "<'row'<'col-sm-5'i><'col-sm-7'p>>",
+            // ✅ CALLBACK COMPLETO E SICURO
             initComplete: function(settings, json) {
-                $(this).closest('.dataTables_wrapper').find('.dt-buttons').addClass('mb-3');
+                try {
+                    $(this).closest('.dataTables_wrapper').find('.dt-buttons').addClass('mb-3');
+                } catch (e) {
+                    console.warn('DataTables initComplete warning:', e);
+                }
+            },
+            // ✅ GESTIONE ERRORI PER PREVENIRE CRASH
+            error: function(settings, helpPage, message) {
+                console.error('DataTables Error:', message);
+                // Non bloccare l'applicazione
+                return false;
             }
         });
     }
 };
 
 /**
- * Helper per inizializzare DataTable in modo sicuro
+ * ✅ HELPER SICURO PER INIZIALIZZARE DATATABLES
  */
 TraccarFleet.initDataTable = function(selector, options = {}) {
     const $table = $(selector);
@@ -104,18 +116,81 @@ TraccarFleet.initDataTable = function(selector, options = {}) {
         return null;
     }
 
-    // Se già inizializzato, distruggi prima
-    if ($.fn.DataTable.isDataTable(selector)) {
-        $table.DataTable().destroy();
+    // ✅ VERIFICA STRUTTURA TABELLA
+    const headerColumns = $table.find('thead th').length;
+    const bodyColumns = $table.find('tbody tr:first td').length;
+
+    if (headerColumns > 0 && bodyColumns > 0 && headerColumns !== bodyColumns) {
+        console.error(`DataTable: Mismatch colonne - Header: ${headerColumns}, Body: ${bodyColumns}`);
+        // Ritorna null invece di creare una tabella rotta
+        return null;
     }
 
-    // Inizializza con opzioni predefinite + personalizzate
-    const defaultOptions = {
-        responsive: true,
-        language: window.italianDTLanguage
-    };
+    try {
+        // ✅ SE GIÀ INIZIALIZZATO, DISTRUGGI IN MODO SICURO
+        if ($.fn.DataTable.isDataTable(selector)) {
+            console.log(`DataTable: Distruggendo tabella esistente ${selector}`);
+            $table.DataTable().clear().destroy();
+            $table.empty(); // ✅ PULISCI COMPLETAMENTE
+        }
 
-    return $table.DataTable($.extend({}, defaultOptions, options));
+        // ✅ OPZIONI PREDEFINITE SICURE
+        const defaultOptions = {
+            responsive: true,
+            language: window.italianDTLanguage,
+            // ✅ PREVENZIONE ERRORI
+            autoWidth: false,
+            processing: true,
+            deferRender: true,
+            // ✅ GESTIONE ERRORI GLOBALE
+            error: function(settings, helpPage, message) {
+                console.error(`DataTable ${selector} Error:`, message);
+                TraccarFleet.showToast('Errore nella tabella: ' + message, 'error');
+            }
+        };
+
+        const finalOptions = $.extend(true, {}, defaultOptions, options);
+
+        // ✅ INIZIALIZZA CON TRY-CATCH
+        const dataTable = $table.DataTable(finalOptions);
+        console.log(`✅ DataTable ${selector} inizializzato con successo`);
+
+        return dataTable;
+
+    } catch (error) {
+        console.error(`DataTable ${selector} initialization failed:`, error);
+        TraccarFleet.showToast(`Errore inizializzazione tabella: ${error.message}`, 'error');
+        return null;
+    }
+};
+
+/**
+ * ✅ HELPER PER REINIZIALIZZARE DATATABLES SICURAMENTE
+ */
+TraccarFleet.safeReinitializeDataTable = function(selector, newData = null, options = {}) {
+    try {
+        const $table = $(selector);
+
+        if ($.fn.DataTable.isDataTable(selector)) {
+            const dt = $table.DataTable();
+
+            if (newData) {
+                // Aggiorna i dati mantenendo la struttura
+                dt.clear().rows.add(newData).draw();
+            } else {
+                // Semplicemente ridisegna
+                dt.draw();
+            }
+
+            return dt;
+        } else {
+            // Inizializza per la prima volta
+            return TraccarFleet.initDataTable(selector, options);
+        }
+    } catch (error) {
+        console.error(`Safe reinitialize failed for ${selector}:`, error);
+        return null;
+    }
 };
 
 /**
@@ -139,11 +214,20 @@ TraccarFleet.initializeGlobalEvents = function() {
         }
     });
 
+    // ✅ GESTIONE ERRORI AJAX MIGLIORATA
     $(document).ajaxError(function(event, xhr, settings, error) {
+        console.error('AJAX Error:', {
+            status: xhr.status,
+            url: settings.url,
+            error: error
+        });
+
         if (xhr.status === 401) {
             TraccarFleet.handleUnauthorized();
         } else if (xhr.status >= 500) {
             TraccarFleet.showToast('Errore del server', 'error');
+        } else if (xhr.status === 0) {
+            TraccarFleet.showToast('Connessione persa', 'warning');
         }
     });
 
@@ -162,16 +246,20 @@ TraccarFleet.initializeGlobalEvents = function() {
  * TOOLTIPS E POPOVERS
  */
 TraccarFleet.initializeTooltips = function() {
-    $('[data-toggle="tooltip"]').tooltip({
-        container: 'body',
-        delay: { show: 500, hide: 100 }
-    });
+    if (typeof $.fn.tooltip !== 'undefined') {
+        $('[data-toggle="tooltip"]').tooltip({
+            container: 'body',
+            delay: { show: 500, hide: 100 }
+        });
+    }
 
-    $('[data-toggle="popover"]').popover({
-        container: 'body',
-        trigger: 'hover',
-        html: true
-    });
+    if (typeof $.fn.popover !== 'undefined') {
+        $('[data-toggle="popover"]').popover({
+            container: 'body',
+            trigger: 'hover',
+            html: true
+        });
+    }
 };
 
 /**
@@ -222,54 +310,16 @@ TraccarFleet.initializeAjaxDefaults = function() {
         beforeSend: function(xhr) {
             xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         },
+        timeout: 30000, // ✅ TIMEOUT DI 30 SECONDI
         error: function(xhr, status, error) {
-            console.error('AJAX Error:', status, error);
+            console.error('AJAX Error:', { status, error, xhr });
         }
     });
 };
 
 /**
- * AUTO-REFRESH
+ * ✅ TOAST SICURO
  */
-TraccarFleet.startAutoRefresh = function() {
-    this.stopAutoRefresh(); // Evita duplicati
-
-    this.refreshInterval = setInterval(function() {
-        $('.auto-refresh').each(function() {
-            const url = $(this).data('refresh-url');
-            if (url) {
-                TraccarFleet.refreshComponent($(this), url);
-            }
-        });
-    }, this.config.refreshInterval);
-};
-
-TraccarFleet.stopAutoRefresh = function() {
-    if (this.refreshInterval) {
-        clearInterval(this.refreshInterval);
-        this.refreshInterval = null;
-    }
-};
-
-/**
- * UTILITY FUNCTIONS
- */
-TraccarFleet.refreshComponent = function(target, url) {
-    if (!url) return;
-
-    $.get(url)
-        .done(function(data) {
-            if (typeof target === 'string') {
-                $(target).html(data);
-            } else {
-                target.html(data);
-            }
-        })
-        .fail(function() {
-            console.warn('Refresh failed for:', url);
-        });
-};
-
 TraccarFleet.showToast = function(message, type = 'info') {
     if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -282,38 +332,93 @@ TraccarFleet.showToast = function(message, type = 'info') {
             title: message
         });
     } else {
-        // Fallback se SweetAlert2 non è disponibile
+        // Fallback per console
         console.log(`Toast ${type}: ${message}`);
     }
 };
 
+/**
+ * AUTO-REFRESH
+ */
+TraccarFleet.startAutoRefresh = function() {
+    this.stopAutoRefresh(); // Evita duplicati
+
+    this.refreshInterval = setInterval(function() {
+        $('.auto-refresh').each(function() {
+            const url = $(this).data('refresh-url');
+            if (url) {
+                TraccarFleet.refreshComponent(this, url);
+            }
+        });
+    }, TraccarFleet.config.refreshInterval);
+};
+
+TraccarFleet.stopAutoRefresh = function() {
+    if (this.refreshInterval) {
+        clearInterval(this.refreshInterval);
+        this.refreshInterval = null;
+    }
+};
+
+TraccarFleet.refreshComponent = function(element, url = null) {
+    const $element = $(element);
+    url = url || $element.data('refresh-url');
+
+    if (!url) return;
+
+    $.get(url)
+        .done(function(data) {
+            $element.html(data);
+            // ✅ REINIZIALIZZA DATATABLES SE NECESSARIO
+            $element.find('table').each(function() {
+                if ($(this).hasClass('dataTable') || $(this).data('datatable')) {
+                    TraccarFleet.safeReinitializeDataTable(this);
+                }
+            });
+        })
+        .fail(function() {
+            TraccarFleet.showToast('Errore aggiornamento componente', 'error');
+        });
+};
+
+/**
+ * RESPONSIVE HANDLING
+ */
+TraccarFleet.handleResponsive = function() {
+    $(window).on('resize', function() {
+        // Ridisegna le DataTables responsive
+        $('.dataTable').each(function() {
+            if ($.fn.DataTable.isDataTable(this)) {
+                $(this).DataTable().responsive.recalc();
+            }
+        });
+    });
+};
+
+/**
+ * UTILITÀ
+ */
 TraccarFleet.handleUnauthorized = function() {
-    this.showToast('Sessione scaduta, reindirizzamento...', 'warning');
-    setTimeout(function() {
+    TraccarFleet.showToast('Sessione scaduta', 'warning');
+    setTimeout(() => {
         window.location.href = '/login';
     }, 2000);
 };
 
-TraccarFleet.handleResponsive = function() {
-    // Gestione responsive per mobile
-    if ($(window).width() < 768) {
-        $('.sidebar').addClass('sidebar-collapse');
+TraccarFleet.exportData = function(target) {
+    const $target = $(target);
+    if ($.fn.DataTable.isDataTable(target)) {
+        $target.DataTable().button('.buttons-excel').trigger();
     }
 };
 
-TraccarFleet.debounce = function(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = function() {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
+TraccarFleet.toggleComponent = function(target) {
+    $(target).toggle();
 };
 
-// Storage utilities
+/**
+ * STORAGE UTILITIES
+ */
 TraccarFleet.setStorage = function(key, value, maxAge = null, session = false) {
     const storage = session ? sessionStorage : localStorage;
     const data = {
@@ -354,7 +459,7 @@ TraccarFleet.getStorage = function(key, maxAge = null, session = false) {
     }
 };
 
-// Export per utilizzo in altri script
+// Export per utilizzo globale
 window.TraccarFleet = TraccarFleet;
 
 console.log('📱 Traccar Fleet Management JavaScript loaded successfully');

@@ -3,27 +3,24 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}{{ app_name }}{% endblock %}</title>
-
-    <!-- Google Fonts -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-
-    <!-- AdminLTE CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+    <title>{% block title %}{% endblock %} - {{ app_name }}</title>
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- DataTables CSS -->
+    <!-- AdminLTE Theme -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+
+    <!-- DataTables Bootstrap 4 -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
 
-    <!-- Leaflet CSS -->
+    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
-    <!-- Custom CSS -->
+    <!-- Custom Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 
-    {% block head_css %}{% endblock %}
+    {% block head %}{% endblock %}
 </head>
 
 <body class="hold-transition sidebar-mini layout-fixed">
@@ -38,20 +35,20 @@
                     <i class="fas fa-bars"></i>
                 </a>
             </li>
-            <li class="nav-item d-none d-sm-inline-block">
-                <a href="{{ url_for('dashboard') }}" class="nav-link">
-                    <i class="fas fa-home"></i> Dashboard
-                </a>
-            </li>
         </ul>
 
         <!-- Right navbar links -->
         <ul class="navbar-nav ml-auto">
             <li class="nav-item dropdown">
                 <a class="nav-link" data-toggle="dropdown" href="#">
-                    <i class="far fa-user"></i> {{ current_user }}
+                    <i class="fas fa-user"></i>
+                    {{ current_user }}
                 </a>
-                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a href="{{ url_for('profile') }}" class="dropdown-item">
+                        <i class="fas fa-user-cog mr-2"></i> Profilo
+                    </a>
+                    <div class="dropdown-divider"></div>
                     <a href="{{ url_for('logout') }}" class="dropdown-item">
                         <i class="fas fa-sign-out-alt mr-2"></i> Logout
                     </a>
@@ -60,11 +57,11 @@
         </ul>
     </nav>
 
-    <!-- Main Sidebar Container -->
+    <!-- Main Sidebar -->
     <aside class="main-sidebar sidebar-dark-primary elevation-4">
         <!-- Brand Logo -->
         <a href="{{ url_for('dashboard') }}" class="brand-link">
-            <i class="fas fa-truck brand-image"></i>
+            <i class="fas fa-car-side brand-image"></i>
             <span class="brand-text font-weight-light">{{ app_name }}</span>
         </a>
 
@@ -74,7 +71,6 @@
             <nav class="mt-2">
                 <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
 
-                    <!-- Dashboard -->
                     <li class="nav-item">
                         <a href="{{ url_for('dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'dashboard' }}">
                             <i class="nav-icon fas fa-tachometer-alt"></i>
@@ -82,24 +78,20 @@
                         </a>
                     </li>
 
-                    <!-- Dispositivi -->
                     <li class="nav-item {{ 'menu-open' if request.blueprint == 'devices' }}">
                         <a href="#" class="nav-link {{ 'active' if request.blueprint == 'devices' }}">
                             <i class="nav-icon fas fa-mobile-alt"></i>
-                            <p>
-                                Dispositivi
-                                <i class="right fas fa-angle-left"></i>
-                            </p>
+                            <p>Dispositivi <i class="fas fa-angle-left right"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
-                                <a href="{{ url_for('devices.list_devices') }}" class="nav-link">
+                                <a href="{{ url_for('devices.list_devices') }}" class="nav-link {{ 'active' if request.endpoint == 'devices.list_devices' }}">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Lista Dispositivi</p>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="{{ url_for('devices.add_device') }}" class="nav-link">
+                                <a href="{{ url_for('devices.add_device') }}" class="nav-link {{ 'active' if request.endpoint == 'devices.add_device' }}">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Aggiungi Dispositivo</p>
                                 </a>
@@ -107,24 +99,20 @@
                         </ul>
                     </li>
 
-                    <!-- Posizioni -->
                     <li class="nav-item {{ 'menu-open' if request.blueprint == 'positions' }}">
                         <a href="#" class="nav-link {{ 'active' if request.blueprint == 'positions' }}">
                             <i class="nav-icon fas fa-map-marker-alt"></i>
-                            <p>
-                                Posizioni
-                                <i class="right fas fa-angle-left"></i>
-                            </p>
+                            <p>Posizioni <i class="fas fa-angle-left right"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
-                                <a href="{{ url_for('positions.live_tracking') }}" class="nav-link">
+                                <a href="{{ url_for('positions.live_tracking') }}" class="nav-link {{ 'active' if request.endpoint == 'positions.live_tracking' }}">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Tracking Live</p>
+                                    <p>Tracciamento Live</p>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="{{ url_for('positions.position_history') }}" class="nav-link">
+                                <a href="{{ url_for('positions.history') }}" class="nav-link {{ 'active' if request.endpoint == 'positions.history' }}">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Storico Posizioni</p>
                                 </a>
@@ -132,30 +120,27 @@
                         </ul>
                     </li>
 
-                    <!-- Report -->
                     <li class="nav-item {{ 'menu-open' if request.blueprint == 'reports' }}">
                         <a href="#" class="nav-link {{ 'active' if request.blueprint == 'reports' }}">
-                            <i class="nav-icon fas fa-chart-line"></i>
-                            <p>
-                                Report
-                                <i class="right fas fa-angle-left"></i>
-                            </p>
+                            <i class="nav-icon fas fa-chart-bar"></i>
+                            <p>Report <i class="fas fa-angle-left right"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
-                                <a href="{{ url_for('reports.trips') }}" class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Viaggi</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{{ url_for('reports.summary') }}" class="nav-link">
+                                <a href="{{ url_for('reports.summary') }}" class="nav-link {{ 'active' if request.endpoint == 'reports.summary' }}">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Riepilogo</p>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href="{{ url_for('reports.trips') }}" class="nav-link {{ 'active' if request.endpoint == 'reports.trips' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Viaggi</p>
+                                </a>
+                            </li>
                         </ul>
                     </li>
+
                 </ul>
             </nav>
         </div>
@@ -168,12 +153,12 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1 class="m-0">{% block page_title %}{{ app_name }}{% endblock %}</h1>
+                        <h1 class="m-0">{% block page_title %}{% endblock %}</h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
-                            {% block breadcrumbs %}
-                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                            {% block breadcrumb %}
+                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Home</a></li>
                             {% endblock %}
                         </ol>
                     </div>
@@ -181,32 +166,31 @@
             </div>
         </div>
 
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container-fluid">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         <!-- Main content -->
         <section class="content">
-            <div class="container-fluid">
-
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="close" data-dismiss="alert">
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-
-                {% block content %}{% endblock %}
-            </div>
+            {% block content %}{% endblock %}
         </section>
     </div>
 
     <!-- Footer -->
     <footer class="main-footer">
-        <strong>Copyright &copy; {{ current_year }} {{ app_name }}.</strong>
+        <strong>© {{ current_year }} <a href="#">{{ app_name }}</a>.</strong>
         Tutti i diritti riservati.
         <div class="float-right d-none d-sm-inline-block">
             <b>Versione</b> {{ app_version }}
@@ -233,29 +217,35 @@
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<!-- Custom Scripts -->
+<!-- ✅ APP.JS PRINCIPALE - DEVE ESSERE CARICATO PRIMA DEGLI SCRIPT SPECIFICI -->
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 
+<!-- ✅ SCRIPT SPECIFICI DELLA PAGINA -->
 {% block scripts %}{% endblock %}
 
 <script>
-// Usa la configurazione italiana DataTables globale (definita in app.js)
+// ✅ SCRIPT DI BASE SICURO - NON INIZIALIZZA AUTOMATICAMENTE DATATABLES
 $(document).ready(function() {
-    // Inizializza DataTables solo per tabelle SENZA ID specifico
-    // Esclude tabelle che hanno inizializzazione personalizzata nei template
-    $('.table:not([id])').DataTable({
-        responsive: true,
-        language: window.italianDTLanguage  // ✅ USA CONFIGURAZIONE GLOBALE
-    });
+    // ✅ SOLO INIZIALIZZAZIONE DELLE FUNZIONALITÀ BASE
 
     // Auto-hide alerts dopo 5 secondi
     setTimeout(function() {
-        $('.alert').fadeOut();
+        $('.alert:not(.alert-permanent)').fadeOut();
     }, 5000);
+
+    // ✅ GESTIONE TOOLTIPS GLOBALI
+    if (typeof $.fn.tooltip !== 'undefined') {
+        $(document).on('mouseenter', '[data-toggle="tooltip"]:not([data-original-title])', function() {
+            $(this).tooltip('show');
+        });
+    }
 });
 
-function showToast(message, type = 'info') {
-    if (typeof Swal !== 'undefined') {
+// ✅ FUNZIONE TOAST GLOBALE SICURA
+window.showToast = function(message, type = 'info') {
+    if (typeof TraccarFleet !== 'undefined' && TraccarFleet.showToast) {
+        TraccarFleet.showToast(message, type);
+    } else if (typeof Swal !== 'undefined') {
         Swal.fire({
             toast: true,
             position: 'top-end',
@@ -268,7 +258,31 @@ function showToast(message, type = 'info') {
     } else {
         console.log(`Toast ${type}: ${message}`);
     }
-}
+};
+
+// ✅ FUNZIONE HELPER PER CONFERME
+window.confirmAction = function(message, callback) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Conferma Azione',
+            text: message,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sì, continua',
+            cancelButtonText: 'Annulla'
+        }).then((result) => {
+            if (result.isConfirmed && typeof callback === 'function') {
+                callback();
+            }
+        });
+    } else {
+        if (confirm(message) && typeof callback === 'function') {
+            callback();
+        }
+    }
+};
 </script>
 
 </body>

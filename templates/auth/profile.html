@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Profilo Utente{% endblock %}
+{% block page_title %}Profilo Utente{% endblock %}
+
+{% block breadcrumb %}
+{{ super() }}
+<li class="breadcrumb-item active">Profilo</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Colonna Sinistra - Info Utente -->
+        <div class="col-md-4">
+
+            <!-- Card Profilo -->
+            <div class="card card-primary card-outline">
+                <div class="card-body box-profile">
+                    <div class="text-center">
+                        <i class="fas fa-user-circle fa-5x text-primary mb-3"></i>
+                        <h3 class="profile-username text-center">{{ user_info.name or session.user_name }}</h3>
+                        <p class="text-muted text-center">
+                            {% if session.is_admin %}
+                                <span class="badge badge-danger">
+                                    <i class="fas fa-crown"></i> Amministratore
+                                </span>
+                            {% else %}
+                                <span class="badge badge-info">
+                                    <i class="fas fa-user"></i> Utente
+                                </span>
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <ul class="list-group list-group-unbordered mb-3">
+                        <li class="list-group-item">
+                            <b><i class="fas fa-envelope mr-1"></i> Email</b>
+                            <span class="float-right">{{ user_info.email or session.user_email }}</span>
+                        </li>
+                        <li class="list-group-item">
+                            <b><i class="fas fa-mobile-alt mr-1"></i> Dispositivi</b>
+                            <span class="float-right">{{ user_stats.devices_count }}</span>
+                        </li>
+                        <li class="list-group-item">
+                            <b><i class="fas fa-clock mr-1"></i> Ultimo Accesso</b>
+                            <span class="float-right">
+                                <small class="text-muted">
+                                    {{ user_stats.last_login.strftime('%d/%m/%Y %H:%M') }}
+                                </small>
+                            </span>
+                        </li>
+                        <li class="list-group-item">
+                            <b><i class="fas fa-shield-alt mr-1"></i> ID Utente</b>
+                            <span class="float-right">
+                                <code>{{ user_info.id or session.user_id }}</code>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Card Statistiche Rapide -->
+            <div class="card card-info">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-pie"></i>
+                        Statistiche Rapide
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="description-block border-right">
+                                <span class="description-percentage text-success">
+                                    <i class="fas fa-caret-up"></i>
+                                </span>
+                                <h5 class="description-header">{{ user_stats.devices_count }}</h5>
+                                <span class="description-text">Dispositivi</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="description-block">
+                                <span class="description-percentage text-info">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                                <h5 class="description-header">24h</h5>
+                                <span class="description-text">Sessione</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Colonna Destra - Form Modifica -->
+        <div class="col-md-8">
+
+            <!-- Card Modifica Profilo -->
+            <div class="card card-success">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-user-edit"></i>
+                        Modifica Profilo
+                    </h3>
+                </div>
+                <form method="POST" action="{{ url_for('update_profile') }}" class="needs-validation" novalidate>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="name">
+                                        <i class="fas fa-user mr-1"></i>
+                                        Nome Completo
+                                    </label>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="name"
+                                           name="name"
+                                           value="{{ user_info.name or session.user_name }}"
+                                           required>
+                                    <div class="invalid-feedback">
+                                        Il nome è obbligatorio
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="email">
+                                        <i class="fas fa-envelope mr-1"></i>
+                                        Indirizzo Email
+                                    </label>
+                                    <input type="email"
+                                           class="form-control"
+                                           id="email"
+                                           name="email"
+                                           value="{{ user_info.email or session.user_email }}"
+                                           required>
+                                    <div class="invalid-feedback">
+                                        Email valida è obbligatoria
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <strong>Nota:</strong> Alcune modifiche potrebbero richiedere il riavvio della sessione per essere completamente applicate.
+                            Le modifiche dipendono dalle configurazioni del server Traccar.
+                        </div>
+
+                        <!-- Informazioni Sistema (Read-only) -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>
+                                        <i class="fas fa-key mr-1"></i>
+                                        ID Utente (Read-only)
+                                    </label>
+                                    <input type="text"
+                                           class="form-control"
+                                           value="{{ user_info.id or session.user_id }}"
+                                           readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>
+                                        <i class="fas fa-shield-alt mr-1"></i>
+                                        Ruolo Sistema (Read-only)
+                                    </label>
+                                    <input type="text"
+                                           class="form-control"
+                                           value="{% if session.is_admin %}Amministratore{% else %}Utente{% endif %}"
+                                           readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informazioni Connessione -->
+                        <div class="card card-outline card-secondary mt-3">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-server"></i>
+                                    Informazioni Connessione
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <strong>Server Traccar:</strong><br>
+                                        <code>{{ session.traccar_host or 'N/A' }}:{{ session.traccar_port or 'N/A' }}</code>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>Username:</strong><br>
+                                        <code>{{ session.traccar_username or 'N/A' }}</code>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>Stato Connessione:</strong><br>
+                                        <span class="badge badge-success">
+                                            <i class="fas fa-check-circle"></i> Connesso
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i>
+                                    Salva Modifiche
+                                </button>
+                                <button type="reset" class="btn btn-secondary ml-2">
+                                    <i class="fas fa-undo"></i>
+                                    Ripristina
+                                </button>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-info">
+                                    <i class="fas fa-arrow-left"></i>
+                                    Torna alla Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Card Azioni Account -->
+            <div class="card card-warning">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-tools"></i>
+                        Azioni Account
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-sign-out-alt"></i> Logout</h6>
+                            <p class="text-muted">Disconnettiti dalla sessione corrente.</p>
+                            <a href="{{ url_for('logout') }}" class="btn btn-warning">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-sync-alt"></i> Ricarica Sessione</h6>
+                            <p class="text-muted">Ricarica i dati del profilo dal server.</p>
+                            <a href="{{ url_for('profile') }}" class="btn btn-info">
+                                <i class="fas fa-sync-alt"></i>
+                                Ricarica
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Validazione form Bootstrap
+    'use strict';
+
+    var forms = document.querySelectorAll('.needs-validation');
+
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+
+    // Reset form validation on reset
+    $('form').on('reset', function() {
+        $(this).removeClass('was-validated');
+        $(this).find('.form-control').removeClass('is-valid is-invalid');
+    });
+
+    // Real-time validation
+    $('.form-control[required]').on('input', function() {
+        if (this.checkValidity()) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        }
+    });
+
+    // Conferma logout
+    $('a[href$="/logout"]').on('click', function(e) {
+        e.preventDefault();
+        const href = this.href;
+
+        confirmAction('Sei sicuro di voler uscire?', function() {
+            window.location.href = href;
+        });
+    });
+
+    console.log('✅ Profile page initialized');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,94 @@
+<!-- templates/errors/404.html -->
+{% extends "base.html" %}
+
+{% block title %}Pagina Non Trovata{% endblock %}
+{% block page_title %}Errore 404{% endblock %}
+
+{% block breadcrumb %}
+{{ super() }}
+<li class="breadcrumb-item active">Errore 404</li>
+{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <h2 class="headline text-warning">404</h2>
+
+    <div class="error-content">
+        <h3><i class="fas fa-exclamation-triangle text-warning"></i> Oops! Pagina non trovata.</h3>
+
+        <p>
+            Non siamo riusciti a trovare la pagina che stavi cercando.
+            Nel frattempo, puoi <a href="{{ url_for('dashboard') }}">tornare alla dashboard</a>
+            oppure cercare quello che ti serve:
+        </p>
+
+        <form class="search-form mb-4" method="GET" action="{{ url_for('dashboard') }}">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Cerca dispositivi, report...">
+                <div class="input-group-append">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card card-widget">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Dashboard
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        Torna alla pagina principale per vedere tutti i tuoi dispositivi.
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-home"></i> Vai alla Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-widget">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-mobile-alt"></i>
+                            Dispositivi
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        Gestisci e monitora tutti i tuoi dispositivi Traccar.
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('devices.list_devices') }}" class="btn btn-success btn-sm">
+                            <i class="fas fa-list"></i> Lista Dispositivi
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-widget">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-bar"></i>
+                            Report
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        Visualizza report e statistiche dettagliate.
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('reports.summary') }}" class="btn btn-info btn-sm">
+                            <i class="fas fa-chart-pie"></i> Genera Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

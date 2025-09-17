@@ -1,16 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Storico Posizioni - {{ app_name }}{% endblock %}
-
+{% block title %}Storico Posizioni{% endblock %}
 {% block page_title %}Storico Posizioni{% endblock %}
 
-{% block breadcrumbs %}
-<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-<li class="breadcrumb-item"><a href="{{ url_for('positions.live_tracking') }}">Posizioni</a></li>
+{% block breadcrumb %}
+{{ super() }}
+<li class="breadcrumb-item">Posizioni</li>
 <li class="breadcrumb-item active">Storico</li>
 {% endblock %}
 
-{% block head_css %}
+{% block head %}
 <style>
 .position-card {
     transition: all 0.3s ease;
@@ -52,349 +51,284 @@
 {% endblock %}
 
 {% block content %}
-<!-- Filtri Ricerca -->
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">
-            <i class="fas fa-filter"></i>
-            Filtri Ricerca Storico
-        </h3>
-    </div>
-    <div class="card-body">
-        <form method="GET" action="{{ url_for('positions.position_history') }}" class="form-inline">
-            <input type="hidden" name="load" value="1">
+<div class="container-fluid">
 
-            <!-- Selezione Dispositivo -->
-            <div class="form-group mr-3 mb-3">
-                <label for="deviceId" class="mr-2">Dispositivo:</label>
-                <select name="deviceId" id="deviceId" class="form-control" required style="width: 250px;">
-                    <option value="">Seleziona dispositivo...</option>
-                    {% for device in devices %}
-                    <option value="{{ device.id }}"
-                            {% if selected_device_id == device.id %}selected{% endif %}>
-                        {{ device.name }} ({{ device.uniqueId }})
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+    <!-- Filtri Ricerca -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-filter"></i>
+                Filtri Ricerca Storico
+            </h3>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('positions.history') }}" class="row">
+                <input type="hidden" name="load" value="1">
 
-            <!-- Data Inizio -->
-            <div class="form-group mr-3 mb-3">
-                <label for="from" class="mr-2">Da:</label>
-                <input type="datetime-local"
-                       id="from"
-                       name="from"
-                       class="form-control"
-                       value="{{ from_date or '' }}">
-            </div>
-
-            <!-- Data Fine -->
-            <div class="form-group mr-3 mb-3">
-                <label for="to" class="mr-2">A:</label>
-                <input type="datetime-local"
-                       id="to"
-                       name="to"
-                       class="form-control"
-                       value="{{ to_date or '' }}">
-            </div>
-
-            <!-- Bottone Ricerca -->
-            <div class="form-group mb-3">
-                <button type="submit" class="btn btn-primary mr-2">
-                    <i class="fas fa-search"></i>
-                    Carica Storico
-                </button>
-
-                {% if positions %}
-                <button type="button" class="btn btn-info" onclick="showOnMap()">
-                    <i class="fas fa-map"></i>
-                    Visualizza Mappa
-                </button>
-                {% endif %}
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Risultati Ricerca -->
-{% if positions %}
-<!-- Statistiche del Percorso -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card position-timeline">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 col-sm-6">
-                        <div class="route-stats p-3 text-center">
-                            <i class="fas fa-route fa-2x text-primary mb-2"></i>
-                            <h4 class="text-primary">{{ positions|length }}</h4>
-                            <p class="text-muted mb-0">Posizioni Registrate</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="route-stats p-3 text-center">
-                            <i class="fas fa-clock fa-2x text-success mb-2"></i>
-                            {% if positions|length >= 2 %}
-                                {% set duration_hours = ((positions[0].serverTime|datetime_to_timestamp) - (positions[-1].serverTime|datetime_to_timestamp)) / 3600 %}
-                                <h4 class="text-success">{{ "%.1f"|format(duration_hours|abs) }}h</h4>
-                            {% else %}
-                                <h4 class="text-success">0h</h4>
-                            {% endif %}
-                            <p class="text-muted mb-0">Durata Periodo</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="route-stats p-3 text-center">
-                            <i class="fas fa-tachometer-alt fa-2x text-warning mb-2"></i>
-                            {% set max_speed = positions|map(attribute='speed')|list|max|default(0) %}
-                            <h4 class="text-warning">{{ "%.0f"|format(max_speed * 1.852) }}</h4>
-                            <p class="text-muted mb-0">Vel. Max (km/h)</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="route-stats p-3 text-center">
-                            <i class="fas fa-map-marker-alt fa-2x text-info mb-2"></i>
-                            {% set avg_speed = (positions|sum(attribute='speed') / positions|length)|default(0) %}
-                            <h4 class="text-info">{{ "%.0f"|format(avg_speed * 1.852) }}</h4>
-                            <p class="text-muted mb-0">Vel. Media (km/h)</p>
-                        </div>
+                <!-- Selezione Dispositivo -->
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="deviceId">
+                            <i class="fas fa-mobile-alt mr-1"></i>
+                            Dispositivo
+                        </label>
+                        <select name="deviceId" id="deviceId" class="form-control" required>
+                            <option value="">Seleziona dispositivo...</option>
+                            {% for device in devices %}
+                            <option value="{{ device.id }}"
+                                {{ 'selected' if device.id == selected_device_id }}>
+                                {{ device.name }} ({{ device.uniqueId }})
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
 
-                {% if device_name %}
-                <div class="text-center mt-3">
-                    <h5 class="mb-0">
-                        <i class="fas fa-mobile-alt"></i>
-                        {{ device_name }}
-                    </h5>
-                    <p class="mb-0 opacity-75">
-                        <i class="fas fa-calendar-alt"></i>
-                        Da {{ from_date|datetime_format if from_date else 'N/A' }}
-                        a {{ to_date|datetime_format if to_date else 'N/A' }}
-                    </p>
+                <!-- Data Inizio -->
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="from">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            Da
+                        </label>
+                        <input type="datetime-local"
+                               name="from"
+                               id="from"
+                               class="form-control"
+                               value="{{ from_date or '' }}">
+                    </div>
                 </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Mappa (nascosta di default) -->
-<div id="mapContainer" class="row mb-4" style="display: none;">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between">
-                <h3 class="card-title">
-                    <i class="fas fa-map"></i>
-                    Percorso su Mappa
-                </h3>
-                <button class="btn btn-sm btn-secondary" onclick="hideMap()">
-                    <i class="fas fa-times"></i>
-                    Nascondi
-                </button>
-            </div>
-            <div class="card-body p-0">
-                <div id="historyMap" class="map-container"></div>
-            </div>
-        </div>
-    </div>
-</div>
+                <!-- Data Fine -->
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="to">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            A
+                        </label>
+                        <input type="datetime-local"
+                               name="to"
+                               id="to"
+                               class="form-control"
+                               value="{{ to_date or '' }}">
+                    </div>
+                </div>
 
-<!-- Lista Posizioni -->
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title">
-            <i class="fas fa-list"></i>
-            Cronologia Posizioni ({{ positions|length }})
-        </h3>
-        <div class="card-tools">
-            <button class="btn btn-sm btn-success" onclick="exportPositions()">
-                <i class="fas fa-download"></i>
-                Esporta
-            </button>
-        </div>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0" id="positionsTable">
-                <thead class="bg-light">
-                    <tr>
-                        <th><i class="fas fa-clock"></i> Timestamp</th>
-                        <th><i class="fas fa-map-marker-alt"></i> Coordinate</th>
-                        <th><i class="fas fa-tachometer-alt"></i> Velocità</th>
-                        <th><i class="fas fa-compass"></i> Direzione</th>
-                        <th><i class="fas fa-mountain"></i> Altitudine</th>
-                        <th><i class="fas fa-crosshairs"></i> Precisione</th>
-                        <th><i class="fas fa-map-signs"></i> Indirizzo</th>
-                        <th><i class="fas fa-cogs"></i> Azioni</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for position in positions %}
-                    <tr class="position-row" data-position='{{ position|tojson }}'>
-                        <td>
-                            <strong>{{ position.serverTime|datetime_format if position.serverTime else 'N/A' }}</strong>
-                            {% if position.fixTime != position.serverTime %}
-                                <br>
-                                <small class="text-muted">
-                                    <i class="fas fa-satellite-dish"></i>
-                                    {{ position.fixTime|datetime_format if position.fixTime else 'N/A' }}
-                                </small>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <code class="text-primary">{{ "%.6f"|format(position.latitude) }}</code><br>
-                            <code class="text-primary">{{ "%.6f"|format(position.longitude) }}</code>
-                            <br>
-                            <button class="btn btn-xs btn-outline-info mt-1 map-pin-btn"
-                                    data-lat="{{ position.latitude }}"
-                                    data-lng="{{ position.longitude }}">
-                                <i class="fas fa-map-pin"></i>
+                <!-- Bottone Ricerca -->
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-search"></i>
+                                Carica Storico
                             </button>
-                        </td>
-                        <td>
-                            {% if position.speed %}
-                                {% set speed_kmh = position.speed * 1.852 %}
-                                {% if speed_kmh < 10 %}
-                                    <span class="speed-indicator speed-low">{{ "%.1f"|format(speed_kmh) }} km/h</span>
-                                {% elif speed_kmh < 50 %}
-                                    <span class="speed-indicator speed-medium">{{ "%.1f"|format(speed_kmh) }} km/h</span>
-                                {% else %}
-                                    <span class="speed-indicator speed-high">{{ "%.1f"|format(speed_kmh) }} km/h</span>
-                                {% endif %}
-                            {% else %}
-                                <span class="text-muted">0 km/h</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if position.course %}
-                                <i class="fas fa-arrow-up" style="transform: rotate({{ position.course }}deg); color: #007bff;"></i>
-                                <br>
-                                <small>{{ position.course|round }}°</small>
-                            {% else %}
-                                <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if position.altitude %}
-                                <span class="badge badge-info">{{ "%.0f"|format(position.altitude) }}m</span>
-                            {% else %}
-                                <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if position.accuracy %}
-                                <span class="badge badge-secondary">±{{ "%.0f"|format(position.accuracy) }}m</span>
-                            {% else %}
-                                <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if position.address %}
-                                <small>{{ position.address[:80] }}{% if position.address|length > 80 %}...{% endif %}</small>
-                            {% else %}
-                                <small class="text-muted">Indirizzo non disponibile</small>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary position-details-btn"
-                                        data-position="{{ position|tojson|e }}"
-                                        title="Dettagli">
-                                    <i class="fas fa-info"></i>
-                                </button>
-                                <button class="btn btn-outline-success copy-coords-btn"
-                                        data-lat="{{ position.latitude }}"
-                                        data-lng="{{ position.longitude }}"
-                                        title="Copia coordinate">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
-</div>
 
-{% else %}
-<!-- Nessun Risultato -->
-<div class="card">
-    <div class="card-body text-center py-5">
-        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-        <h4 class="text-muted">Nessuna posizione trovata</h4>
-        <p class="text-muted">
-            {% if request.args.get('load') %}
-                Nessuna posizione trovata per i criteri selezionati.
-            {% else %}
-                Seleziona un dispositivo e un intervallo di date per visualizzare lo storico.
-            {% endif %}
-        </p>
-        {% if not devices %}
-        <div class="alert alert-warning mt-3">
-            <i class="fas fa-exclamation-triangle"></i>
-            Nessun dispositivo disponibile. <a href="{{ url_for('devices.add_device') }}">Aggiungi dispositivi</a> per iniziare.
+    {% if positions %}
+    <div class="row">
+
+        <!-- Statistiche Rotta -->
+        {% if route_stats %}
+        <div class="col-12 mb-3">
+            <div class="card card-info">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        Statistiche Rotta: {{ device_name }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="info-box bg-info">
+                                <span class="info-box-icon">
+                                    <i class="fas fa-map-pin"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Punti Totali</span>
+                                    <span class="info-box-number">{{ route_stats.total_points }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="info-box bg-success">
+                                <span class="info-box-icon">
+                                    <i class="fas fa-route"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Distanza</span>
+                                    <span class="info-box-number">
+                                        {{ "%.1f"|format(route_stats.distance_km) }} km
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="info-box bg-warning">
+                                <span class="info-box-icon">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Vel. Media</span>
+                                    <span class="info-box-number">
+                                        {{ "%.1f"|format(route_stats.avg_speed_kmh) }} km/h
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="info-box bg-danger">
+                                <span class="info-box-icon">
+                                    <i class="fas fa-rocket"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Vel. Max</span>
+                                    <span class="info-box-number">
+                                        {{ "%.1f"|format(route_stats.max_speed_kmh) }} km/h
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="info-box bg-primary">
+                                <span class="info-box-icon">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Durata</span>
+                                    <span class="info-box-number">
+                                        {{ "%.1f"|format(route_stats.duration_hours) }}h
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="info-box bg-secondary">
+                                <span class="info-box-icon">
+                                    <i class="fas fa-download"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Export</span>
+                                    <a href="{{ url_for('positions.export_positions', device_id=selected_device_id, from=from_date, to=to_date) }}"
+                                       class="btn btn-sm btn-light">
+                                        <i class="fas fa-file-csv"></i> CSV
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         {% endif %}
-    </div>
-</div>
-{% endif %}
 
-<!-- Modal Dettagli Posizione -->
-<div class="modal fade" id="positionDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">
-                    <i class="fas fa-info-circle"></i>
-                    Dettagli Posizione
-                </h4>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+        <!-- Mappa -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-map"></i>
+                        Tracciamento su Mappa
+                    </h3>
+                </div>
+                <div class="card-body p-0">
+                    <div id="historyMap" class="map-container"></div>
+                </div>
             </div>
-            <div class="modal-body" id="positionDetailsContent">
-                <!-- Contenuto generato dinamicamente -->
+        </div>
+
+        <!-- Timeline Posizioni -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-timeline"></i>
+                        Timeline Posizioni
+                    </h3>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% for position in positions[:20] %}
+                    <div class="position-card mb-2 p-2"
+                         onclick="focusMapPosition({{ position.latitude }}, {{ position.longitude }})">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ position.deviceTime|datetime_format }}</strong><br>
+                                <small class="text-muted">
+                                    {{ "%.6f"|format(position.latitude) }}, {{ "%.6f"|format(position.longitude) }}
+                                </small>
+                            </div>
+                            <div class="text-right">
+                                {% set speed_kmh = (position.speed or 0) * 1.852 %}
+                                <span class="speed-indicator
+                                    {% if speed_kmh < 10 %}speed-low
+                                    {% elif speed_kmh < 50 %}speed-medium
+                                    {% else %}speed-high{% endif %}">
+                                    {{ "%.1f"|format(speed_kmh) }} km/h
+                                </span><br>
+                                <small class="text-muted">
+                                    <i class="fas fa-compass"></i> {{ position.course or 0 }}°
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% if positions|length > 20 %}
+                    <div class="text-center">
+                        <small class="text-muted">
+                            ... e altre {{ positions|length - 20 }} posizioni
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Chiudi</button>
+        </div>
+
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-map-marked-alt fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Nessuna posizione trovata</h4>
+                    <p class="text-muted">
+                        {% if selected_device_id %}
+                            Nessuna posizione disponibile per il periodo selezionato per <strong>{{ device_name }}</strong>.
+                        {% else %}
+                            Seleziona un dispositivo e un intervallo di tempo per visualizzare lo storico delle posizioni.
+                        {% endif %}
+                    </p>
+                    {% if not devices %}
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Nessun dispositivo disponibile.
+                        <a href="{{ url_for('devices.add_device') }}">Aggiungi dispositivi</a> per iniziare.
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
-</div>
+    {% endif %}
 
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 let historyMap = null;
-let routeLine = null;
+let routeLayer = null;
+let positionsData = {{ positions | tojson if positions else '[]' }};
 
 $(document).ready(function() {
-    // Inizializza Select2 per dispositivi
-    $('#deviceId').select2({
-        placeholder: 'Seleziona dispositivo...',
-        allowClear: true,
-        width: '100%'
-    });
-
-    // Inizializza DataTables
-    {% if positions %}
-    $('#positionsTable').DataTable({
-        responsive: true,
-        language: window.italianDTLanguage, // ✅ USA CONFIGURAZIONE GLOBALE
-        order: [[0, 'desc']], // Ordina per timestamp decrescente
-        columnDefs: [
-            { orderable: false, targets: [7] }, // Disabilita ordinamento per colonna azioni
-            { width: '15%', targets: [0] },
-            { width: '15%', targets: [1] },
-            { width: '10%', targets: [2] }
-        ],
-        pageLength: 50
-    });
-    {% endif %}
+    console.log('🗺️ Inizializzazione History Map');
 
     // Imposta date predefinite se non specificate
     if (!$('#from').val() && !$('#to').val()) {
@@ -405,164 +339,145 @@ $(document).ready(function() {
         $('#to').val(now.toISOString().slice(0, 16));
     }
 
-    // Event handlers per bottoni con data attributes
-    $(document).on('click', '.map-pin-btn', function() {
-        const lat = parseFloat($(this).data('lat'));
-        const lng = parseFloat($(this).data('lng'));
-        showPositionOnMap(lat, lng);
-    });
-
-    $(document).on('click', '.position-details-btn', function() {
-        const positionData = $(this).data('position');
-        showPositionDetails(positionData);
-    });
-
-    $(document).on('click', '.copy-coords-btn', function() {
-        const lat = parseFloat($(this).data('lat'));
-        const lng = parseFloat($(this).data('lng'));
-        copyCoordinates(lat, lng);
-    });
+    // Inizializza mappa se ci sono posizioni
+    if (positionsData.length > 0) {
+        initializeHistoryMap();
+    }
 });
 
-function showOnMap() {
-    $('#mapContainer').show();
-
-    if (!historyMap) {
-        // Inizializza mappa Leaflet
-        historyMap = L.map('historyMap').setView([41.9028, 12.4964], 6);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(historyMap);
+function initializeHistoryMap() {
+    if (!window.L) {
+        console.error('Leaflet non caricato');
+        return;
     }
 
-    // Aggiungi posizioni alla mappa
-    const positions = [
-        {% if positions %}
-            {% for position in positions %}
-            [{{ position.latitude }}, {{ position.longitude }}]{% if not loop.last %},{% endif %}
-            {% endfor %}
-        {% endif %}
-    ];
+    // Crea mappa
+    historyMap = L.map('historyMap').setView([41.9028, 12.4964], 6);
 
-    if (positions.length > 0) {
-        // Rimuovi linea esistente
-        if (routeLine) {
-            historyMap.removeLayer(routeLine);
+    // Tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18
+    }).addTo(historyMap);
+
+    // Converti posizioni e crea rotta
+    const routePoints = [];
+    const markers = [];
+
+    positionsData.forEach((position, index) => {
+        const lat = position.latitude;
+        const lng = position.longitude;
+        const speed = (position.speed || 0) * 1.852;
+        const timestamp = position.deviceTime || '';
+
+        routePoints.push([lat, lng]);
+
+        // Marker per inizio e fine
+        if (index === 0 || index === positionsData.length - 1) {
+            const isStart = index === 0;
+            const marker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    html: `<div class="custom-marker ${isStart ? 'start-marker' : 'end-marker'}">
+                             <i class="fas fa-${isStart ? 'play' : 'stop'}"></i>
+                           </div>`,
+                    className: '',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                })
+            });
+
+            marker.bindPopup(`
+                <strong>${isStart ? 'Inizio' : 'Fine'} Percorso</strong><br>
+                <small>${timestamp}</small><br>
+                Velocità: ${speed.toFixed(1)} km/h
+            `);
+
+            markers.push(marker);
         }
+    });
 
-        // Aggiungi polyline
-        routeLine = L.polyline(positions, {
+    // Aggiungi rotta alla mappa
+    if (routePoints.length > 0) {
+        routeLayer = L.polyline(routePoints, {
             color: '#007bff',
-            weight: 4,
+            weight: 3,
             opacity: 0.8
         }).addTo(historyMap);
 
-        // Aggiungi markers per inizio e fine
-        const startMarker = L.marker(positions[positions.length - 1])
-            .addTo(historyMap)
-            .bindPopup('<b>Inizio</b><br>{{ positions[-1].serverTime|datetime_format if positions }}');
+        // Aggiungi markers
+        markers.forEach(marker => marker.addTo(historyMap));
 
-        const endMarker = L.marker(positions[0])
-            .addTo(historyMap)
-            .bindPopup('<b>Fine</b><br>{{ positions[0].serverTime|datetime_format if positions }}');
-
-        // Centra mappa sui punti
-        historyMap.fitBounds(routeLine.getBounds(), { padding: [20, 20] });
+        // Centra mappa sulla rotta
+        historyMap.fitBounds(routeLayer.getBounds(), { padding: [10, 10] });
     }
 
-    // Ridimensiona mappa dopo visualizzazione
-    setTimeout(() => historyMap.invalidateSize(), 100);
+    console.log('✅ History Map inizializzata con', positionsData.length, 'posizioni');
 }
 
-function hideMap() {
-    $('#mapContainer').hide();
-}
-
-function showPositionOnMap(lat, lng) {
-    showOnMap();
-
-    setTimeout(() => {
+function focusMapPosition(lat, lng) {
+    if (historyMap) {
         historyMap.setView([lat, lng], 15);
 
-        L.popup()
-            .setLatLng([lat, lng])
-            .setContent(`<b>Posizione selezionata</b><br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`)
-            .openOn(historyMap);
-    }, 200);
-}
+        // Aggiungi marker temporaneo
+        const tempMarker = L.marker([lat, lng], {
+            icon: L.divIcon({
+                html: '<div class="temp-marker"><i class="fas fa-crosshairs"></i></div>',
+                className: '',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            })
+        }).addTo(historyMap);
 
-function showPositionDetails(position) {
-    const content = `
-        <div class="row">
-            <div class="col-md-6">
-                <h6><i class="fas fa-info"></i> Informazioni Generali</h6>
-                <table class="table table-sm">
-                    <tr><td><strong>Server Time:</strong></td><td>${position.serverTime || 'N/A'}</td></tr>
-                    <tr><td><strong>Fix Time:</strong></td><td>${position.fixTime || 'N/A'}</td></tr>
-                    <tr><td><strong>Valid:</strong></td><td>${position.valid ? 'Sì' : 'No'}</td></tr>
-                </table>
-
-                <h6><i class="fas fa-map-marker-alt"></i> Posizione</h6>
-                <table class="table table-sm">
-                    <tr><td><strong>Latitudine:</strong></td><td>${position.latitude?.toFixed(6) || 'N/A'}</td></tr>
-                    <tr><td><strong>Longitudine:</strong></td><td>${position.longitude?.toFixed(6) || 'N/A'}</td></tr>
-                    <tr><td><strong>Altitudine:</strong></td><td>${position.altitude ? position.altitude.toFixed(1) + ' m' : 'N/A'}</td></tr>
-                    <tr><td><strong>Precisione:</strong></td><td>${position.accuracy ? '±' + position.accuracy.toFixed(1) + ' m' : 'N/A'}</td></tr>
-                </table>
-            </div>
-            <div class="col-md-6">
-                <h6><i class="fas fa-tachometer-alt"></i> Movimento</h6>
-                <table class="table table-sm">
-                    <tr><td><strong>Velocità:</strong></td><td>${position.speed ? (position.speed * 1.852).toFixed(1) + ' km/h' : 'N/A'}</td></tr>
-                    <tr><td><strong>Direzione:</strong></td><td>${position.course ? position.course.toFixed(0) + '°' : 'N/A'}</td></tr>
-                </table>
-
-                <h6><i class="fas fa-map-signs"></i> Indirizzo</h6>
-                <p class="small">${position.address || 'Indirizzo non disponibile'}</p>
-
-                {% raw %}
-                <h6><i class="fas fa-cogs"></i> Attributi</h6>
-                <div class="small">
-                    ${position.attributes ? Object.keys(position.attributes).map(key =>
-                        `<span class="badge badge-light mr-1">${key}: ${position.attributes[key]}</span>`
-                    ).join('') : 'Nessun attributo disponibile'}
-                </div>
-                {% endraw %}
-            </div>
-        </div>
-    `;
-
-    $('#positionDetailsContent').html(content);
-    $('#positionDetailsModal').modal('show');
-}
-
-function copyCoordinates(lat, lng) {
-    const coords = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(coords).then(() => {
-            showToast('Coordinate copiate!', 'success');
-        });
-    } else {
-        // Fallback per browser più vecchi
-        const textArea = document.createElement('textarea');
-        textArea.value = coords;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        showToast('Coordinate copiate!', 'success');
+        // Rimuovi marker dopo 3 secondi
+        setTimeout(() => {
+            historyMap.removeLayer(tempMarker);
+        }, 3000);
     }
 }
 
-function exportPositions() {
-    // Implementa esportazione (CSV, Excel, PDF)
-    alert('Funzione di esportazione in sviluppo');
-}
+// CSS per markers personalizzati
+const style = document.createElement('style');
+style.textContent = `
+    .custom-marker {
+        background: white;
+        border: 2px solid;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .start-marker {
+        border-color: #28a745;
+        color: #28a745;
+    }
+    .end-marker {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+    .temp-marker {
+        background: #ffc107;
+        border: 2px solid white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+`;
+document.head.appendChild(style);
 </script>
-
-<!-- Select2 CSS/JS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 {% endblock %}
