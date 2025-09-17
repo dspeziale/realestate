@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Aggiungi Dispositivo - {{ app_name }}{% endblock %}
+
+{% block page_title %}Aggiungi Dispositivo{% endblock %}
+
+{% block breadcrumbs %}
+{{ super() }}
+<li class="breadcrumb-item"><a href="{{ url_for('devices.list_devices') }}">Dispositivi</a></li>
+<li class="breadcrumb-item active">Aggiungi</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-plus mr-2"></i>
+                    Nuovo Dispositivo
+                </h3>
+            </div>
+
+            <form method="POST" data-validate="true">
+                <div class="card-body">
+
+                    <div class="form-group">
+                        <label for="name">Nome Dispositivo *</label>
+                        <input type="text"
+                               class="form-control"
+                               id="name"
+                               name="name"
+                               placeholder="Es: Camion 001"
+                               value="{{ form_data.name if form_data else '' }}"
+                               required>
+                        <small class="form-text text-muted">Nome identificativo del dispositivo</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="uniqueId">ID Univoco *</label>
+                        <input type="text"
+                               class="form-control"
+                               id="uniqueId"
+                               name="uniqueId"
+                               placeholder="Es: 123456789012345"
+                               value="{{ form_data.uniqueId if form_data else '' }}"
+                               required>
+                        <small class="form-text text-muted">IMEI o identificativo univoco del dispositivo GPS</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Categoria</label>
+                        <select class="form-control" id="category" name="category">
+                            <option value="">Seleziona categoria...</option>
+                            <option value="car" {{ 'selected' if form_data and form_data.category == 'car' }}>Auto</option>
+                            <option value="truck" {{ 'selected' if form_data and form_data.category == 'truck' }}>Camion</option>
+                            <option value="van" {{ 'selected' if form_data and form_data.category == 'van' }}>Furgone</option>
+                            <option value="motorcycle" {{ 'selected' if form_data and form_data.category == 'motorcycle' }}>Motocicletta</option>
+                            <option value="bus" {{ 'selected' if form_data and form_data.category == 'bus' }}>Autobus</option>
+                            <option value="boat" {{ 'selected' if form_data and form_data.category == 'boat' }}>Barca</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Numero Telefono</label>
+                        <input type="tel"
+                               class="form-control"
+                               id="phone"
+                               name="phone"
+                               placeholder="Es: +39 123 456 7890"
+                               value="{{ form_data.phone if form_data else '' }}">
+                        <small class="form-text text-muted">Numero del dispositivo GPS (se supportato)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="model">Modello</label>
+                        <input type="text"
+                               class="form-control"
+                               id="model"
+                               name="model"
+                               placeholder="Es: GT06N"
+                               value="{{ form_data.model if form_data else '' }}">
+                        <small class="form-text text-muted">Modello del dispositivo GPS</small>
+                    </div>
+
+                </div>
+
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Salva Dispositivo
+                    </button>
+                    <a href="{{ url_for('devices.list_devices') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Annulla
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Validazione form
+    $('form[data-validate="true"]').on('submit', function(e) {
+        let isValid = true;
+
+        // Valida campi required
+        $(this).find('[required]').each(function() {
+            if (!$(this).val().trim()) {
+                $(this).addClass('is-invalid');
+                isValid = false;
+            } else {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+            }
+        });
+
+        if (!isValid) {
+            e.preventDefault();
+            TraccarFleet.showToast('Compila tutti i campi obbligatori', 'error');
+            return false;
+        }
+    });
+
+    // Reset validazione on input
+    $('input, select').on('input change', function() {
+        $(this).removeClass('is-invalid is-valid');
+    });
+});
+</script>
+{% endblock %}

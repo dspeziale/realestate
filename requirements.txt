@@ -1,30 +1,184 @@
-# Copyright 2025 SILICONDEV SPA
-# Filename: requirements.txt
-# Description: Python dependencies for Real Estate Auction Management (Python 3.13 compatible)
-
-# Flask Framework
-Flask==3.1.0
-Flask-SQLAlchemy==3.1.1
-Flask-Migrate==4.0.7
-Flask-Login==0.6.3
-Flask-WTF==1.2.1
-
-# Database (using newer version for Python 3.13 compatibility)
-SQLAlchemy==2.0.34
-
-# Authentication & Security
-Authlib==1.3.2
+# Flask e estensioni core
+Flask
+Flask-Session
 Werkzeug
-WTForms==3.1.2
 
-# HTTP Requests
-requests==2.32.3
+# Requests per API calls
+requests
+urllib3
 
-# Environment Variables
-python-dotenv==1.0.1
+# Date e tempo
+python-dateutil
 
-# Email (optional)
-Flask-Mail==0.10.0
+# Export e reporting
+reportlab
+openpyxl
+xlsxwriter
 
-# Development tools
-python-dateutil==2.9.0
+# Logging avanzato
+coloredlogs
+
+# Validazione dati
+cerberus
+marshmallow
+
+# Utils vari
+python-dotenv
+click
+
+# Sicurezza
+cryptography
+bcrypt
+
+# Cache (opzionale)
+redis
+flask-caching
+
+# Database (se necessario per sessioni persistenti)
+SQLAlchemy
+Flask-SQLAlchemy
+
+# Monitoring e debugging
+flask-cors
+
+# Geocoding e mappe
+geopy
+
+# JSON handling migliorato
+simplejson
+
+# Template engine avanzato (oltre Jinja2)
+MarkupSafe
+
+# Gestione configurazioni
+configparser
+
+# Testing (per sviluppo)
+pytest
+pytest-flask
+pytest-cov
+
+# Linting e formattazione (per sviluppo)
+flake8
+black
+isort
+
+# Documentazione API (opzionale)
+flask-restx
+flasgger
+
+# WebSocket support (per real-time)
+flask-socketio
+python-socketio
+
+# Async support
+asyncio
+aiohttp
+
+# Messaggistica (per notifiche)
+celery
+kombu
+
+# Immagini e media
+Pillow
+
+# CSV migliorato
+pandas
+numpy
+
+# XML processing
+lxml
+xmltodict
+
+# Email
+flask-mail
+
+# Timezone handling
+pytz
+
+# Performance monitoring
+py-spy
+
+# Environment management
+python-decouple
+
+# HTTP clients avanzati
+httpx
+
+# Serializzazione
+pickle-mixin
+
+# File handling
+pathlib2
+glob2
+
+# Networking utilities
+netifaces
+ipaddress
+
+# System monitoring
+psutil
+
+# Process management
+supervisor
+
+# Backup e storage
+boto3
+azure-storage-blob
+google-cloud-storage
+
+# API documentation
+swagger-ui-bundle
+
+# Rate limiting
+flask-limiter
+
+# Authentication JWT (se necessario)
+PyJWT
+flask-jwt-extended
+
+# Hashing avanzato
+passlib
+
+# Internazionalizzazione
+Flask-Babel
+Babel
+
+# Deployment
+gunicorn
+uwsgi
+waitress
+
+# Health checks
+flask-healthz
+
+# Metrics
+prometheus-client
+flask-prometheus-metrics
+
+# Background tasks
+rq
+flask-rq2
+
+# File uploads
+flask-uploads
+
+# Form handling avanzato
+wtforms
+flask-wtf
+
+# Admin interface (opzionale)
+flask-admin
+
+# Migration database (se usato)
+flask-migrate
+alembic
+
+# Debug toolbar
+flask-debugtoolbar
+
+# Session storage alternatives
+flask-session2
+
+# Custom traccar framework (il tuo modulo esistente)
+# Assicurati che traccar_framework.py sia nel PYTHONPATH

@@ -1,829 +1,786 @@
-// Filename: static/js/app.js
-// Copyright 2025 SILICONDEV SPA
-// Description: Modern JavaScript for Real Estate Auction Management
+/**
+ * Traccar Fleet Management - Main Application JavaScript
+ * ====================================================
+ *
+ * Funzioni globali, utilities e gestione eventi per l'intera applicazione
+ * Compatibile con AdminLTE, DataTables, e Leaflet
+ */
 
-class ModernUI {
-    constructor() {
-        this.sidebarCollapsed = false;
-        this.darkMode = false;
-        this.init();
+// Namespace globale per evitare conflitti
+window.TraccarFleet = window.TraccarFleet || {};
+
+// Configurazione globale
+TraccarFleet.config = {
+    apiBaseUrl: '/api',
+    refreshInterval: 30000, // 30 secondi
+    mapDefaults: {
+        center: [41.9028, 12.4964], // Roma
+        zoom: 6,
+        maxZoom: 18
+    },
+    dateFormats: {
+        display: 'DD/MM/YYYY HH:mm:ss',
+        api: 'YYYY-MM-DDTHH:mm:ss',
+        short: 'DD/MM/YYYY'
     }
-
-    init() {
-        this.setupEventListeners();
-        this.setupAnimations();
-        this.setupTheme();
-        this.setupNotifications();
-        this.setupLoading();
-        console.log('🚀 ModernUI initialized successfully');
-    }
-
-    setupEventListeners() {
-        // Sidebar toggle
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', () => this.toggleSidebar());
-        }
-
-        // Dark mode toggle (if exists)
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        if (darkModeToggle) {
-            darkModeToggle.addEventListener('click', () => this.toggleDarkMode());
-        }
-
-        // Form enhancements
-        this.enhanceForms();
-
-        // Button enhancements
-        this.enhanceButtons();
-
-        // Card interactions
-        this.enhanceCards();
-
-        // Search functionality
-        this.setupSearch();
-
-        // Responsive handlers
-        window.addEventListener('resize', () => this.handleResize());
-        this.handleResize(); // Initial call
-    }
-
-    toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-        const topbar = document.getElementById('topbar');
-
-        if (sidebar && mainContent && topbar) {
-            this.sidebarCollapsed = !this.sidebarCollapsed;
-
-            sidebar.classList.toggle('collapsed', this.sidebarCollapsed);
-            mainContent.classList.toggle('sidebar-collapsed', this.sidebarCollapsed);
-            topbar.classList.toggle('sidebar-collapsed', this.sidebarCollapsed);
-
-            // Store state in localStorage
-            localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed);
-
-            // Animate nav text
-            const navTexts = document.querySelectorAll('.nav-text');
-            navTexts.forEach(text => {
-                if (this.sidebarCollapsed) {
-                    text.style.opacity = '0';
-                    setTimeout(() => text.style.display = 'none', 300);
-                } else {
-                    text.style.display = 'inline';
-                    setTimeout(() => text.style.opacity = '1', 100);
-                }
-            });
-        }
-    }
-
-    toggleDarkMode() {
-        this.darkMode = !this.darkMode;
-        const html = document.documentElement;
-
-        if (this.darkMode) {
-            html.setAttribute('data-bs-theme', 'dark');
-        } else {
-            html.setAttribute('data-bs-theme', 'light');
-        }
-
-        localStorage.setItem('darkMode', this.darkMode);
-        this.updateThemeIcon();
-    }
-
-    setupTheme() {
-        // Restore saved theme
-        const savedTheme = localStorage.getItem('darkMode');
-        if (savedTheme !== null) {
-            this.darkMode = savedTheme === 'true';
-            this.toggleDarkMode();
-        }
-
-        // Restore sidebar state
-        const savedSidebarState = localStorage.getItem('sidebarCollapsed');
-        if (savedSidebarState !== null) {
-            this.sidebarCollapsed = savedSidebarState === 'true';
-            if (this.sidebarCollapsed) {
-                this.toggleSidebar();
-            }
-        }
-    }
-
-    updateThemeIcon() {
-        const themeIcon = document.getElementById('themeIcon');
-        if (themeIcon) {
-            themeIcon.className = this.darkMode ? 'bi bi-sun' : 'bi bi-moon';
-        }
-    }
-
-    enhanceForms() {
-        // Add floating label animation
-        const inputs = document.querySelectorAll('.form-control, .form-select');
-        inputs.forEach(input => {
-            // Add focus/blur effects
-            input.addEventListener('focus', (e) => {
-                e.target.parentElement.classList.add('input-focused');
-                this.addRipple(e.target, e);
-            });
-
-            input.addEventListener('blur', (e) => {
-                e.target.parentElement.classList.remove('input-focused');
-            });
-
-            // Validation styling
-            input.addEventListener('invalid', (e) => {
-                e.target.classList.add('is-invalid');
-                this.showValidationError(e.target);
-            });
-
-            input.addEventListener('input', (e) => {
-                if (e.target.checkValidity()) {
-                    e.target.classList.remove('is-invalid');
-                    e.target.classList.add('is-valid');
-                }
-            });
-        });
-
-        // Form submission with loading states
-        const forms = document.querySelectorAll('form');
-        forms.forEach(form => {
-            form.addEventListener('submit', (e) => {
-                this.handleFormSubmission(form);
-            });
-        });
-    }
-
-    enhanceButtons() {
-        const buttons = document.querySelectorAll('.btn');
-        buttons.forEach(button => {
-            // Add ripple effect
-            button.addEventListener('click', (e) => {
-                this.addRipple(button, e);
-
-                // Add click animation
-                button.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    button.style.transform = '';
-                }, 150);
-            });
-
-            // Add loading state capability
-            if (button.hasAttribute('data-loading-text')) {
-                button.originalText = button.innerHTML;
-            }
-        });
-    }
-
-    enhanceCards() {
-        const cards = document.querySelectorAll('.card-modern, .stats-card');
-        cards.forEach(card => {
-            // Add intersection observer for animations
-            this.observeElement(card, () => {
-                card.classList.add('animate-fade-in-up');
-            });
-
-            // Add hover effects
-            card.addEventListener('mouseenter', () => {
-                card.style.transform = 'translateY(-8px) scale(1.02)';
-            });
-
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = '';
-            });
-        });
-    }
-
-    setupSearch() {
-        const searchInputs = document.querySelectorAll('[data-search]');
-        searchInputs.forEach(input => {
-            let searchTimeout;
-
-            input.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                const searchTerm = e.target.value.toLowerCase();
-                const target = e.target.getAttribute('data-search');
-
-                searchTimeout = setTimeout(() => {
-                    this.performSearch(searchTerm, target);
-                }, 300);
-            });
-        });
-    }
-
-    performSearch(term, target) {
-        const elements = document.querySelectorAll(`[data-searchable="${target}"]`);
-        elements.forEach(element => {
-            const text = element.textContent.toLowerCase();
-            if (text.includes(term) || term === '') {
-                element.style.display = '';
-                element.classList.add('animate-fade-in-up');
-            } else {
-                element.style.display = 'none';
-            }
-        });
-    }
-
-    addRipple(element, event) {
-        const ripple = document.createElement('div');
-        const rect = element.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = event.clientX - rect.left - size / 2;
-        const y = event.clientY - rect.top - size / 2;
-
-        ripple.style.cssText = `
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(0);
-            animation: ripple 0.6s linear;
-            width: ${size}px;
-            height: ${size}px;
-            left: ${x}px;
-            top: ${y}px;
-            pointer-events: none;
-        `;
-
-        element.style.position = 'relative';
-        element.style.overflow = 'hidden';
-        element.appendChild(ripple);
-
-        setTimeout(() => ripple.remove(), 600);
-    }
-
-    showValidationError(input) {
-        const errorMsg = input.validationMessage;
-        let errorDiv = input.parentElement.querySelector('.validation-error');
-
-        if (!errorDiv) {
-            errorDiv = document.createElement('div');
-            errorDiv.className = 'validation-error text-danger small mt-1';
-            input.parentElement.appendChild(errorDiv);
-        }
-
-        errorDiv.textContent = errorMsg;
-        errorDiv.style.animation = 'shake 0.5s ease-in-out';
-    }
-
-    handleFormSubmission(form) {
-        const submitButton = form.querySelector('button[type="submit"]');
-        if (submitButton) {
-            this.setButtonLoading(submitButton, true);
-        }
-
-        // Show loading overlay
-        this.showLoading();
-
-        // Simulate form processing (remove in production)
-        setTimeout(() => {
-            this.hideLoading();
-            if (submitButton) {
-                this.setButtonLoading(submitButton, false);
-            }
-        }, 2000);
-    }
-
-    setButtonLoading(button, loading) {
-        if (loading) {
-            if (!button.originalText) {
-                button.originalText = button.innerHTML;
-            }
-            button.innerHTML = `
-                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                ${button.getAttribute('data-loading-text') || 'Caricamento...'}
-            `;
-            button.disabled = true;
-        } else {
-            button.innerHTML = button.originalText;
-            button.disabled = false;
-        }
-    }
-
-    setupLoading() {
-        // Create loading overlay if it doesn't exist
-        if (!document.getElementById('loadingOverlay')) {
-            const overlay = document.createElement('div');
-            overlay.id = 'loadingOverlay';
-            overlay.className = 'loading-overlay';
-            overlay.innerHTML = `
-                <div class="text-center">
-                    <div class="spinner mb-3"></div>
-                    <p class="text-muted">Caricamento...</p>
-                </div>
-            `;
-            document.body.appendChild(overlay);
-        }
-    }
-
-    showLoading() {
-        const overlay = document.getElementById('loadingOverlay');
-        if (overlay) {
-            overlay.classList.add('show');
-        }
-    }
-
-    hideLoading() {
-        const overlay = document.getElementById('loadingOverlay');
-        if (overlay) {
-            overlay.classList.remove('show');
-        }
-    }
-
-    setupNotifications() {
-        // Auto-hide alerts
-        const alerts = document.querySelectorAll('.alert:not(.alert-danger)');
-        alerts.forEach(alert => {
-            setTimeout(() => {
-                this.fadeOutAlert(alert);
-            }, 5000);
-        });
-
-        // Keep error alerts longer
-        const errorAlerts = document.querySelectorAll('.alert-danger');
-        errorAlerts.forEach(alert => {
-            setTimeout(() => {
-                this.fadeOutAlert(alert);
-            }, 10000);
-        });
-    }
-
-    fadeOutAlert(alert) {
-        alert.style.transition = 'all 0.5s ease';
-        alert.style.opacity = '0';
-        alert.style.transform = 'translateX(100%)';
-
-        setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alert);
-            if (bsAlert) bsAlert.close();
-        }, 500);
-    }
-
-    setupAnimations() {
-        // Add CSS animations
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes ripple {
-                to {
-                    transform: scale(2);
-                    opacity: 0;
-                }
-            }
-            @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                25% { transform: translateX(-5px); }
-                75% { transform: translateX(5px); }
-            }
-            .input-focused {
-                transform: scale(1.02);
-                z-index: 10;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    observeElement(element, callback) {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    callback();
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.1 });
-
-        observer.observe(element);
-    }
-
-    handleResize() {
-        const isMobile = window.innerWidth <= 768;
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-        const topbar = document.getElementById('topbar');
-
-        if (isMobile) {
-            // Mobile behavior
-            if (sidebar) sidebar.classList.add('d-none', 'd-md-block');
-            if (mainContent) {
-                mainContent.style.marginLeft = '0';
-                mainContent.classList.remove('sidebar-collapsed');
-            }
-            if (topbar) {
-                topbar.style.left = '0';
-                topbar.classList.remove('sidebar-collapsed');
-            }
-        } else {
-            // Desktop behavior
-            if (sidebar) sidebar.classList.remove('d-none');
-            this.restoreDesktopLayout();
-        }
-    }
-
-    restoreDesktopLayout() {
-        const mainContent = document.getElementById('mainContent');
-        const topbar = document.getElementById('topbar');
-
-        if (this.sidebarCollapsed) {
-            if (mainContent) mainContent.classList.add('sidebar-collapsed');
-            if (topbar) topbar.classList.add('sidebar-collapsed');
-        } else {
-            if (mainContent) {
-                mainContent.style.marginLeft = 'var(--sidebar-width)';
-                mainContent.classList.remove('sidebar-collapsed');
-            }
-            if (topbar) {
-                topbar.style.left = 'var(--sidebar-width)';
-                topbar.classList.remove('sidebar-collapsed');
-            }
-        }
-    }
-
-    // Utility methods
-    showToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        toast.className = `alert alert-${type} toast-notification position-fixed`;
-        toast.style.cssText = `
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            min-width: 300px;
-            animation: slideInRight 0.5s ease-out;
-        `;
-        toast.innerHTML = `
-            <i class="bi bi-${this.getToastIcon(type)} me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-        `;
-
-        document.body.appendChild(toast);
-
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            if (toast.parentElement) {
-                toast.style.animation = 'slideOutRight 0.5s ease-in';
-                setTimeout(() => toast.remove(), 500);
-            }
-        }, 5000);
-    }
-
-    getToastIcon(type) {
-        const icons = {
-            'success': 'check-circle',
-            'danger': 'exclamation-triangle',
-            'warning': 'exclamation-triangle',
-            'info': 'info-circle'
-        };
-        return icons[type] || 'info-circle';
-    }
-
-    // Advanced table features
-    enhanceTable(tableId) {
-        const table = document.getElementById(tableId);
-        if (!table) return;
-
-        // Add sorting capability
-        const headers = table.querySelectorAll('th[data-sort]');
-        headers.forEach(header => {
-            header.style.cursor = 'pointer';
-            header.addEventListener('click', () => this.sortTable(table, header));
-        });
-
-        // Add row selection
-        if (table.hasAttribute('data-selectable')) {
-            this.makeTableSelectable(table);
-        }
-
-        // Add search filtering
-        if (table.hasAttribute('data-filterable')) {
-            this.addTableFilter(table);
-        }
-    }
-
-    sortTable(table, header) {
-        const column = Array.from(header.parentElement.children).indexOf(header);
-        const tbody = table.querySelector('tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        const sortType = header.getAttribute('data-sort');
-        const isAsc = header.classList.contains('sort-asc');
-
-        rows.sort((a, b) => {
-            const aVal = a.children[column].textContent.trim();
-            const bVal = b.children[column].textContent.trim();
-
-            if (sortType === 'number') {
-                return isAsc ? parseFloat(bVal) - parseFloat(aVal) : parseFloat(aVal) - parseFloat(bVal);
-            } else if (sortType === 'date') {
-                return isAsc ? new Date(bVal) - new Date(aVal) : new Date(aVal) - new Date(bVal);
-            } else {
-                return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
-            }
-        });
-
-        // Update header classes
-        table.querySelectorAll('th').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
-        header.classList.add(isAsc ? 'sort-desc' : 'sort-asc');
-
-        // Rebuild table
-        rows.forEach(row => tbody.appendChild(row));
-    }
-
-    makeTableSelectable(table) {
-        const tbody = table.querySelector('tbody');
-        const rows = tbody.querySelectorAll('tr');
-
-        rows.forEach(row => {
-            row.addEventListener('click', () => {
-                row.classList.toggle('table-active');
-                const checkbox = row.querySelector('input[type="checkbox"]');
-                if (checkbox) {
-                    checkbox.checked = row.classList.contains('table-active');
-                }
-            });
-        });
-    }
-
-    // Modal enhancements
-    enhanceModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (!modal) return;
-
-        const bsModal = new bootstrap.Modal(modal);
-
-        // Add backdrop blur effect
-        modal.addEventListener('show.bs.modal', () => {
-            document.body.style.filter = 'blur(2px)';
-            modal.style.filter = 'none';
-        });
-
-        modal.addEventListener('hidden.bs.modal', () => {
-            document.body.style.filter = 'none';
-        });
-
-        // Add loading state
-        const form = modal.querySelector('form');
-        if (form) {
-            form.addEventListener('submit', () => {
-                const submitBtn = form.querySelector('button[type="submit"]');
-                if (submitBtn) {
-                    this.setButtonLoading(submitBtn, true);
-                }
-            });
-        }
-
-        return bsModal;
-    }
-
-    // Chart integration (if needed)
-    createChart(canvasId, config) {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) return;
-
-        // This would integrate with Chart.js if included
-        // For now, return a placeholder
-        console.log(`Chart would be created on ${canvasId} with config:`, config);
-    }
-
-    // File upload enhancements
-    enhanceFileUpload(inputId) {
-        const input = document.getElementById(inputId);
-        if (!input) return;
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'file-upload-wrapper position-relative';
-
-        const dropzone = document.createElement('div');
-        dropzone.className = 'file-dropzone border-2 border-dashed rounded p-4 text-center';
-        dropzone.innerHTML = `
-            <i class="bi bi-cloud-upload display-4 text-muted"></i>
-            <p class="mt-2">Trascina i file qui o <span class="text-primary">clicca per selezionare</span></p>
-            <small class="text-muted">Formati supportati: PDF, DOC, DOCX, JPG, PNG</small>
-        `;
-
-        input.parentElement.insertBefore(wrapper, input);
-        wrapper.appendChild(dropzone);
-        wrapper.appendChild(input);
-        input.style.display = 'none';
-
-        // Drag and drop functionality
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropzone.addEventListener(eventName, this.preventDefaults, false);
-        });
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropzone.addEventListener(eventName, () => dropzone.classList.add('border-primary'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropzone.addEventListener(eventName, () => dropzone.classList.remove('border-primary'), false);
-        });
-
-        dropzone.addEventListener('drop', (e) => this.handleDrop(e, input), false);
-        dropzone.addEventListener('click', () => input.click());
-
-        input.addEventListener('change', () => this.displaySelectedFiles(input));
-    }
-
-    preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    handleDrop(e, input) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        input.files = files;
-        this.displaySelectedFiles(input);
-    }
-
-    displaySelectedFiles(input) {
-        const fileList = Array.from(input.files);
-        const wrapper = input.closest('.file-upload-wrapper');
-        let fileDisplay = wrapper.querySelector('.file-display');
-
-        if (!fileDisplay) {
-            fileDisplay = document.createElement('div');
-            fileDisplay.className = 'file-display mt-3';
-            wrapper.appendChild(fileDisplay);
-        }
-
-        fileDisplay.innerHTML = fileList.map(file => `
-            <div class="file-item d-flex align-items-center justify-content-between p-2 border rounded mb-2">
-                <div>
-                    <i class="bi bi-file-earmark me-2"></i>
-                    <span>${file.name}</span>
-                    <small class="text-muted ms-2">(${this.formatFileSize(file.size)})</small>
-                </div>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.parentElement.parentElement.remove()">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>
-        `).join('');
-    }
-
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    // Data export functionality
-    exportTableData(tableId, format = 'csv') {
-        const table = document.getElementById(tableId);
-        if (!table) return;
-
-        const rows = Array.from(table.querySelectorAll('tr'));
-        const data = rows.map(row =>
-            Array.from(row.querySelectorAll('th, td')).map(cell =>
-                cell.textContent.trim()
-            )
-        );
-
-        if (format === 'csv') {
-            this.downloadCSV(data, `${tableId}-export.csv`);
-        } else if (format === 'json') {
-            this.downloadJSON(data, `${tableId}-export.json`);
-        }
-    }
-
-    downloadCSV(data, filename) {
-        const csv = data.map(row =>
-            row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')
-        ).join('\n');
-
-        this.downloadFile(csv, filename, 'text/csv');
-    }
-
-    downloadJSON(data, filename) {
-        const json = JSON.stringify(data, null, 2);
-        this.downloadFile(json, filename, 'application/json');
-    }
-
-    downloadFile(content, filename, mimeType) {
-        const blob = new Blob([content], { type: mimeType });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-    }
-
-    // Performance monitoring
-    measurePerformance(name, fn) {
-        const start = performance.now();
-        const result = fn();
-        const end = performance.now();
-        console.log(`${name} took ${end - start} milliseconds`);
-        return result;
-    }
-
-    // Cleanup method
-    destroy() {
-        // Remove event listeners and cleanup
-        const elements = document.querySelectorAll('[data-enhanced]');
-        elements.forEach(el => {
-            el.removeAttribute('data-enhanced');
-            // Remove specific event listeners if needed
-        });
-    }
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    window.modernUI = new ModernUI();
-
-    // Hide initial loading after page load
-    setTimeout(() => {
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        if (loadingOverlay) {
-            loadingOverlay.classList.remove('show');
-        }
-    }, 1000);
+};
+
+// Cache per ottimizzazione
+TraccarFleet.cache = {
+    devices: null,
+    positions: null,
+    lastUpdate: null,
+    ttl: 30000 // 30 secondi TTL
+};
+
+/**
+ * ============================================
+ * INIZIALIZZAZIONE APPLICAZIONE
+ * ============================================
+ */
+$(document).ready(function() {
+    TraccarFleet.init();
 });
 
-// Expose utility functions globally
-window.showToast = (message, type = 'info') => {
-    if (window.modernUI) {
-        window.modernUI.showToast(message, type);
+TraccarFleet.init = function() {
+    console.log('🚀 Inizializzazione Traccar Fleet Management');
+
+    // Setup moment.js locale
+    if (typeof moment !== 'undefined') {
+        moment.locale('it');
+    }
+
+    // Inizializza componenti base
+    this.initializeGlobalEvents();
+    this.initializeTooltips();
+    this.initializeDataTables();
+    this.initializeFormValidation();
+    this.initializeAjaxDefaults();
+
+    // Auto-refresh per componenti live
+    this.startAutoRefresh();
+
+    // Gestione responsive
+    this.handleResponsive();
+
+    console.log('✅ Inizializzazione completata');
+};
+
+/**
+ * ============================================
+ * EVENTI GLOBALI
+ * ============================================ */
+TraccarFleet.initializeGlobalEvents = function() {
+    // Gestione click su elementi con data-action
+    $(document).on('click', '[data-action]', function(e) {
+        const action = $(this).data('action');
+        const target = $(this).data('target');
+
+        switch(action) {
+            case 'refresh':
+                TraccarFleet.refreshComponent(target);
+                break;
+            case 'export':
+                TraccarFleet.exportData(target);
+                break;
+            case 'toggle':
+                TraccarFleet.toggleComponent(target);
+                break;
+        }
+    });
+
+    // Gestione errori AJAX globali
+    $(document).ajaxError(function(event, xhr, settings, error) {
+        if (xhr.status === 401) {
+            TraccarFleet.handleUnauthorized();
+        } else if (xhr.status >= 500) {
+            TraccarFleet.showToast('Errore del server', 'error');
+        }
+    });
+
+    // Gestione connessione di rete
+    window.addEventListener('online', function() {
+        TraccarFleet.showToast('Connessione ripristinata', 'success');
+        TraccarFleet.startAutoRefresh();
+    });
+
+    window.addEventListener('offline', function() {
+        TraccarFleet.showToast('Connessione persa', 'warning');
+        TraccarFleet.stopAutoRefresh();
+    });
+
+    // Gestione resize finestra
+    $(window).resize(TraccarFleet.debounce(function() {
+        TraccarFleet.handleResize();
+    }, 250));
+};
+
+/**
+ * ============================================
+ * TOOLTIPS E POPOVERS
+ * ============================================ */
+TraccarFleet.initializeTooltips = function() {
+    // Inizializza tooltips
+    $('[data-toggle="tooltip"]').tooltip({
+        container: 'body',
+        delay: { show: 500, hide: 100 }
+    });
+
+    // Inizializza popovers
+    $('[data-toggle="popover"]').popover({
+        container: 'body',
+        trigger: 'hover',
+        html: true
+    });
+
+    // Refresh tooltips quando viene aggiunto contenuto dinamico
+    $(document).on('DOMNodeInserted', function() {
+        $('[data-toggle="tooltip"]:not([data-original-title])').tooltip();
+        $('[data-toggle="popover"]:not([aria-describedby])').popover();
+    });
+};
+
+/**
+ * ============================================
+ * DATATABLES CONFIGURAZIONE
+ * ============================================ */
+TraccarFleet.initializeDataTables = function() {
+    // Configurazione globale DataTables
+    if (typeof $.fn.DataTable !== 'undefined') {
+        $.extend(true, $.fn.dataTable.defaults, {
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json'
+            },
+            responsive: true,
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Tutti"]],
+            dom: "<'row'<'col-sm-6'l><'col-sm-6'f>>" +
+                 "<'row'<'col-sm-12'B>>" +
+                 "<'row'<'col-sm-12'tr>>" +
+                 "<'row'<'col-sm-5'i><'col-sm-7'p>>",
+            buttons: [
+                {
+                    extend: 'copy',
+                    className: 'btn btn-sm btn-secondary'
+                },
+                {
+                    extend: 'csv',
+                    className: 'btn btn-sm btn-secondary'
+                },
+                {
+                    extend: 'excel',
+                    className: 'btn btn-sm btn-secondary'
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn btn-sm btn-secondary'
+                },
+                {
+                    extend: 'print',
+                    className: 'btn btn-sm btn-secondary'
+                }
+            ],
+            initComplete: function(settings, json) {
+                // Applica stili personalizzati dopo inizializzazione
+                $(this).closest('.dataTables_wrapper').find('.dt-buttons').addClass('mb-3');
+            }
+        });
     }
 };
 
-window.showLoading = () => {
-    if (window.modernUI) {
-        window.modernUI.showLoading();
+/**
+ * ============================================
+ * VALIDAZIONE FORM
+ * ============================================ */
+TraccarFleet.initializeFormValidation = function() {
+    // Validazione in tempo reale
+    $(document).on('blur', '.form-control[required]', function() {
+        TraccarFleet.validateField(this);
+    });
+
+    // Validazione al submit
+    $(document).on('submit', 'form[data-validate="true"]', function(e) {
+        if (!TraccarFleet.validateForm(this)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // Auto-formatters
+    $(document).on('input', 'input[data-format="phone"]', function() {
+        this.value = TraccarFleet.formatPhone(this.value);
+    });
+
+    $(document).on('input', 'input[data-format="numeric"]', function() {
+        this.value = this.value.replace(/[^0-9.-]/g, '');
+    });
+};
+
+TraccarFleet.validateField = function(field) {
+    const $field = $(field);
+    const value = $field.val().trim();
+    const fieldType = $field.attr('type');
+    let isValid = true;
+    let message = '';
+
+    // Reset stato precedente
+    $field.removeClass('is-valid is-invalid');
+    $field.siblings('.invalid-feedback').remove();
+
+    // Validazione campo obbligatorio
+    if ($field.prop('required') && !value) {
+        isValid = false;
+        message = 'Questo campo è obbligatorio';
+    }
+
+    // Validazione email
+    else if (fieldType === 'email' && value && !TraccarFleet.isValidEmail(value)) {
+        isValid = false;
+        message = 'Inserisci un indirizzo email valido';
+    }
+
+    // Validazione URL
+    else if (fieldType === 'url' && value && !TraccarFleet.isValidUrl(value)) {
+        isValid = false;
+        message = 'Inserisci un URL valido';
+    }
+
+    // Validazione lunghezza minima
+    const minLength = $field.attr('minlength');
+    if (minLength && value.length < parseInt(minLength)) {
+        isValid = false;
+        message = `Minimo ${minLength} caratteri richiesti`;
+    }
+
+    // Validazione pattern personalizzato
+    const pattern = $field.attr('pattern');
+    if (pattern && value && !new RegExp(pattern).test(value)) {
+        isValid = false;
+        message = 'Formato non valido';
+    }
+
+    // Applica risultato validazione
+    if (isValid) {
+        $field.addClass('is-valid');
+    } else {
+        $field.addClass('is-invalid');
+        $field.after(`<div class="invalid-feedback">${message}</div>`);
+    }
+
+    return isValid;
+};
+
+TraccarFleet.validateForm = function(form) {
+    let isValid = true;
+
+    // Valida tutti i campi obbligatori
+    $(form).find('[required]').each(function() {
+        if (!TraccarFleet.validateField(this)) {
+            isValid = false;
+        }
+    });
+
+    // Focus sul primo campo non valido
+    if (!isValid) {
+        $(form).find('.is-invalid').first().focus();
+    }
+
+    return isValid;
+};
+
+/**
+ * ============================================
+ * AJAX E API
+ * ============================================ */
+TraccarFleet.initializeAjaxDefaults = function() {
+    // Setup CSRF token se presente
+    const csrfToken = $('meta[name="csrf-token"]').attr('content');
+    if (csrfToken) {
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrfToken);
+                }
+            }
+        });
+    }
+
+    // Loading indicator globale
+    $(document).ajaxStart(function() {
+        TraccarFleet.showLoading();
+    }).ajaxStop(function() {
+        TraccarFleet.hideLoading();
+    });
+};
+
+TraccarFleet.apiCall = function(endpoint, options = {}) {
+    const defaults = {
+        url: TraccarFleet.config.apiBaseUrl + endpoint,
+        type: 'GET',
+        dataType: 'json',
+        cache: false,
+        timeout: 30000
+    };
+
+    const settings = $.extend({}, defaults, options);
+
+    return $.ajax(settings)
+        .fail(function(xhr, status, error) {
+            console.error('API Error:', endpoint, xhr.responseText);
+
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+                TraccarFleet.showToast(xhr.responseJSON.error, 'error');
+            } else {
+                TraccarFleet.showToast('Errore di connessione', 'error');
+            }
+        });
+};
+
+/**
+ * ============================================
+ * NOTIFICHE E TOAST
+ * ============================================ */
+TraccarFleet.showToast = function(message, type = 'info', options = {}) {
+    const defaults = {
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        icon: type === 'error' ? 'error' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : 'info'
+    };
+
+    const config = Object.assign({}, defaults, options, { title: message });
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire(config);
+    } else {
+        // Fallback con alert nativo
+        alert(message);
     }
 };
 
-window.hideLoading = () => {
-    if (window.modernUI) {
-        window.modernUI.hideLoading();
+TraccarFleet.showConfirm = function(title, text, confirmText = 'Conferma', cancelText = 'Annulla') {
+    if (typeof Swal !== 'undefined') {
+        return Swal.fire({
+            title: title,
+            text: text,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#007bff',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: confirmText,
+            cancelButtonText: cancelText
+        });
+    } else {
+        // Fallback con confirm nativo
+        return Promise.resolve({
+            isConfirmed: confirm(`${title}\n\n${text}`)
+        });
     }
 };
 
-// Add additional CSS animations via JavaScript
-const additionalStyles = `
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(100%);
+TraccarFleet.showAlert = function(title, text, type = 'info') {
+    if (typeof Swal !== 'undefined') {
+        return Swal.fire({
+            title: title,
+            text: text,
+            icon: type,
+            confirmButtonColor: '#007bff'
+        });
+    } else {
+        alert(`${title}\n\n${text}`);
+        return Promise.resolve();
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
+};
+
+/**
+ * ============================================
+ * LOADING E SPINNERS
+ * ============================================ */
+TraccarFleet.showLoading = function(target = null) {
+    const spinner = '<div class="spinner-overlay"><div class="spinner-border-custom"></div></div>';
+
+    if (target) {
+        $(target).css('position', 'relative').append(spinner);
+    } else {
+        if (!$('#global-spinner').length) {
+            $('body').append('<div id="global-spinner" class="spinner-overlay">' +
+                           '<div class="spinner-border-custom"></div></div>');
+        }
+        $('#global-spinner').show();
     }
-}
+};
 
-@keyframes slideOutRight {
-    from {
-        opacity: 1;
-        transform: translateX(0);
+TraccarFleet.hideLoading = function(target = null) {
+    if (target) {
+        $(target).find('.spinner-overlay').remove();
+    } else {
+        $('#global-spinner').hide();
     }
-    to {
-        opacity: 0;
-        transform: translateX(100%);
+};
+
+/**
+ * ============================================
+ * AUTO-REFRESH E AGGIORNAMENTI
+ * ============================================ */
+TraccarFleet.startAutoRefresh = function() {
+    if (TraccarFleet.refreshTimer) {
+        clearInterval(TraccarFleet.refreshTimer);
     }
-}
 
-.toast-notification {
-    animation-fill-mode: both;
-}
+    TraccarFleet.refreshTimer = setInterval(function() {
+        TraccarFleet.refreshLiveData();
+    }, TraccarFleet.config.refreshInterval);
+};
 
-.file-dropzone {
-    transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(5px);
-}
+TraccarFleet.stopAutoRefresh = function() {
+    if (TraccarFleet.refreshTimer) {
+        clearInterval(TraccarFleet.refreshTimer);
+        TraccarFleet.refreshTimer = null;
+    }
+};
 
-.file-dropzone:hover {
-    background: rgba(102, 126, 234, 0.05);
-    transform: translateY(-2px);
-}
+TraccarFleet.refreshLiveData = function() {
+    // Aggiorna solo se la pagina è visibile
+    if (document.hidden) return;
 
-.file-dropzone.border-primary {
-    background: rgba(102, 126, 234, 0.1);
-    transform: scale(1.02);
-}
+    // Aggiorna statistiche dashboard
+    if ($('#dashboard-stats').length) {
+        TraccarFleet.refreshDashboardStats();
+    }
 
-.table th.sort-asc::after {
-    content: " ↑";
-    color: var(--primary-color);
-}
+    // Aggiorna posizioni mappa
+    if ($('#live-map').length) {
+        TraccarFleet.refreshMapPositions();
+    }
 
-.table th.sort-desc::after {
-    content: " ↓";
-    color: var(--primary-color);
-}
+    // Aggiorna notifiche
+    TraccarFleet.refreshNotifications();
+};
 
-.table-active {
-    background-color: rgba(102, 126, 234, 0.1) !important;
-    transform: scale(1.01);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-}
-`;
+TraccarFleet.refreshDashboardStats = function() {
+    TraccarFleet.apiCall('/dashboard/stats')
+        .done(function(data) {
+            // Aggiorna contatori
+            $('#total-devices').text(data.total_devices || 0);
+            $('#online-devices').text(data.online_devices || 0);
+            $('#offline-devices').text(data.offline_devices || 0);
+            $('#moving-devices').text(data.moving_devices || 0);
 
-// Inject additional styles
-const styleSheet = document.createElement('style');
-styleSheet.textContent = additionalStyles;
-document.head.appendChild(styleSheet);
+            // Aggiorna barre di progresso
+            if (data.total_devices > 0) {
+                const onlinePercent = (data.online_devices / data.total_devices) * 100;
+                const offlinePercent = (data.offline_devices / data.total_devices) * 100;
+
+                $('.progress-bar.bg-success').css('width', onlinePercent + '%');
+                $('.progress-bar.bg-warning').css('width', offlinePercent + '%');
+            }
+        });
+};
+
+TraccarFleet.refreshNotifications = function() {
+    TraccarFleet.apiCall('/notifications')
+        .done(function(data) {
+            $('#notification-count').text(data.count || 0);
+
+            const dropdown = $('#notifications-dropdown');
+            dropdown.empty();
+
+            if (data.notifications && data.notifications.length > 0) {
+                dropdown.append(`<span class="dropdown-item dropdown-header">${data.count} Notifiche</span>`);
+
+                data.notifications.slice(0, 5).forEach(function(notification) {
+                    const timeAgo = moment(notification.timestamp).fromNow();
+                    dropdown.append(`
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-${notification.icon || 'bell'} mr-2"></i>
+                            ${notification.message}
+                            <span class="float-right text-muted text-sm">${timeAgo}</span>
+                        </a>
+                    `);
+                });
+
+                dropdown.append('<div class="dropdown-divider"></div>');
+                dropdown.append('<a href="/notifications" class="dropdown-item dropdown-footer">Vedi tutte le notifiche</a>');
+            } else {
+                dropdown.append('<span class="dropdown-item dropdown-header">Nessuna notifica</span>');
+            }
+        });
+};
+
+/**
+ * ============================================
+ * UTILITIES E HELPERS
+ * ============================================ */
+TraccarFleet.formatDateTime = function(dateString, format = null) {
+    if (!dateString) return 'N/A';
+
+    const date = moment(dateString);
+    if (!date.isValid()) return 'N/A';
+
+    return date.format(format || TraccarFleet.config.dateFormats.display);
+};
+
+TraccarFleet.formatDistance = function(meters) {
+    if (!meters || meters === 0) return '0 m';
+
+    const m = parseFloat(meters);
+    if (m < 1000) {
+        return `${Math.round(m)} m`;
+    } else {
+        return `${(m / 1000).toFixed(1)} km`;
+    }
+};
+
+TraccarFleet.formatSpeed = function(knots) {
+    if (!knots || knots === 0) return '0 km/h';
+
+    const kmh = parseFloat(knots) * 1.852;
+    return `${kmh.toFixed(1)} km/h`;
+};
+
+TraccarFleet.formatDuration = function(milliseconds) {
+    if (!milliseconds) return '0m';
+
+    const duration = moment.duration(milliseconds);
+    const hours = Math.floor(duration.asHours());
+    const minutes = duration.minutes();
+
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    } else {
+        return `${minutes}m`;
+    }
+};
+
+TraccarFleet.formatPhone = function(phone) {
+    // Rimuovi tutti i caratteri non numerici tranne +
+    let cleaned = phone.replace(/[^\d+]/g, '');
+
+    // Formatta numero italiano
+    if (cleaned.startsWith('39') && cleaned.length === 12) {
+        return `+${cleaned.substr(0, 2)} ${cleaned.substr(2, 3)} ${cleaned.substr(5, 3)} ${cleaned.substr(8, 4)}`;
+    } else if (cleaned.startsWith('+39') && cleaned.length === 13) {
+        return `${cleaned.substr(0, 3)} ${cleaned.substr(3, 3)} ${cleaned.substr(6, 3)} ${cleaned.substr(9, 4)}`;
+    }
+
+    return cleaned;
+};
+
+TraccarFleet.isValidEmail = function(email) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+};
+
+TraccarFleet.isValidUrl = function(url) {
+    try {
+        new URL(url);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+TraccarFleet.debounce = function(func, wait, immediate) {
+    let timeout;
+    return function executedFunction() {
+        const context = this;
+        const args = arguments;
+        const later = function() {
+            timeout = null;
+            if (!immediate) func.apply(context, args);
+        };
+        const callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(context, args);
+    };
+};
+
+TraccarFleet.throttle = function(func, limit) {
+    let lastFunc;
+    let lastRan;
+    return function() {
+        const context = this;
+        const args = arguments;
+        if (!lastRan) {
+            func.apply(context, args);
+            lastRan = Date.now();
+        } else {
+            clearTimeout(lastFunc);
+            lastFunc = setTimeout(function() {
+                if ((Date.now() - lastRan) >= limit) {
+                    func.apply(context, args);
+                    lastRan = Date.now();
+                }
+            }, limit - (Date.now() - lastRan));
+        }
+    };
+};
+
+/**
+ * ============================================
+ * GESTIONE RESPONSIVE
+ * ============================================ */
+TraccarFleet.handleResponsive = function() {
+    const width = $(window).width();
+
+    // Mobile
+    if (width <= 768) {
+        $('.sidebar').addClass('sidebar-collapse');
+        $('.content-wrapper').css('margin-left', '0');
+    }
+
+    // Tablet
+    else if (width <= 1024) {
+        $('.sidebar').removeClass('sidebar-collapse');
+        $('.content-wrapper').css('margin-left', '250px');
+    }
+
+    // Desktop
+    else {
+        $('.sidebar').removeClass('sidebar-collapse');
+        $('.content-wrapper').css('margin-left', '250px');
+    }
+};
+
+TraccarFleet.handleResize = function() {
+    TraccarFleet.handleResponsive();
+
+    // Ridimensiona mappe se presenti
+    if (typeof L !== 'undefined') {
+        $('.leaflet-container').each(function() {
+            const mapId = $(this).attr('id');
+            if (window[mapId]) {
+                window[mapId].invalidateSize();
+            }
+        });
+    }
+
+    // Ridimensiona DataTables
+    if (typeof $.fn.DataTable !== 'undefined') {
+        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+    }
+};
+
+/**
+ * ============================================
+ * GESTIONE ERRORI
+ * ============================================ */
+TraccarFleet.handleUnauthorized = function() {
+    TraccarFleet.showAlert(
+        'Sessione scaduta',
+        'La tua sessione è scaduta. Verrai reindirizzato alla pagina di login.',
+        'warning'
+    ).then(() => {
+        window.location.href = '/login';
+    });
+};
+
+TraccarFleet.handleError = function(error, context = '') {
+    console.error('TraccarFleet Error:', context, error);
+
+    let message = 'Si è verificato un errore imprevisto';
+
+    if (typeof error === 'string') {
+        message = error;
+    } else if (error.responseJSON && error.responseJSON.error) {
+        message = error.responseJSON.error;
+    } else if (error.message) {
+        message = error.message;
+    }
+
+    TraccarFleet.showToast(message, 'error');
+};
+
+/**
+ * ============================================
+ * EXPORT E UTILITIES VARIE
+ * ============================================ */
+TraccarFleet.exportData = function(target, format = 'csv') {
+    const table = $(target).DataTable();
+    if (table) {
+        switch (format) {
+            case 'csv':
+                table.button('.buttons-csv').trigger();
+                break;
+            case 'excel':
+                table.button('.buttons-excel').trigger();
+                break;
+            case 'pdf':
+                table.button('.buttons-pdf').trigger();
+                break;
+            case 'print':
+                table.button('.buttons-print').trigger();
+                break;
+        }
+    }
+};
+
+TraccarFleet.refreshComponent = function(selector) {
+    const $component = $(selector);
+
+    if ($component.hasClass('card')) {
+        $component.addClass('card-refresh');
+
+        setTimeout(function() {
+            $component.removeClass('card-refresh');
+            location.reload();
+        }, 1000);
+    } else {
+        location.reload();
+    }
+};
+
+TraccarFleet.toggleComponent = function(selector) {
+    $(selector).toggle();
+};
+
+/**
+ * ============================================
+ * STORAGE E CACHE
+ * ============================================ */
+TraccarFleet.setStorage = function(key, value, session = false) {
+    const storage = session ? sessionStorage : localStorage;
+    try {
+        storage.setItem(`traccar_${key}`, JSON.stringify({
+            value: value,
+            timestamp: Date.now()
+        }));
+    } catch (e) {
+        console.warn('Storage not available:', e);
+    }
+};
+
+TraccarFleet.getStorage = function(key, session = false, maxAge = null) {
+    const storage = session ? sessionStorage : localStorage;
+    try {
+        const item = storage.getItem(`traccar_${key}`);
+        if (!item) return null;
+
+        const data = JSON.parse(item);
+
+        if (maxAge && (Date.now() - data.timestamp > maxAge)) {
+            storage.removeItem(`traccar_${key}`);
+            return null;
+        }
+
+        return data.value;
+    } catch (e) {
+        console.warn('Storage read error:', e);
+        return null;
+    }
+};
+
+TraccarFleet.clearStorage = function(session = false) {
+    const storage = session ? sessionStorage : localStorage;
+    const keys = Object.keys(storage).filter(key => key.startsWith('traccar_'));
+    keys.forEach(key => storage.removeItem(key));
+};
+
+// Export per utilizzo in altri script
+window.TraccarFleet = TraccarFleet;
+
+console.log('📱 Traccar Fleet Management JavaScript loaded successfully');

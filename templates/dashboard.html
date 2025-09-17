@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ app_name }}{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item active">Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<!-- Info boxes -->
+<div class="row">
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="info-box">
+            <span class="info-box-icon bg-info elevation-1">
+                <i class="fas fa-mobile-alt"></i>
+            </span>
+            <div class="info-box-content">
+                <span class="info-box-text">Dispositivi Totali</span>
+                <span class="info-box-number">{{ stats.total_devices or 0 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="info-box">
+            <span class="info-box-icon bg-success elevation-1">
+                <i class="fas fa-check-circle"></i>
+            </span>
+            <div class="info-box-content">
+                <span class="info-box-text">Online</span>
+                <span class="info-box-number">{{ stats.online_devices or 0 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="info-box">
+            <span class="info-box-icon bg-warning elevation-1">
+                <i class="fas fa-times-circle"></i>
+            </span>
+            <div class="info-box-content">
+                <span class="info-box-text">Offline</span>
+                <span class="info-box-number">{{ stats.offline_devices or 0 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="info-box">
+            <span class="info-box-icon bg-danger elevation-1">
+                <i class="fas fa-bell"></i>
+            </span>
+            <div class="info-box-content">
+                <span class="info-box-text">Allarmi</span>
+                <span class="info-box-number">{{ stats.recent_alerts or 0 }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Mappa -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-map-marked-alt mr-2"></i>
+                    Mappa Live
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="refreshMap()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="live-map" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dispositivi recenti -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-mobile-alt mr-2"></i>
+                    Dispositivi Recenti
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if devices %}
+                    {% for device in devices %}
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                        <div>
+                            <strong>{{ device.name }}</strong><br>
+                            <small class="text-muted">ID: {{ device.uniqueId }}</small>
+                        </div>
+                        <div>
+                            {{ device.status|status_badge|safe }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">Nessun dispositivo disponibile</p>
+                {% endif %}
+
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('devices.list_devices') }}" class="btn btn-primary btn-sm">
+                        Vedi Tutti
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Posizioni recenti -->
+{% if recent_positions %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-map-marker-alt mr-2"></i>
+                    Posizioni Recenti
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Dispositivo</th>
+                                <th>Posizione</th>
+                                <th>Velocità</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for position in recent_positions %}
+                            <tr>
+                                <td>{{ position.deviceId }}</td>
+                                <td>{{ "%.6f"|format(position.latitude) }}, {{ "%.6f"|format(position.longitude) }}</td>
+                                <td>
+                                    {% if position.speed %}
+                                        {{ "%.1f"|format(position.speed * 1.852) }} km/h
+                                    {% else %}
+                                        0 km/h
+                                    {% endif %}
+                                </td>
+                                <td>{{ position.serverTime|datetime_format }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Collegamenti rapidi -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-bolt mr-2"></i>
+                    Collegamenti Rapidi
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-6">
+                        <a href="{{ url_for('devices.add_device') }}" class="btn btn-block btn-outline-primary">
+                            <i class="fas fa-plus-circle"></i><br>
+                            Aggiungi Dispositivo
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <a href="{{ url_for('positions.live_tracking') }}" class="btn btn-block btn-outline-success">
+                            <i class="fas fa-crosshairs"></i><br>
+                            Tracking Live
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <a href="{{ url_for('reports.trips') }}" class="btn btn-block btn-outline-info">
+                            <i class="fas fa-route"></i><br>
+                            Report Viaggi
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <a href="{{ url_for('positions.position_history') }}" class="btn btn-block btn-outline-warning">
+                            <i class="fas fa-history"></i><br>
+                            Storico Posizioni
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    initializeMap();
+
+    // Auto-refresh ogni 30 secondi
+    setInterval(function() {
+        refreshDashboard();
+    }, 30000);
+});
+
+let map;
+
+function initializeMap() {
+    // Inizializza mappa Leaflet
+    map = L.map('live-map').setView([41.9028, 12.4964], 6);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    loadDevicePositions();
+}
+
+function loadDevicePositions() {
+    fetch('/api/devices/positions')
+        .then(response => response.json())
+        .then(data => {
+            // Pulisci marker esistenti
+            map.eachLayer(function(layer) {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            // Aggiungi nuovi marker
+            data.forEach(function(device) {
+                if (device.position && device.position.latitude && device.position.longitude) {
+                    const marker = L.marker([device.position.latitude, device.position.longitude])
+                        .addTo(map);
+
+                    const popupContent = `
+                        <div>
+                            <h6>${device.deviceName}</h6>
+                            <p><strong>Status:</strong> ${device.status}</p>
+                            <p><strong>Velocità:</strong> ${device.speed.toFixed(1)} km/h</p>
+                        </div>
+                    `;
+
+                    marker.bindPopup(popupContent);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Errore caricamento posizioni:', error);
+        });
+}
+
+function refreshMap() {
+    showToast('Aggiornamento mappa...', 'info');
+    loadDevicePositions();
+}
+
+function refreshDashboard() {
+    fetch('/api/dashboard/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Aggiorna contatori se necessario
+            console.log('Dashboard aggiornata:', data);
+        })
+        .catch(error => {
+            console.error('Errore aggiornamento dashboard:', error);
+        });
+}
+</script>
+{% endblock %}

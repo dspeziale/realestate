@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}Dispositivi - {{ app_name }}{% endblock %}
+
+{% block page_title %}Gestione Dispositivi{% endblock %}
+
+{% block breadcrumbs %}
+{{ super() }}
+<li class="breadcrumb-item active">Dispositivi</li>
+{% endblock %}
+
+{% block head_css %}
+<style>
+.device-status-online { color: #28a745; }
+.device-status-offline { color: #6c757d; }
+.device-status-moving { color: #007bff; }
+.device-status-stopped { color: #17a2b8; }
+.device-status-unknown { color: #ffc107; }
+.device-icon { font-size: 1.2em; margin-right: 8px; }
+.stats-card { transition: transform 0.2s; }
+.stats-card:hover { transform: translateY(-2px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Statistiche rapide -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info stats-card">
+            <div class="inner">
+                <h3 id="total-devices">{{ devices|length }}</h3>
+                <p>Dispositivi Totali</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-mobile-alt"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success stats-card">
+            <div class="inner">
+                <h3 id="online-devices">{{ devices|selectattr('status', 'equalto', 'online')|list|length }}</h3>
+                <p>Online</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning stats-card">
+            <div class="inner">
+                <h3 id="offline-devices">{{ devices|rejectattr('status', 'equalto', 'online')|list|length }}</h3>
+                <p>Offline</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-primary stats-card">
+            <div class="inner">
+                <h3 id="moving-devices">0</h3>
+                <p>In Movimento</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-route"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Card principale -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list mr-2"></i>
+            Lista Dispositivi
+        </h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-success btn-sm" onclick="refreshDeviceList()">
+                <i class="fas fa-sync-alt"></i> Aggiorna
+            </button>
+            <a href="{{ url_for('devices.add_device') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Aggiungi Dispositivo
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if devices %}
+        <div class="table-responsive">
+            <table id="devicesTable" class="table table-bordered table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-hashtag"></i> ID</th>
+                        <th><i class="fas fa-tag"></i> Nome</th>
+                        <th><i class="fas fa-fingerprint"></i> ID Univoco</th>
+                        <th><i class="fas fa-layer-group"></i> Categoria</th>
+                        <th><i class="fas fa-signal"></i> Stato</th>
+                        <th><i class="fas fa-clock"></i> Ultimo Aggiornamento</th>
+                        <th><i class="fas fa-map-marker-alt"></i> Ultima Posizione</th>
+                        <th><i class="fas fa-cogs"></i> Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in devices %}
+                    <tr>
+                        <td>{{ device.id }}</td>
+                        <td>
+                            <i class="fas {{ device.category_icon }} device-icon text-muted"></i>
+                            <strong>{{ device.name }}</strong>
+                            {% if device.disabled %}
+                                <span class="badge badge-secondary ml-2">Disabilitato</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <code>{{ device.uniqueId }}</code>
+                        </td>
+                        <td>
+                            {% if device.category %}
+                                <span class="badge badge-info">{{ device.category.title() }}</span>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ device.status|status_badge|safe }}
+                        </td>
+                        <td>
+                            {% if device.lastUpdate %}
+                                {{ device.lastUpdate|datetime_format }}
+                            {% else %}
+                                <span class="text-muted">Mai</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if device.last_position %}
+                                <small>
+                                    {{ "%.6f"|format(device.last_position.latitude) }},<br>
+                                    {{ "%.6f"|format(device.last_position.longitude) }}
+                                    {% if device.last_position.speed %}
+                                        <br><span class="text-info">{{ device.last_position.speed|speed_format }}</span>
+                                    {% endif %}
+                                </small>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('devices.view_device', device_id=device.id) }}"
+                                   class="btn btn-info btn-sm" title="Visualizza">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('devices.edit_device', device_id=device.id) }}"
+                                   class="btn btn-warning btn-sm" title="Modifica">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-danger btn-sm" title="Elimina"
+                                        onclick="deleteDevice({{ device.id }}, '{{ device.name }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-secondary btn-sm dropdown-toggle"
+                                            data-toggle="dropdown" title="Altri">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="{{ url_for('positions.live_tracking') }}?device={{ device.id }}">
+                                            <i class="fas fa-crosshairs"></i> Tracking Live
+                                        </a>
+                                        <a class="dropdown-item" href="{{ url_for('positions.position_history') }}?device={{ device.id }}">
+                                            <i class="fas fa-history"></i> Storico Posizioni
+                                        </a>
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item" href="#" onclick="sendCommand({{ device.id }}, '{{ device.name }}')">
+                                            <i class="fas fa-paper-plane"></i> Invia Comando
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-mobile-alt fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">Nessun dispositivo trovato</h4>
+            <p class="text-muted">Aggiungi il tuo primo dispositivo per iniziare il tracking.</p>
+            <a href="{{ url_for('devices.add_device') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Aggiungi Dispositivo
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal per invio comandi -->
+<div class="modal fade" id="commandModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-paper-plane"></i> Invia Comando
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="commandForm">
+                <div class="modal-body">
+                    <input type="hidden" id="command-device-id">
+
+                    <div class="form-group">
+                        <label>Dispositivo:</label>
+                        <input type="text" id="command-device-name" class="form-control" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo Comando:</label>
+                        <select class="form-control" id="command-type" required>
+                            <option value="">Seleziona comando...</option>
+                            <option value="positionSingle">Richiedi Posizione</option>
+                            <option value="positionPeriodic">Posizione Periodica</option>
+                            <option value="positionStop">Stop Posizione</option>
+                            <option value="engineStop">Spegni Motore</option>
+                            <option value="engineResume">Accendi Motore</option>
+                            <option value="alarmArm">Arma Allarme</option>
+                            <option value="alarmDisarm">Disarma Allarme</option>
+                            <option value="rebootDevice">Riavvia Dispositivo</option>
+                            <option value="setTimezone">Imposta Timezone</option>
+                            <option value="requestPhoto">Richiedi Foto</option>
+                            <option value="powerOff">Spegni Dispositivo</option>
+                        </select>
+                    </div>
+
+                    <div id="command-parameters">
+                        <!-- Parametri dinamici in base al comando -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Invia Comando
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Inizializza DataTable
+    $('#devicesTable').DataTable({
+        responsive: true,
+        order: [[1, 'asc']],
+        columnDefs: [
+            { targets: [0, 7], orderable: false },
+            { targets: [6], className: 'text-center' },
+            { targets: [4], className: 'text-center' }
+        ],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json'
+        }
+    });
+
+    // Gestione cambio tipo comando
+    $('#command-type').on('change', function() {
+        updateCommandParameters($(this).val());
+    });
+
+    // Gestione invio comando
+    $('#commandForm').on('submit', function(e) {
+        e.preventDefault();
+        submitCommand();
+    });
+
+    // Auto-refresh ogni 30 secondi
+    setInterval(function() {
+        refreshStats();
+    }, 30000);
+});
+
+function refreshDeviceList() {
+    showToast('Aggiornamento dispositivi...', 'info');
+    location.reload();
+}
+
+function refreshStats() {
+    // Aggiorna solo le statistiche senza ricaricare tutta la pagina
+    $.get('{{ url_for("api.get_device_stats") }}')
+        .done(function(data) {
+            $('#total-devices').text(data.total || 0);
+            $('#online-devices').text(data.online || 0);
+            $('#offline-devices').text(data.offline || 0);
+            $('#moving-devices').text(data.moving || 0);
+        })
+        .fail(function() {
+            console.warn('Impossibile aggiornare statistiche dispositivi');
+        });
+}
+
+function deleteDevice(deviceId, deviceName) {
+    confirmDelete(`Sei sicuro di voler eliminare il dispositivo "${deviceName}"?`)
+        .then((result) => {
+            if (result.isConfirmed) {
+                // Crea form temporaneo per eliminazione
+                let form = $('<form>', {
+                    method: 'POST',
+                    action: `{{ url_for('devices.delete_device', device_id=0) }}`.replace('0', deviceId)
+                });
+
+                $('body').append(form);
+                form.submit();
+            }
+        });
+}
+
+function sendCommand(deviceId, deviceName) {
+    $('#command-device-id').val(deviceId);
+    $('#command-device-name').val(deviceName);
+    $('#command-type').val('').trigger('change');
+    $('#commandModal').modal('show');
+}
+
+function updateCommandParameters(commandType) {
+    let parametersDiv = $('#command-parameters');
+    parametersDiv.empty();
+
+    // Parametri specifici per tipo comando
+    switch(commandType) {
+        case 'positionPeriodic':
+            parametersDiv.append(`
+                <div class="form-group">
+                    <label>Intervallo (secondi):</label>
+                    <input type="number" name="param_frequency" class="form-control"
+                           min="1" max="86400" value="60" required>
+                    <small class="form-text text-muted">Intervallo tra le richieste di posizione</small>
+                </div>
+            `);
+            break;
+
+        case 'setTimezone':
+            parametersDiv.append(`
+                <div class="form-group">
+                    <label>Timezone:</label>
+                    <select name="param_timezone" class="form-control" required>
+                        <option value="Europe/Rome">Europe/Rome</option>
+                        <option value="Europe/London">Europe/London</option>
+                        <option value="Europe/Berlin">Europe/Berlin</option>
+                        <option value="Europe/Paris">Europe/Paris</option>
+                        <option value="America/New_York">America/New_York</option>
+                        <option value="America/Los_Angeles">America/Los_Angeles</option>
+                    </select>
+                </div>
+            `);
+            break;
+
+        case 'engineStop':
+        case 'engineResume':
+            parametersDiv.append(`
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Attenzione:</strong> Questo comando influenzerà il motore del veicolo.
+                    Utilizzare solo in caso di emergenza o con il consenso del conducente.
+                </div>
+            `);
+            break;
+    }
+}
+
+function submitCommand() {
+    let deviceId = $('#command-device-id').val();
+    let formData = new FormData(document.getElementById('commandForm'));
+
+    // Mostra loading
+    let submitBtn = $('#commandForm button[type="submit"]');
+    let originalText = submitBtn.html();
+    submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Invio...').prop('disabled', true);
+
+    $.ajax({
+        url: `{{ url_for('devices.send_command', device_id=0) }}`.replace('0', deviceId),
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            if (response.success) {
+                showToast(response.message, 'success');
+                $('#commandModal').modal('hide');
+            } else {
+                showToast(response.error || 'Errore invio comando', 'error');
+            }
+        },
+        error: function() {
+            showToast('Errore di connessione', 'error');
+        },
+        complete: function() {
+            submitBtn.html(originalText).prop('disabled', false);
+        }
+    });
+}
+</script>
+{% endblock %}
