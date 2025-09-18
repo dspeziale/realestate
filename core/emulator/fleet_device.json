@@ -1,0 +1,356 @@
+{
+  "metadata": {
+    "name": "Configurazione Flotta Aziendale",
+    "description": "Dispositivi flotta trasporti - 20 veicoli",
+    "created_at": "2025-01-15T10:00:00",
+    "version": "1.0",
+    "company": "Trasporti Italia SRL"
+  },
+  "global_settings": {
+    "default_category": "truck",
+    "auto_generate_ids": false,
+    "enable_notifications": true
+  },
+  "devices": [
+    {
+      "name": "🚛 TIR Nord 01",
+      "unique_id": "TIR001",
+      "category": "truck",
+      "model": "Volvo FH16",
+      "contact": "autista.nord1@trasporti.it",
+      "phone": "+39 340 1234 001",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 90,
+        "license_plate": "AB001CD",
+        "driver": "Mario Rossi",
+        "route": "Milano-Berlino"
+      }
+    },
+    {
+      "name": "🚛 TIR Sud 02",
+      "unique_id": "TIR002",
+      "category": "truck",
+      "model": "Scania R450",
+      "contact": "autista.sud2@trasporti.it",
+      "phone": "+39 340 1234 002",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 90,
+        "license_plate": "AB002CD",
+        "driver": "Luigi Verdi",
+        "route": "Roma-Palermo"
+      }
+    },
+    {
+      "name": "🚛 TIR Express 03",
+      "unique_id": "TIR003",
+      "category": "truck",
+      "model": "Mercedes Actros",
+      "contact": "autista.express3@trasporti.it",
+      "phone": "+39 340 1234 003",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 90,
+        "license_plate": "AB003CD",
+        "driver": "Giuseppe Bianchi",
+        "route": "Torino-Monaco"
+      }
+    },
+    {
+      "name": "🚐 Furgone 04",
+      "unique_id": "VAN004",
+      "category": "van",
+      "model": "Fiat Ducato",
+      "contact": "autista.van4@trasporti.it",
+      "phone": "+39 340 1234 004",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 130,
+        "license_plate": "CD004EF",
+        "driver": "Paolo Neri",
+        "route": "Milano-Venezia"
+      }
+    },
+    {
+      "name": "🚐 Furgone 05",
+      "unique_id": "VAN005",
+      "category": "van",
+      "model": "Mercedes Sprinter",
+      "contact": "autista.van5@trasporti.it",
+      "phone": "+39 340 1234 005",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 130,
+        "license_plate": "CD005EF",
+        "driver": "Andrea Gialli",
+        "route": "Firenze-Bologna"
+      }
+    },
+    {
+      "name": "🚗 Auto Aziendale 06",
+      "unique_id": "CAR006",
+      "category": "car",
+      "model": "BMW Serie 3",
+      "contact": "commerciale6@trasporti.it",
+      "phone": "+39 340 1234 006",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "gasoline",
+        "max_speed": 200,
+        "license_plate": "EF006GH",
+        "driver": "Marco Blu",
+        "route": "Commerciale Nord"
+      }
+    },
+    {
+      "name": "🚗 Auto Aziendale 07",
+      "unique_id": "CAR007",
+      "category": "car",
+      "model": "Audi A4",
+      "contact": "commerciale7@trasporti.it",
+      "phone": "+39 340 1234 007",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "gasoline",
+        "max_speed": 200,
+        "license_plate": "EF007GH",
+        "driver": "Luca Viola",
+        "route": "Commerciale Sud"
+      }
+    },
+    {
+      "name": "🚛 TIR Adriatico 08",
+      "unique_id": "TIR008",
+      "category": "truck",
+      "model": "Iveco Stralis",
+      "contact": "autista.adriatico8@trasporti.it",
+      "phone": "+39 340 1234 008",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 90,
+        "license_plate": "AB008CD",
+        "driver": "Antonio Arancio",
+        "route": "Ancona-Bari"
+      }
+    },
+    {
+      "name": "🚛 TIR Tirreno 09",
+      "unique_id": "TIR009",
+      "category": "truck",
+      "model": "MAN TGX",
+      "contact": "autista.tirreno9@trasporti.it",
+      "phone": "+39 340 1234 009",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 90,
+        "license_plate": "AB009CD",
+        "driver": "Francesco Rosa",
+        "route": "Napoli-Livorno"
+      }
+    },
+    {
+      "name": "🚛 TIR Internazionale 10",
+      "unique_id": "TIR010",
+      "category": "truck",
+      "model": "Volvo FH",
+      "contact": "autista.int10@trasporti.it",
+      "phone": "+39 340 1234 010",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 90,
+        "license_plate": "AB010CD",
+        "driver": "Roberto Marrone",
+        "route": "Milano-Amsterdam"
+      }
+    },
+    {
+      "name": "🚐 Furgone Express 11",
+      "unique_id": "VAN011",
+      "category": "van",
+      "model": "Renault Master",
+      "contact": "autista.exp11@trasporti.it",
+      "phone": "+39 340 1234 011",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 130,
+        "license_plate": "CD011EF",
+        "driver": "Stefano Grigio",
+        "route": "Roma-Firenze"
+      }
+    },
+    {
+      "name": "🚐 Furgone Refrigerato 12",
+      "unique_id": "VAN012",
+      "category": "van",
+      "model": "Iveco Daily Frigo",
+      "contact": "autista.frigo12@trasporti.it",
+      "phone": "+39 340 1234 012",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 120,
+        "license_plate": "CD012EF",
+        "driver": "Matteo Bianco",
+        "route": "Prodotti freschi"
+      }
+    },
+    {
+      "name": "🏍️ Corriere Moto 13",
+      "unique_id": "MOTO013",
+      "category": "motorcycle",
+      "model": "Yamaha X-Max",
+      "contact": "corriere13@trasporti.it",
+      "phone": "+39 340 1234 013",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "gasoline",
+        "max_speed": 130,
+        "license_plate": "GH013IJ",
+        "driver": "Alessandro Nero",
+        "route": "Urgenze Milano"
+      }
+    },
+    {
+      "name": "🏍️ Corriere Moto 14",
+      "unique_id": "MOTO014",
+      "category": "motorcycle",
+      "model": "Honda SH 350",
+      "contact": "corriere14@trasporti.it",
+      "phone": "+39 340 1234 014",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "gasoline",
+        "max_speed": 120,
+        "license_plate": "GH014IJ",
+        "driver": "Davide Azzurro",
+        "route": "Urgenze Roma"
+      }
+    },
+    {
+      "name": "🚛 TIR Sicilia 15",
+      "unique_id": "TIR015",
+      "category": "truck",
+      "model": "Scania S500",
+      "contact": "autista.sicilia15@trasporti.it",
+      "phone": "+39 340 1234 015",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 90,
+        "license_plate": "AB015CD",
+        "driver": "Salvatore Verde",
+        "route": "Napoli-Palermo"
+      }
+    },
+    {
+      "name": "🚛 TIR Sardegna 16",
+      "unique_id": "TIR016",
+      "category": "truck",
+      "model": "DAF XF",
+      "contact": "autista.sardegna16@trasporti.it",
+      "phone": "+39 340 1234 016",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 90,
+        "license_plate": "AB016CD",
+        "driver": "Giovanni Giallo",
+        "route": "Civitavecchia-Cagliari"
+      }
+    },
+    {
+      "name": "🚐 Furgone Centro 17",
+      "unique_id": "VAN017",
+      "category": "van",
+      "model": "Peugeot Boxer",
+      "contact": "autista.centro17@trasporti.it",
+      "phone": "+39 340 1234 017",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 130,
+        "license_plate": "CD017EF",
+        "driver": "Simone Rosso",
+        "route": "Distribuzione Centro Italia"
+      }
+    },
+    {
+      "name": "🚌 Navetta 18",
+      "unique_id": "BUS018",
+      "category": "bus",
+      "model": "Mercedes Tourismo",
+      "contact": "autista.navetta18@trasporti.it",
+      "phone": "+39 340 1234 018",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 100,
+        "license_plate": "IJ018KL",
+        "driver": "Carlo Celeste",
+        "route": "Navetta Aeroporto"
+      }
+    },
+    {
+      "name": "🚗 Auto Direttore 19",
+      "unique_id": "CAR019",
+      "category": "car",
+      "model": "Mercedes Classe E",
+      "contact": "direzione@trasporti.it",
+      "phone": "+39 340 1234 019",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "hybrid",
+        "max_speed": 220,
+        "license_plate": "EF019GH",
+        "driver": "Direttore Generale",
+        "route": "Management"
+      }
+    },
+    {
+      "name": "🚛 TIR Backup 20",
+      "unique_id": "TIR020",
+      "category": "truck",
+      "model": "Renault T High",
+      "contact": "autista.backup20@trasporti.it",
+      "phone": "+39 340 1234 020",
+      "disabled": false,
+      "group_id": null,
+      "attributes": {
+        "fuel_type": "diesel",
+        "max_speed": 90,
+        "license_plate": "AB020CD",
+        "driver": "Reserve Driver",
+        "route": "Backup"
+      }
+    }
+  ]
+}
