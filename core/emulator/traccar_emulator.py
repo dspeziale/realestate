@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 import logging
 
 # Importa il framework Traccar esistente
-from traccar_framework import TraccarAPI, TraccarException
+from core.traccar_framework import TraccarAPI, TraccarException
 
 logger = logging.getLogger('TraccarSimulator')
 
