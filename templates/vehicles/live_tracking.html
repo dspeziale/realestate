@@ -1,3 +1,4 @@
+<!-- templates/vehicles/live_tracking.html -->
 {% extends "base.html" %}
 
 {% block content %}
@@ -36,7 +37,7 @@
     <div class="flex-1 relative bg-gray-100">
         <div id="map" class="w-full h-full"></div>
 
-        <div class="absolute bottom-4 right-4 space-y-2">
+        <div class="absolute top-4 right-4 space-y-2">
             <button onclick="centerOnVehicle()"
                     class="bg-white border border-gray-300 p-3 rounded-lg hover:bg-gray-50 transition shadow-md">
                 <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,12 +60,39 @@ let map, vehicleMarker, routeLine, autoFollow = true;
 const vehicleId = {{ vehicle.id }};
 const routeCoords = [];
 
-map = L.map('map').setView([41.9, 12.5], 13);
+// Initialize map with custom controls position
+map = L.map('map', {
+    zoomControl: false  // Disable default zoom control
+}).setView([41.9, 12.5], 13);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 19
-}).addTo(map);
+// Define base layers
+const baseLayers = {
+    'Light': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap, © CartoDB',
+        maxZoom: 19
+    }),
+    'Satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '© Esri',
+        maxZoom: 19
+    }),
+    'Dark': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap, © CartoDB',
+        maxZoom: 19
+    }),
+    'Street': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19
+    })
+};
+
+// Add default layer
+baseLayers['Light'].addTo(map);
+
+// Add zoom control in bottom right
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// Add layer control in bottom right
+L.control.layers(baseLayers, null, { position: 'bottomright' }).addTo(map);
 
 const initialPositions = {{ positions|tojson|safe }};
 initialPositions.forEach(pos => routeCoords.push([pos.latitude, pos.longitude]));

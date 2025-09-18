@@ -2,6 +2,7 @@
 {% extends "base.html" %}
 
 {% block extra_css %}
+<link href="https://unpkg.com/leaflet.fullscreen@latest/Control.FullScreen.css" rel="stylesheet" />
 <style>
     body { overflow: hidden; }
     #map { position: fixed; top: 64px; left: 0; right: 0; bottom: 0; z-index: 0; }
@@ -15,6 +16,94 @@
     .compact-scrollbar::-webkit-scrollbar { width: 4px; }
     .compact-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .compact-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    .filter-btn { transition: all 0.2s ease; }
+    .filter-btn.active { background: #3b82f6; color: white; }
+
+    /* Fullscreen styles */
+    .fullscreen #map { top: 0; }
+    .fullscreen .left-sidebar,
+    .fullscreen .right-panel,
+    .fullscreen .bottom-bar,
+    .fullscreen nav { display: none; }
+    .leaflet-control-fullscreen {
+        background: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 4px;
+    }
+    .leaflet-control-fullscreen a {
+        background: white;
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+    }
+
+    /* Mobile styles */
+    @media (max-width: 768px) {
+        #map { top: 56px; }
+
+        .left-sidebar {
+            left: 0;
+            top: 56px;
+            bottom: 0;
+            width: 100%;
+            max-width: 320px;
+            border-radius: 0 16px 0 0;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .left-sidebar.open {
+            transform: translateX(0);
+        }
+
+        .right-panel {
+            display: none;
+        }
+
+        .bottom-bar {
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            transform: none;
+        }
+
+        .bottom-bar .map-panel {
+            border-radius: 12px;
+            padding: 8px 12px;
+        }
+
+        .bottom-bar button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Mobile toggle button */
+        .mobile-toggle {
+            display: block;
+            position: fixed;
+            top: 70px;
+            left: 12px;
+            z-index: 21;
+            background: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+    }
+
+    @media (min-width: 769px) {
+        .mobile-toggle {
+            display: none;
+        }
+
+        .left-sidebar {
+            transform: translateX(0) !important;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -22,24 +111,53 @@
 <!-- Full Screen Map -->
 <div id="map"></div>
 
+<!-- Mobile Toggle Button -->
+<button class="mobile-toggle" onclick="toggleSidebar()">
+    <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+    </svg>
+</button>
+
 <!-- Left Sidebar - Vehicle List -->
-<div class="fixed left-6 top-24 bottom-6 z-20 w-80 map-panel rounded-2xl shadow-xl overflow-hidden flex flex-col">
+<div class="fixed left-6 top-24 bottom-6 z-20 w-80 map-panel rounded-2xl shadow-xl overflow-hidden flex flex-col left-sidebar" id="sidebar">
     <div class="p-4 border-b border-gray-200">
         <h2 class="font-semibold text-gray-900">Live Tracking</h2>
-        <p class="text-xs text-gray-500 mt-1">Real-time vehicle monitoring</p>
+        <p class="text-xs text-gray-500 mt-1">Monitoraggio in tempo reale</p>
+
+        <!-- Filtri Gruppo -->
+        <div class="mt-3">
+            <label class="text-xs font-medium text-gray-700 block mb-1">Gruppo</label>
+            <select id="groupFilter" class="w-full text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500">
+                <option value="">Tutti i gruppi</option>
+                {% for group in groups %}
+                <option value="{{ group.id }}">{{ group.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Filtri Categoria -->
+        <div class="mt-2">
+            <label class="text-xs font-medium text-gray-700 block mb-1">Categoria</label>
+            <select id="categoryFilter" class="w-full text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500">
+                <option value="">Tutte le categorie</option>
+                {% for category in categories %}
+                <option value="{{ category }}">{{ category }}</option>
+                {% endfor %}
+            </select>
+        </div>
     </div>
 
     <div class="flex-1 overflow-y-auto p-3 space-y-2 compact-scrollbar" id="vehicleList">
         <div class="text-center text-gray-500 py-8">
-            <p>Loading vehicles...</p>
+            <p>Caricamento veicoli...</p>
         </div>
     </div>
 </div>
 
 <!-- Right Info Panel -->
-<div class="fixed right-6 top-24 z-20 w-64 space-y-3">
+<div class="fixed right-6 top-24 z-20 w-64 space-y-3 right-panel">
     <div class="map-panel rounded-xl p-4 shadow-lg">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Quick Stats</h3>
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Statistiche</h3>
         <div class="space-y-2" id="quickStats">
             <div class="flex justify-between items-center">
                 <span class="text-xs text-gray-600">Totale veicoli</span>
@@ -50,59 +168,97 @@
                 <span class="text-sm font-bold text-green-600" id="movingVehicles">--</span>
             </div>
             <div class="flex justify-between items-center">
-                <span class="text-xs text-gray-600">Km totali oggi</span>
-                <span class="text-sm font-bold text-blue-600" id="totalKm">--</span>
-            </div>
-            <div class="flex justify-between items-center">
                 <span class="text-xs text-gray-600">Velocità media</span>
                 <span class="text-sm font-bold text-purple-600" id="avgSpeed">--</span>
             </div>
         </div>
     </div>
-
-    <div class="map-panel rounded-xl p-4 shadow-lg">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Alerts</h3>
-        <div class="space-y-2" id="alertsList">
-            <div class="text-xs text-gray-500 text-center py-2">No alerts</div>
-        </div>
-    </div>
 </div>
 
 <!-- Bottom Control Bar -->
-<div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
+<div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 bottom-bar">
     <div class="map-panel rounded-full px-6 py-2.5 shadow-xl flex items-center gap-4">
-        <button class="px-4 py-1.5 bg-blue-500 text-white rounded-full text-sm font-medium hover:bg-blue-600" onclick="filterVehicles('all')">
-            All Vehicles
+        <button class="filter-btn active px-4 py-1.5 bg-blue-500 text-white rounded-full text-sm font-medium hover:bg-blue-600" onclick="filterVehicles('all')">
+            Tutti i Veicoli
         </button>
-        <button class="px-4 py-1.5 bg-white text-gray-700 rounded-full text-sm hover:bg-gray-50" onclick="filterVehicles('active')">
-            Active Only
+        <button class="filter-btn px-4 py-1.5 bg-white text-gray-700 rounded-full text-sm hover:bg-gray-50" onclick="filterVehicles('active')">
+            Solo Attivi
         </button>
-        <button class="px-4 py-1.5 bg-white text-gray-700 rounded-full text-sm hover:bg-gray-50" onclick="filterVehicles('stopped')">
-            Stopped
+        <button class="filter-btn px-4 py-1.5 bg-white text-gray-700 rounded-full text-sm hover:bg-gray-50" onclick="filterVehicles('stopped')">
+            Fermi
         </button>
         <div class="h-4 w-px bg-gray-300"></div>
-        <span class="text-xs text-gray-500">Updated: <span class="font-medium" id="lastUpdate">now</span></span>
+        <span class="text-xs text-gray-500">Aggiornato: <span class="font-medium" id="lastUpdate">ora</span></span>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://unpkg.com/leaflet.fullscreen@1.0.2/dist/Leaflet.fullscreen.min.js"></script>
 <script>
-    // Initialize map
+    // Initialize map with custom controls
     const map = L.map('map', {
-        zoomControl: false
+        zoomControl: false,
+        fullscreenControl: true,
+        fullscreenControlOptions: {
+            position: 'topleft'
+        }
     }).setView([43.5, 11.5], 6);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap, © CartoDB',
-        maxZoom: 19
-    }).addTo(map);
+    // Mappa base layers
+    const baseLayers = {
+        'Light': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, © CartoDB',
+            maxZoom: 19
+        }),
+        'Satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '© Esri',
+            maxZoom: 19
+        }),
+        'Dark': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, © CartoDB',
+            maxZoom: 19
+        }),
+        'Street': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        })
+    };
 
-    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+    // Add default layer
+    baseLayers['Light'].addTo(map);
+
+    // Custom zoom control in bottom right
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // Layer control in bottom right
+    L.control.layers(baseLayers, null, { position: 'bottomright' }).addTo(map);
+
+    // Handle fullscreen events
+    map.on('enterFullscreen', function(){
+        document.body.classList.add('fullscreen');
+    });
+
+    map.on('exitFullscreen', function(){
+        document.body.classList.remove('fullscreen');
+    });
 
     let vehicleMarkers = {};
     let allVehicles = [];
     let currentFilter = 'all';
+    let selectedGroup = '';
+    let selectedCategory = '';
+
+    // Event listeners per i filtri
+    document.getElementById('groupFilter').addEventListener('change', (e) => {
+        selectedGroup = e.target.value;
+        applyFilters();
+    });
+
+    document.getElementById('categoryFilter').addEventListener('change', (e) => {
+        selectedCategory = e.target.value;
+        applyFilters();
+    });
 
     async function loadVehicles() {
         try {
@@ -113,32 +269,54 @@
             if (vehicles.error) throw new Error(vehicles.error);
 
             allVehicles = vehicles;
-            updateVehicleList(vehicles);
-            updateMapMarkers(vehicles);
-            updateStats(vehicles);
+            applyFilters();
         } catch (error) {
             console.error('Error loading vehicles:', error);
             document.getElementById('vehicleList').innerHTML = `
                 <div class="text-center text-red-500 py-8">
-                    <p class="font-semibold">Error loading vehicles</p>
+                    <p class="font-semibold">Errore caricamento veicoli</p>
                     <p class="text-xs mt-2">${error.message}</p>
                 </div>
             `;
         }
     }
 
+    function applyFilters() {
+        let filtered = allVehicles;
+
+        // Filtro stato
+        if (currentFilter === 'active') {
+            filtered = filtered.filter(v => v.status === 'online' && v.speed > 0);
+        } else if (currentFilter === 'stopped') {
+            filtered = filtered.filter(v => v.status === 'offline' || v.speed === 0);
+        }
+
+        // Filtro gruppo
+        if (selectedGroup) {
+            filtered = filtered.filter(v => v.groupId == selectedGroup);
+        }
+
+        // Filtro categoria
+        if (selectedCategory) {
+            filtered = filtered.filter(v => v.category === selectedCategory);
+        }
+
+        updateVehicleList(filtered);
+        updateMapMarkers(filtered);
+        updateStats(filtered);
+    }
+
     function updateVehicleList(vehicles) {
         const container = document.getElementById('vehicleList');
         if (!vehicles || vehicles.length === 0) {
-            container.innerHTML = '<div class="text-center text-gray-500 py-8"><p>No vehicles available</p></div>';
+            container.innerHTML = '<div class="text-center text-gray-500 py-8"><p>Nessun veicolo disponibile</p></div>';
             return;
         }
 
         container.innerHTML = vehicles.map(v => {
-            const status = v.status === 'online' ? 'active' : 'stopped';
+            const status = v.status === 'online' && v.speed > 0 ? 'active' : 'stopped';
             const color = status === 'active' ? 'green' : 'orange';
             const speed = v.speed || 0;
-            const progress = v.progress || 0;
 
             return `
                 <div class="vehicle-card map-panel rounded-lg p-3 shadow-sm cursor-pointer" onclick="focusVehicle(${v.id})">
@@ -149,13 +327,7 @@
                         </div>
                         <span class="text-xs font-bold text-gray-700">${speed} km/h</span>
                     </div>
-                    <p class="text-xs text-gray-600 mb-2">${v.route || 'No route'}</p>
-                    <div class="flex items-center gap-2">
-                        <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div class="h-full bg-${color}-500" style="width: ${progress}%"></div>
-                        </div>
-                        <span class="text-xs text-gray-500">${progress}%</span>
-                    </div>
+                    <p class="text-xs text-gray-600">${v.route || 'Nessun percorso'}</p>
                 </div>
             `;
         }).join('');
@@ -167,7 +339,7 @@
 
         vehicles.forEach(v => {
             if (v.latitude && v.longitude) {
-                const status = v.status === 'online' ? 'active' : 'stopped';
+                const status = v.status === 'online' && v.speed > 0 ? 'active' : 'stopped';
                 const color = status === 'active' ? '#10b981' : '#f59e0b';
 
                 const marker = L.circleMarker([v.latitude, v.longitude], {
@@ -182,54 +354,79 @@
                 marker.bindPopup(`
                     <div class="p-2">
                         <div class="font-semibold text-sm">${v.name}</div>
-                        <div class="text-xs text-gray-600 mt-1">Speed: ${v.speed || 0} km/h</div>
-                        <div class="text-xs text-gray-600">Status: ${status}</div>
+                        <div class="text-xs text-gray-600 mt-1">Velocità: ${v.speed || 0} km/h</div>
+                        <div class="text-xs text-gray-600">Stato: ${status === 'active' ? 'In movimento' : 'Fermo'}</div>
                     </div>
                 `);
 
                 vehicleMarkers[v.id] = marker;
             }
         });
+
+        // Auto-fit bounds
+        const bounds = Object.values(vehicleMarkers).map(m => m.getLatLng());
+        if (bounds.length > 0) {
+            map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
+        }
     }
 
     function updateStats(vehicles) {
         const total = vehicles.length;
-        const online = vehicles.filter(v => v.status === 'online').length;
+        const moving = vehicles.filter(v => v.status === 'online' && v.speed > 0).length;
         const speeds = vehicles.filter(v => v.speed > 0).map(v => v.speed);
-        const avgSpeed = speeds.length > 0 ? (speeds.reduce((a, b) => a + b, 0) / speeds.length).toFixed(1) : 0;
+        const avgSpeed = speeds.length > 0 ? Math.round(speeds.reduce((a, b) => a + b, 0) / speeds.length) : 0;
 
         document.getElementById('totalVehicles').textContent = total;
-        document.getElementById('movingVehicles').textContent = online;
-        document.getElementById('avgSpeed').textContent = `${avgSpeed} km/h`;
+        document.getElementById('movingVehicles').textContent = moving;
+        document.getElementById('avgSpeed').textContent = avgSpeed + ' km/h';
+    }
+
+    function filterVehicles(filter) {
+        currentFilter = filter;
+
+        // Update button styles
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active', 'bg-blue-500', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-700');
+        });
+
+        event.target.classList.add('active', 'bg-blue-500', 'text-white');
+        event.target.classList.remove('bg-white', 'text-gray-700');
+
+        applyFilters();
     }
 
     function focusVehicle(vehicleId) {
         const marker = vehicleMarkers[vehicleId];
         if (marker) {
-            map.setView(marker.getLatLng(), 12);
+            map.setView(marker.getLatLng(), 15);
             marker.openPopup();
         }
-    }
-
-    function filterVehicles(filter) {
-        currentFilter = filter;
-        let filtered = allVehicles;
-
-        if (filter === 'active') {
-            filtered = allVehicles.filter(v => v.status === 'online');
-        } else if (filter === 'stopped') {
-            filtered = allVehicles.filter(v => v.status !== 'online');
-        }
-
-        updateVehicleList(filtered);
     }
 
     // Auto-refresh
     setInterval(() => {
         loadVehicles();
-        document.getElementById('lastUpdate').textContent = 'now';
+        document.getElementById('lastUpdate').textContent = 'ora';
     }, 5000);
 
+    // Initial load
     loadVehicles();
+
+    // Mobile sidebar toggle
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('open');
+    }
+
+    // Close sidebar when clicking on map on mobile
+    if (window.innerWidth <= 768) {
+        document.getElementById('map').addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    }
 </script>
 {% endblock %}
