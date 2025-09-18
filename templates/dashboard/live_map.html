@@ -197,11 +197,22 @@
                 iconSize: [32, 32]
             });
 
+            const newLatLng = [position.latitude, position.longitude];
+
             if (markers[vehicle.id]) {
-                markers[vehicle.id].setLatLng([position.latitude, position.longitude]);
+                const oldLatLng = markers[vehicle.id].getLatLng();
+                markers[vehicle.id].setLatLng(newLatLng);
                 markers[vehicle.id].setIcon(icon);
+
+                // Controlla se il veicolo è uscito dalla vista corrente
+                if (!map.getBounds().contains(newLatLng)) {
+                    // Se nessun veicolo è selezionato o questo è quello selezionato, ricentra
+                    if (!selectedVehicleId || selectedVehicleId === vehicle.id) {
+                        map.panTo(newLatLng, { animate: true, duration: 0.5 });
+                    }
+                }
             } else {
-                markers[vehicle.id] = L.marker([position.latitude, position.longitude], { icon })
+                markers[vehicle.id] = L.marker(newLatLng, { icon })
                     .addTo(map)
                     .on('click', () => selectVehicle(vehicle.id));
             }
