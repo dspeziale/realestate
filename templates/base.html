@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Fleet Manager Pro{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+
+        .glass-light {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .vehicle-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .vehicle-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-light {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+    </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f7ff',
+                            100: '#ebf0ff',
+                            500: '#667eea',
+                            600: '#5568d3',
+                            700: '#4451bc'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+
+    {% if session.get('user') %}
+    <!-- Top Navigation Bar -->
+    <nav class="glass-light fixed top-0 left-0 right-0 z-50 h-16">
+        <div class="h-full px-6 flex items-center justify-between">
+            <div class="flex items-center space-x-8">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 gradient-bg rounded-lg flex items-center justify-center shadow-lg">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                            <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">Fleet Manager Pro</h1>
+                        <p class="text-xs text-gray-500">Advanced Tracking System</p>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex space-x-1">
+                    <a href="{{ url_for('dashboard.index') }}"
+                       class="px-4 py-2 rounded-lg transition text-gray-700 hover:bg-gray-100 font-medium">
+                        Dashboard
+                    </a>
+                    <a href="{{ url_for('dashboard.live_map') }}"
+                       class="px-4 py-2 rounded-lg transition text-gray-700 hover:bg-gray-100 font-medium">
+                        Live Map
+                    </a>
+                    <a href="{{ url_for('vehicles.list') }}"
+                       class="px-4 py-2 rounded-lg transition text-gray-700 hover:bg-gray-100 font-medium">
+                        Vehicles
+                    </a>
+                    <a href="{{ url_for('reports.index') }}"
+                       class="px-4 py-2 rounded-lg transition text-gray-700 hover:bg-gray-100 font-medium">
+                        Reports
+                    </a>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text"
+                           placeholder="Search vehicles..."
+                           class="bg-white border border-gray-300 rounded-lg px-4 py-2 pl-10 w-64 text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+
+                <button class="relative p-2 hover:bg-gray-100 rounded-lg">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+
+                <div class="flex items-center space-x-2">
+                    {% if session.user %}
+                    <img src="https://ui-avatars.com/api/?name={{ session.user.name|urlencode }}&background=667eea&color=fff"
+                         class="w-8 h-8 rounded-full border-2 border-gray-200">
+                    <span class="text-sm font-medium text-gray-700">{{ session.user.name }}</span>
+                    {% endif %}
+                </div>
+
+                <a href="{{ url_for('auth.logout') }}"
+                   class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition font-medium">
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="fixed top-20 right-4 z-50 space-y-2">
+            {% for category, message in messages %}
+            <div class="glass-light px-4 py-3 rounded-lg {{ 'border-l-4 border-green-500' if category == 'success' else 'border-l-4 border-red-500' if category == 'error' else 'border-l-4 border-blue-500' }} shadow-lg">
+                <p class="text-gray-800">{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <div class="{% if session.get('user') %}pt-16{% endif %}">
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen p-6 bg-gray-50">
+    <div class="max-w-7xl mx-auto">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">Fleet Vehicles</h2>
+                <p class="text-gray-600 mt-1">{{ vehicles|length }} vehicles in your fleet</p>
+            </div>
+
+            <div class="flex space-x-3">
+                <div class="relative">
+                    <input type="text"
+                           id="searchVehicle"
+                           placeholder="Search vehicles..."
+                           class="bg-white border border-gray-300 rounded-lg px-4 py-2 pl-10 w-64 text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+
+                <select id="filterStatus" class="bg-white border border-gray-300 rounded-lg px-4 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <option value="all">All Status</option>
+                    <option value="online">Online Only</option>
+                    <option value="offline">Offline Only</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Total</p>
+                        <p class="text-2xl font-bold text-gray-800">{{ vehicles|length }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Online</p>
+                        <p class="text-2xl font-bold text-green-600">{{ vehicles|selectattr('status', 'equalto', 'online')|list|length }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Offline</p>
+                        <p class="text-2xl font-bold text-red-600">{{ vehicles|selectattr('status', 'equalto', 'offline')|list|length }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                        <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Moving</p>
+                        <p class="text-2xl font-bold text-yellow-600" id="movingCount">-</p>
+                    </div>
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vehicles Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="vehiclesGrid">
+            {% for vehicle in vehicles %}
+            <div class="bg-white rounded-xl p-6 vehicle-card cursor-pointer border border-gray-200 shadow-md"
+                 data-status="{{ vehicle.status }}"
+                 data-name="{{ vehicle.name|lower }}"
+                 onclick="window.location.href='{{ url_for('vehicles.detail', vehicle_id=vehicle.id) }}'">
+
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-gray-800 mb-1">{{ vehicle.name }}</h3>
+                        <p class="text-gray-500 text-sm">{{ vehicle.uniqueId }}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="{{ 'bg-green-500 status-pulse' if vehicle.status == 'online' else 'bg-red-500' }} w-3 h-3 rounded-full"></div>
+                        <span class="text-sm font-medium {{ 'text-green-600' if vehicle.status == 'online' else 'text-red-600' }}">
+                            {{ vehicle.status|capitalize }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <p class="text-gray-500 text-xs mb-1">Speed</p>
+                        <p class="text-gray-800 font-semibold vehicle-speed" data-vehicle-id="{{ vehicle.id }}">
+                            {% if vehicle.latest_position %}
+                                {{ (vehicle.latest_position.speed * 1.852)|round(1) }} km/h
+                            {% else %}
+                                -- km/h
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <p class="text-gray-500 text-xs mb-1">Last Update</p>
+                        <p class="text-gray-800 font-semibold text-sm">
+                            {% if vehicle.minutes_ago is not none %}
+                                {% if vehicle.minutes_ago == 0 %}Just now
+                                {% elif vehicle.minutes_ago < 60 %}{{ vehicle.minutes_ago }}m
+                                {% else %}{{ (vehicle.minutes_ago / 60)|round(1) }}h
+                                {% endif %}
+                            {% else %}N/A{% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex space-x-2">
+                    <a href="{{ url_for('vehicles.detail', vehicle_id=vehicle.id) }}"
+                       class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 rounded-lg text-sm transition font-medium"
+                       onclick="event.stopPropagation()">
+                        Details
+                    </a>
+                    <a href="{{ url_for('vehicles.live_tracking', vehicle_id=vehicle.id) }}"
+                       class="flex-1 bg-green-600 hover:bg-green-700 text-white text-center py-2 rounded-lg text-sm transition font-medium"
+                       onclick="event.stopPropagation()">
+                        Live Track
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.getElementById('searchVehicle').addEventListener('input', filterVehicles);
+document.getElementById('filterStatus').addEventListener('change', filterVehicles);
+
+function filterVehicles() {
+    const searchTerm = document.getElementById('searchVehicle').value.toLowerCase();
+    const statusFilter = document.getElementById('filterStatus').value;
+    const cards = document.querySelectorAll('.vehicle-card');
+
+    cards.forEach(card => {
+        const name = card.dataset.name;
+        const status = card.dataset.status;
+        const matchesSearch = name.includes(searchTerm);
+        const matchesStatus = statusFilter === 'all' || status === statusFilter;
+        card.style.display = matchesSearch && matchesStatus ? '' : 'none';
+    });
+}
+
+setInterval(() => {
+    fetch('/api/vehicles/positions')
+        .then(r => r.json())
+        .then(vehicles => {
+            let moving = 0;
+            vehicles.forEach(v => {
+                if (v.latest_position) {
+                    const speed = Math.round(v.latest_position.speed * 1.852);
+                    const el = document.querySelector(`.vehicle-speed[data-vehicle-id="${v.id}"]`);
+                    if (el) el.textContent = speed + ' km/h';
+                    if (speed > 0) moving++;
+                }
+            });
+            document.getElementById('movingCount').textContent = moving;
+        });
+}, 5000);
+</script>
+{% endblock %}

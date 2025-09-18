@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen p-6 bg-gray-50">
+    <div class="max-w-7xl mx-auto">
+
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Fleet Reports</h2>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+            <!-- Report Configuration -->
+            <div class="lg:col-span-1 bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Report Settings</h3>
+
+                <div class="space-y-4">
+                    <!-- Report Type -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                        <select id="reportType" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="summary">Summary Report</option>
+                            <option value="trips">Trips Report</option>
+                            <option value="stops">Stops Report</option>
+                            <option value="route">Route Report</option>
+                        </select>
+                    </div>
+
+                    <!-- Date From -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+                        <input type="date" id="fromDate" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Date To -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+                        <input type="date" id="toDate" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Quick Filters -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Quick Filter</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="setDateRange('today')" class="bg-gray-100 hover:bg-gray-200 border border-gray-300 px-3 py-1 rounded text-sm transition text-gray-700">Today</button>
+                            <button onclick="setDateRange('week')" class="bg-gray-100 hover:bg-gray-200 border border-gray-300 px-3 py-1 rounded text-sm transition text-gray-700">Week</button>
+                            <button onclick="setDateRange('month')" class="bg-gray-100 hover:bg-gray-200 border border-gray-300 px-3 py-1 rounded text-sm transition text-gray-700">Month</button>
+                            <button onclick="setDateRange('custom')" class="bg-gray-100 hover:bg-gray-200 border border-gray-300 px-3 py-1 rounded text-sm transition text-gray-700">Custom</button>
+                        </div>
+                    </div>
+
+                    <!-- Vehicles Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select Vehicles</label>
+                        <div class="space-y-2 max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-2 border border-gray-300">
+                            <label class="flex items-center space-x-2 text-sm text-gray-700">
+                                <input type="checkbox" id="selectAll" onchange="toggleAllVehicles()" class="rounded border-gray-300">
+                                <span>Select All</span>
+                            </label>
+                            {% for vehicle in vehicles %}
+                            <label class="flex items-center space-x-2 text-sm text-gray-700">
+                                <input type="checkbox" class="vehicle-checkbox rounded border-gray-300" value="{{ vehicle.id }}">
+                                <span>{{ vehicle.name }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button onclick="generateReport()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition">
+                        Generate Report
+                    </button>
+
+                    <!-- Export Button -->
+                    <button id="exportBtn" onclick="exportReport()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition hidden">
+                        Export to CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Report Results -->
+            <div class="lg:col-span-3 bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">Report Results</h3>
+                    <div id="reportStats" class="text-gray-600 text-sm"></div>
+                </div>
+
+                <div id="reportResults" class="text-gray-600 text-center py-12">
+                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <p class="text-gray-600">Configure settings and click "Generate Report"</p>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="hidden text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                    <p class="text-gray-600 mt-4">Generating report...</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+let currentReportData = null;
+
+const today = new Date();
+const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+document.getElementById('toDate').valueAsDate = today;
+document.getElementById('fromDate').valueAsDate = lastWeek;
+
+function setDateRange(range) {
+    const toDate = new Date();
+    let fromDate = new Date();
+
+    switch(range) {
+        case 'today':
+            fromDate = new Date(toDate);
+            break;
+        case 'week':
+            fromDate = new Date(toDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+        case 'month':
+            fromDate = new Date(toDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+    }
+
+    document.getElementById('toDate').valueAsDate = toDate;
+    document.getElementById('fromDate').valueAsDate = fromDate;
+}
+
+function toggleAllVehicles() {
+    const selectAll = document.getElementById('selectAll').checked;
+    document.querySelectorAll('.vehicle-checkbox').forEach(cb => {
+        cb.checked = selectAll;
+    });
+}
+
+async function generateReport() {
+    const reportType = document.getElementById('reportType').value;
+    const fromDate = document.getElementById('fromDate').value + 'T00:00:00';
+    const toDate = document.getElementById('toDate').value + 'T23:59:59';
+
+    const selectedVehicles = Array.from(document.querySelectorAll('.vehicle-checkbox:checked'))
+        .map(cb => parseInt(cb.value));
+
+    if (selectedVehicles.length === 0) {
+        alert('Please select at least one vehicle');
+        return;
+    }
+
+    document.getElementById('reportResults').classList.add('hidden');
+    document.getElementById('loadingSpinner').classList.remove('hidden');
+
+    try {
+        const response = await fetch('/reports/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                type: reportType,
+                device_ids: selectedVehicles,
+                from: fromDate,
+                to: toDate
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            currentReportData = result;
+            displayReport(result);
+            document.getElementById('exportBtn').classList.remove('hidden');
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error generating report: ' + error);
+    } finally {
+        document.getElementById('loadingSpinner').classList.add('hidden');
+        document.getElementById('reportResults').classList.remove('hidden');
+    }
+}
+
+function displayReport(result) {
+    const container = document.getElementById('reportResults');
+    const stats = document.getElementById('reportStats');
+
+    stats.textContent = `${result.count} results found`;
+
+    if (result.count === 0) {
+        container.innerHTML = '<p class="text-gray-600 text-center py-12">No data found for selected period</p>';
+        return;
+    }
+
+    let html = '<div class="overflow-x-auto">';
+    html += '<table class="min-w-full divide-y divide-gray-200">';
+    html += '<thead class="bg-gray-50"><tr>';
+
+    if (result.report_type === 'summary') {
+        html += '<th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Vehicle</th>';
+        html += '<th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Distance</th>';
+        html += '<th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Max Speed</th>';
+        html += '<th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Avg Speed</th>';
+        html += '<th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Engine Hours</th>';
+    } else if (result.report_type === 'trips') {
+        html += '<th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Vehicle</th>';
+        html += '<th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Start Time</th>';
+        html += '<th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">End Time</th>';
+        html += '<th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Distance</th>';
+        html += '<th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Duration</th>';
+    }
+
+    html += '</tr></thead><tbody class="bg-white divide-y divide-gray-200">';
+
+    result.data.forEach(item => {
+        html += '<tr class="hover:bg-gray-50">';
+
+        if (result.report_type === 'summary') {
+            html += `<td class="px-4 py-3 text-sm text-gray-800">${item.deviceName}</td>`;
+            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.distance / 1000).toFixed(2)} km</td>`;
+            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.maxSpeed * 1.852).toFixed(1)} km/h</td>`;
+            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.averageSpeed * 1.852).toFixed(1)} km/h</td>`;
+            html += `<td class="px-4 py-3 text-sm text-gray-800">${item.engineHours || 0} h</td>`;
+        } else if (result.report_type === 'trips') {
+            html += `<td class="px-4 py-3 text-sm text-gray-800">${item.deviceName}</td>`;
+            html += `<td class="px-4 py-3 text-sm text-gray-600">${new Date(item.startTime).toLocaleString()}</td>`;
+            html += `<td class="px-4 py-3 text-sm text-gray-600">${new Date(item.endTime).toLocaleString()}</td>`;
+            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.distance / 1000).toFixed(2)} km</td>`;
+            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.duration / 60).toFixed(0)} min</td>`;
+        }
+
+        html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+async function exportReport() {
+    if (!currentReportData) {
+        alert('No report data to export');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/reports/export/${currentReportData.report_type}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                data: currentReportData.data
+            })
+        });
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `report_${currentReportData.report_type}_${new Date().toISOString()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        alert('Error exporting report: ' + error);
+    }
+}
+</script>
+{% endblock %}

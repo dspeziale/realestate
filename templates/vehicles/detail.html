@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen p-6 bg-gray-50">
+    <div class="max-w-7xl mx-auto">
+
+        <div class="mb-6">
+            <a href="{{ url_for('vehicles.list') }}" class="text-blue-600 hover:text-blue-700 font-medium">
+                ← Back to Vehicles
+            </a>
+        </div>
+
+        <div class="bg-white rounded-xl p-6 mb-6 shadow-md border border-gray-200">
+            <div class="flex items-start justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ vehicle.name }}</h1>
+                    <p class="text-gray-600">{{ vehicle.uniqueId }}</p>
+                    {% if vehicle.model %}
+                    <p class="text-gray-500 text-sm mt-1">{{ vehicle.model }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-2 px-4 py-2 {{ 'bg-green-50 border border-green-200' if vehicle.status == 'online' else 'bg-red-50 border border-red-200' }} rounded-lg">
+                        <div class="{{ 'bg-green-500 status-pulse' if vehicle.status == 'online' else 'bg-red-500' }} w-3 h-3 rounded-full"></div>
+                        <span class="font-semibold {{ 'text-green-700' if vehicle.status == 'online' else 'text-red-700' }}">
+                            {{ vehicle.status|capitalize }}
+                        </span>
+                    </div>
+
+                    <a href="{{ url_for('vehicles.live_tracking', vehicle_id=vehicle.id) }}"
+                       class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition font-medium">
+                        Live Tracking
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            {% if vehicle.summary_24h %}
+            <div class="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                <p class="text-gray-600 text-sm mb-1">Distance (24h)</p>
+                <p class="text-2xl font-bold text-gray-800">{{ (vehicle.summary_24h.distance / 1000)|round(2) }} km</p>
+            </div>
+
+            <div class="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                <p class="text-gray-600 text-sm mb-1">Max Speed</p>
+                <p class="text-2xl font-bold text-gray-800">{{ (vehicle.summary_24h.maxSpeed * 1.852)|round(1) }} km/h</p>
+            </div>
+
+            <div class="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                <p class="text-gray-600 text-sm mb-1">Avg Speed</p>
+                <p class="text-2xl font-bold text-gray-800">{{ (vehicle.summary_24h.averageSpeed * 1.852)|round(1) }} km/h</p>
+            </div>
+
+            <div class="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                <p class="text-gray-600 text-sm mb-1">Engine Hours</p>
+                <p class="text-2xl font-bold text-gray-800">{{ vehicle.summary_24h.engineHours or 0 }} h</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Route - Last 24h</h3>
+                <div id="map" class="h-96 rounded-lg border border-gray-300"></div>
+            </div>
+
+            <div class="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Recent Trips</h3>
+                <div class="space-y-3 max-h-96 overflow-y-auto">
+                    {% for trip in vehicle.trips %}
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-gray-800 font-medium">{{ (trip.distance / 1000)|round(2) }} km</span>
+                            <span class="text-gray-500 text-xs">{{ (trip.duration / 60)|round(0) }} min</span>
+                        </div>
+                        <p class="text-gray-600 text-sm">{{ trip.startTime|datetime }}</p>
+                        <p class="text-gray-500 text-xs mt-1">{{ trip.startAddress or 'Unknown location' }}</p>
+                    </div>
+                    {% endfor %}
+
+                    {% if not vehicle.trips %}
+                    <p class="text-gray-500 text-center py-8">No trips recorded</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const map = L.map('map').setView([41.9, 12.5], 6);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+}).addTo(map);
+
+const positions = {{ positions|tojson|safe }};
+const coords = positions.map(p => [p.latitude, p.longitude]);
+
+if (coords.length > 0) {
+    const polyline = L.polyline(coords, {
+        color: '#3b82f6',
+        weight: 3,
+        opacity: 0.8
+    }).addTo(map);
+
+    L.circleMarker(coords[0], {
+        radius: 8,
+        fillColor: '#10b981',
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.8
+    }).addTo(map).bindPopup('Start');
+
+    L.circleMarker(coords[coords.length - 1], {
+        radius: 8,
+        fillColor: '#ef4444',
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.8
+    }).addTo(map).bindPopup('Current Position');
+
+    map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+}
+</script>
+{% endblock %}
