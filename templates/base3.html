@@ -1,0 +1,256 @@
+<!-- base3.html - Clean Light Professional with Analytics -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleet Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+        }
+        .card-light {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-700">
+    <div class="min-h-screen p-8">
+        <!-- Header -->
+        <div class="max-w-7xl mx-auto mb-8">
+            <div class="card-light rounded-2xl p-6 shadow-lg">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">Fleet Analytics</h1>
+                        <p class="text-gray-600 mt-1">Dashboard di controllo completa</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition">
+                            📍 Mappa
+                        </button>
+                        <button class="bg-white text-gray-700 px-6 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition">
+                            📊 Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto">
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="card-light rounded-xl p-5 shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm text-gray-600">Veicoli Attivi</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">12</p>
+                            <p class="text-sm text-green-600 mt-2">↑ 15% vs ieri</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <span class="text-2xl">🚛</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-light rounded-xl p-5 shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm text-gray-600">Distanza Totale</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">2,847</p>
+                            <p class="text-sm text-blue-600 mt-2">km oggi</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <span class="text-2xl">📍</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-light rounded-xl p-5 shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm text-gray-600">Efficienza Media</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">94%</p>
+                            <p class="text-sm text-gray-600 mt-2">stabile</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <span class="text-2xl">⚡</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-light rounded-xl p-5 shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm text-gray-600">Tempo Attivo</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">8.5h</p>
+                            <p class="text-sm text-orange-600 mt-2">↑ 0.5h vs media</p>
+                        </div>
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <span class="text-2xl">⏱️</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="grid grid-cols-12 gap-6">
+                <!-- Vehicle List -->
+                <div class="col-span-7 card-light rounded-2xl p-6 shadow-lg">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Fleet Live Status</h2>
+
+                    <div class="space-y-3">
+                        <div class="bg-gradient-to-r from-green-50 to-transparent rounded-lg p-4 border border-green-200">
+                            <div class="flex justify-between items-center mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                                        <span class="text-white text-lg">🚛</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-gray-800">TIR Nord 01</h3>
+                                        <p class="text-sm text-gray-600">Milano → Berlino • A1, A22</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xl font-bold text-gray-800">87 km/h</p>
+                                    <p class="text-sm text-green-600">In movimento</p>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs text-gray-600">
+                                    <span>Progresso</span>
+                                    <span>65% • ETA: 2h 30m</span>
+                                </div>
+                                <div class="h-2 bg-white rounded-full overflow-hidden">
+                                    <div class="h-full bg-green-500 rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-r from-blue-50 to-transparent rounded-lg p-4 border border-blue-200">
+                            <div class="flex justify-between items-center mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                                        <span class="text-white text-lg">🚐</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-gray-800">Furgone 04</h3>
+                                        <p class="text-sm text-gray-600">Roma → Napoli • A1</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xl font-bold text-gray-800">105 km/h</p>
+                                    <p class="text-sm text-blue-600">In viaggio</p>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs text-gray-600">
+                                    <span>Progresso</span>
+                                    <span>45% • ETA: 1h 15m</span>
+                                </div>
+                                <div class="h-2 bg-white rounded-full overflow-hidden">
+                                    <div class="h-full bg-blue-500 rounded-full" style="width: 45%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-r from-orange-50 to-transparent rounded-lg p-4 border border-orange-200">
+                            <div class="flex justify-between items-center mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                                        <span class="text-white text-lg">🚗</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-gray-800">Auto 08</h3>
+                                        <p class="text-sm text-gray-600">Torino → Monaco • Sosta</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xl font-bold text-gray-400">0 km/h</p>
+                                    <p class="text-sm text-orange-600">Pausa 15m</p>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs text-gray-600">
+                                    <span>Progresso</span>
+                                    <span>30%</span>
+                                </div>
+                                <div class="h-2 bg-white rounded-full overflow-hidden">
+                                    <div class="h-full bg-orange-400 rounded-full" style="width: 30%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Column -->
+                <div class="col-span-5 space-y-6">
+                    <div class="card-light rounded-2xl p-5 shadow-lg">
+                        <h3 class="font-bold text-gray-800 mb-3">Distribuzione Veicoli</h3>
+                        <canvas id="vehicleChart" height="200"></canvas>
+                    </div>
+
+                    <div class="card-light rounded-2xl p-5 shadow-lg">
+                        <h3 class="font-bold text-gray-800 mb-3">Trend Velocità</h3>
+                        <canvas id="speedChart" height="150"></canvas>
+                    </div>
+
+                    <div class="card-light rounded-2xl p-4 shadow-lg">
+                        <h3 class="font-bold text-gray-800 mb-3">Notifiche</h3>
+                        <div class="space-y-2">
+                            <div class="bg-red-50 border-l-4 border-red-400 p-3 rounded">
+                                <p class="text-sm font-medium text-gray-800">Limite velocità superato</p>
+                                <p class="text-xs text-gray-600 mt-1">TIR Express 03 • 5 min fa</p>
+                            </div>
+                            <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                                <p class="text-sm font-medium text-gray-800">Viaggio completato</p>
+                                <p class="text-xs text-gray-600 mt-1">Furgone 02 • 12 min fa</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Vehicle Distribution
+        new Chart(document.getElementById('vehicleChart'), {
+            type: 'pie',
+            data: {
+                labels: ['In viaggio', 'Fermi', 'Manutenzione'],
+                datasets: [{
+                    data: [12, 3, 1],
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // Speed Trend
+        new Chart(document.getElementById('speedChart'), {
+            type: 'bar',
+            data: {
+                labels: ['TIR 01', 'Van 04', 'Auto 08', 'TIR 03', 'Van 05'],
+                datasets: [{
+                    label: 'Velocità (km/h)',
+                    data: [87, 105, 0, 92, 78],
+                    backgroundColor: ['#3b82f6', '#3b82f6', '#9ca3af', '#3b82f6', '#3b82f6']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, max: 120 } }
+            }
+        });
+    </script>
+</body>
+</html>

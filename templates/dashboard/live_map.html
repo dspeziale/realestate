@@ -1,446 +1,235 @@
 <!-- templates/dashboard/live_map.html -->
 {% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    body { overflow: hidden; }
+    #map { position: fixed; top: 64px; left: 0; right: 0; bottom: 0; z-index: 0; }
+    .map-panel {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: saturate(180%) blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    .vehicle-card { transition: all 0.2s ease; }
+    .vehicle-card:hover { transform: translateX(4px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .compact-scrollbar::-webkit-scrollbar { width: 4px; }
+    .compact-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .compact-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="h-screen flex flex-col" x-data="liveMapData()">
+<!-- Full Screen Map -->
+<div id="map"></div>
 
-    <!-- Top row: Sidebar + Map -->
-    <div class="flex-1 flex overflow-hidden">
-        <!-- Sidebar -->
-        <div :class="sidebarExpanded ? 'w-96' : 'w-20'"
-             class="bg-white border-r border-gray-200 shadow-lg transition-all duration-300 overflow-hidden z-20">
+<!-- Left Sidebar - Vehicle List -->
+<div class="fixed left-6 top-24 bottom-6 z-20 w-80 map-panel rounded-2xl shadow-xl overflow-hidden flex flex-col">
+    <div class="p-4 border-b border-gray-200">
+        <h2 class="font-semibold text-gray-900">Live Tracking</h2>
+        <p class="text-xs text-gray-500 mt-1">Real-time vehicle monitoring</p>
+    </div>
 
-            <div class="p-4">
-                <button @click="sidebarExpanded = !sidebarExpanded"
-                        class="w-full p-2 hover:bg-gray-100 rounded-lg">
-                    <svg class="w-6 h-6 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                </button>
-            </div>
-
-            <div x-show="sidebarExpanded" class="px-4 space-y-4 flex flex-col h-[calc(100%-80px)]">
-                <!-- Filters Section -->
-                <div class="space-y-3 border-b border-gray-200 pb-4">
-                    <!-- Group Filter -->
-                    <div>
-                        <label class="text-xs font-semibold text-gray-600 uppercase block mb-1">Group</label>
-                        <select onchange="filterVehicles()" id="groupFilter"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">All Groups</option>
-                            {% for group in groups %}
-                            <option value="{{ group.id }}">{{ group.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Category Filter -->
-                    <div>
-                        <label class="text-xs font-semibold text-gray-600 uppercase block mb-1">Category</label>
-                        <select onchange="filterVehicles()" id="categoryFilter"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">All Categories</option>
-                            {% for category in categories %}
-                            <option value="{{ category }}">{{ category }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Quick Stats -->
-                    <div class="grid grid-cols-2 gap-2 pt-2">
-                        <div class="bg-gray-50 rounded-lg p-2">
-                            <div class="text-xs text-gray-500">Total</div>
-                            <div class="text-lg font-bold text-gray-800" id="totalCount">0</div>
-                        </div>
-                        <div class="bg-green-50 rounded-lg p-2">
-                            <div class="text-xs text-green-600">Moving</div>
-                            <div class="text-lg font-bold text-green-700" id="movingCount">0</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Vehicle List -->
-                <div class="flex-1 overflow-y-auto space-y-3">
-                    <h3 class="text-sm font-semibold text-gray-600 uppercase sticky top-0 bg-white py-2">Vehicles</h3>
-
-                    {% for vehicle in vehicles %}
-                    <div onclick="selectVehicle({{ vehicle.id }})"
-                         class="bg-gray-50 border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-100 transition vehicle-item"
-                         data-vehicle-id="{{ vehicle.id }}"
-                         data-group-id="{{ vehicle.groupId }}"
-                         data-category="{{ vehicle.category }}">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <div class="font-medium text-gray-800">{{ vehicle.name }}</div>
-                                <div class="text-xs text-gray-500">{{ vehicle.uniqueId }}</div>
-                                {% if vehicle.category %}
-                                <span class="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
-                                    {{ vehicle.category }}
-                                </span>
-                                {% endif %}
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <div class="{{ 'bg-green-500 status-pulse' if vehicle.status == 'online' else 'bg-red-500' }} w-2 h-2 rounded-full"></div>
-                                <span class="text-xs text-gray-600 vehicle-speed" data-vehicle-id="{{ vehicle.id }}">-- km/h</span>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Map Area -->
-        <div class="flex-1 relative bg-gray-100 flex flex-col">
-
-            <!-- Map Container -->
-            <div id="mapContainer" class="w-full transition-all duration-300" style="height: 100%">
-                <div id="map" class="w-full h-full"></div>
-
-                <!-- Map Controls -->
-                <div class="absolute top-4 right-4 space-y-2 z-10">
-                    <button onclick="toggleFullscreen()"
-                            class="bg-white border border-gray-300 p-3 rounded-lg hover:bg-gray-50 transition shadow-md">
-                        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
-                        </svg>
-                    </button>
-
-                    <button onclick="centerMap()"
-                            class="bg-white border border-gray-300 p-3 rounded-lg hover:bg-gray-50 transition shadow-md">
-                        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- Live Updates Indicator -->
-                <div class="absolute top-4 left-4 bg-white px-4 py-2 rounded-lg shadow-md border border-gray-200 z-10">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span class="text-sm text-gray-700 font-medium">Live Updates Active</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Vehicle Detail Panel -->
-            <div id="vehicleDetail"
-                 class="hidden h-[200px] bg-white shadow-2xl border-t-2 border-gray-300 z-30 overflow-hidden">
-                <div class="h-full overflow-y-auto">
-                    <div class="max-w-7xl mx-auto p-4">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex-1">
-                                <h3 class="text-lg font-bold text-gray-800" id="detailName"></h3>
-                                <p class="text-xs text-gray-500" id="detailId"></p>
-                            </div>
-                            <button onclick="closeDetail()" class="p-1 hover:bg-gray-100 rounded-lg">
-                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor"
-                                     viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-2">
-                                <div class="text-xs text-blue-700 mb-1">Speed</div>
-                                <div class="text-lg font-bold text-blue-600" id="detailSpeed">0 km/h</div>
-                            </div>
-
-                            <div class="bg-green-50 border border-green-200 rounded-lg p-2">
-                                <div class="text-xs text-green-700 mb-1">Status</div>
-                                <div class="text-sm font-bold capitalize text-green-600" id="detailStatus">-</div>
-                            </div>
-
-                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-2">
-                                <div class="text-xs text-purple-700 mb-1">Distance</div>
-                                <div class="text-lg font-bold text-purple-600" id="detailDistance">- km</div>
-                            </div>
-
-                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-                                <div class="text-xs text-yellow-700 mb-1">Runtime</div>
-                                <div class="text-lg font-bold text-yellow-600" id="detailRuntime">- h</div>
-                            </div>
-
-                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-2">
-                                <div class="text-xs text-gray-600 mb-1">Last Update</div>
-                                <div class="text-xs font-bold text-gray-800" id="detailUpdate">-</div>
-                            </div>
-                        </div>
-
-                        <div class="flex space-x-2">
-                            <button onclick="trackVehicle()"
-                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition text-sm font-medium">
-                                Track Vehicle
-                            </button>
-                            <button onclick="viewHistory()"
-                                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg transition text-sm font-medium">
-                                View History
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="flex-1 overflow-y-auto p-3 space-y-2 compact-scrollbar" id="vehicleList">
+        <div class="text-center text-gray-500 py-8">
+            <p>Loading vehicles...</p>
         </div>
     </div>
 </div>
+
+<!-- Right Info Panel -->
+<div class="fixed right-6 top-24 z-20 w-64 space-y-3">
+    <div class="map-panel rounded-xl p-4 shadow-lg">
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Quick Stats</h3>
+        <div class="space-y-2" id="quickStats">
+            <div class="flex justify-between items-center">
+                <span class="text-xs text-gray-600">Totale veicoli</span>
+                <span class="text-sm font-bold text-gray-900" id="totalVehicles">--</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-xs text-gray-600">In movimento</span>
+                <span class="text-sm font-bold text-green-600" id="movingVehicles">--</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-xs text-gray-600">Km totali oggi</span>
+                <span class="text-sm font-bold text-blue-600" id="totalKm">--</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-xs text-gray-600">Velocità media</span>
+                <span class="text-sm font-bold text-purple-600" id="avgSpeed">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="map-panel rounded-xl p-4 shadow-lg">
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Alerts</h3>
+        <div class="space-y-2" id="alertsList">
+            <div class="text-xs text-gray-500 text-center py-2">No alerts</div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Control Bar -->
+<div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
+    <div class="map-panel rounded-full px-6 py-2.5 shadow-xl flex items-center gap-4">
+        <button class="px-4 py-1.5 bg-blue-500 text-white rounded-full text-sm font-medium hover:bg-blue-600" onclick="filterVehicles('all')">
+            All Vehicles
+        </button>
+        <button class="px-4 py-1.5 bg-white text-gray-700 rounded-full text-sm hover:bg-gray-50" onclick="filterVehicles('active')">
+            Active Only
+        </button>
+        <button class="px-4 py-1.5 bg-white text-gray-700 rounded-full text-sm hover:bg-gray-50" onclick="filterVehicles('stopped')">
+            Stopped
+        </button>
+        <div class="h-4 w-px bg-gray-300"></div>
+        <span class="text-xs text-gray-500">Updated: <span class="font-medium" id="lastUpdate">now</span></span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-    let map, markers = {}, selectedVehicleId = null;
-    let filteredVehicles = new Set();
+    // Initialize map
+    const map = L.map('map', {
+        zoomControl: false
+    }).setView([43.5, 11.5], 6);
 
-    function liveMapData() {
-        return {
-            sidebarExpanded: true,
-            movingCount: 0
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap, © CartoDB',
+        maxZoom: 19
+    }).addTo(map);
+
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+    let vehicleMarkers = {};
+    let allVehicles = [];
+    let currentFilter = 'all';
+
+    async function loadVehicles() {
+        try {
+            const response = await fetch('/api/vehicles');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            const vehicles = await response.json();
+            if (vehicles.error) throw new Error(vehicles.error);
+
+            allVehicles = vehicles;
+            updateVehicleList(vehicles);
+            updateMapMarkers(vehicles);
+            updateStats(vehicles);
+        } catch (error) {
+            console.error('Error loading vehicles:', error);
+            document.getElementById('vehicleList').innerHTML = `
+                <div class="text-center text-red-500 py-8">
+                    <p class="font-semibold">Error loading vehicles</p>
+                    <p class="text-xs mt-2">${error.message}</p>
+                </div>
+            `;
         }
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        map = L.map('map', { zoomControl: false }).setView([41.9028, 12.4964], 12);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
-        }).addTo(map);
-
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-        loadPositions();
-        setInterval(loadPositions, 3000);
-        updateCounts();
-    });
-
-    function filterVehicles() {
-        const groupId = document.getElementById('groupFilter').value;
-        const category = document.getElementById('categoryFilter').value;
-
-        filteredVehicles.clear();
-
-        document.querySelectorAll('.vehicle-item').forEach(item => {
-            const vehicleId = parseInt(item.dataset.vehicleId);
-            const vehicleGroupId = item.dataset.groupId;
-            const vehicleCategory = item.dataset.category;
-
-            let show = true;
-
-            if (groupId && vehicleGroupId !== groupId) {
-                show = false;
-            }
-
-            if (category && vehicleCategory !== category) {
-                show = false;
-            }
-
-            if (show) {
-                item.classList.remove('hidden');
-                filteredVehicles.add(vehicleId);
-            } else {
-                item.classList.add('hidden');
-            }
-
-            // Hide/show markers
-            if (markers[vehicleId]) {
-                if (show) {
-                    markers[vehicleId].addTo(map);
-                } else {
-                    markers[vehicleId].remove();
-                }
-            }
-        });
-
-        updateCounts();
-
-        // Center map on filtered vehicles
-        if (filteredVehicles.size > 0) {
-            setTimeout(centerMap, 100);
+    function updateVehicleList(vehicles) {
+        const container = document.getElementById('vehicleList');
+        if (!vehicles || vehicles.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-500 py-8"><p>No vehicles available</p></div>';
+            return;
         }
-    }
 
-    function updateCounts() {
-        const visible = document.querySelectorAll('.vehicle-item:not(.hidden)').length;
-        document.getElementById('totalCount').textContent = visible;
-    }
+        container.innerHTML = vehicles.map(v => {
+            const status = v.status === 'online' ? 'active' : 'stopped';
+            const color = status === 'active' ? 'green' : 'orange';
+            const speed = v.speed || 0;
+            const progress = v.progress || 0;
 
-    function loadPositions() {
-        fetch('/api/vehicles/positions')
-            .then(response => response.json())
-            .then(data => {
-                updateMarkers(data);
-                updateSpeeds(data);
-            });
-    }
-
-    function updateMarkers(vehicles) {
-        vehicles.forEach(vehicle => {
-            const position = vehicle.latest_position;
-            if (!position) return;
-
-            const icon = L.divIcon({
-                html: `
-                    <div class="relative">
-                        <div class="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded text-xs border border-gray-300 shadow-md whitespace-nowrap text-gray-800 font-medium">
-                            ${vehicle.name}
+            return `
+                <div class="vehicle-card map-panel rounded-lg p-3 shadow-sm cursor-pointer" onclick="focusVehicle(${v.id})">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 bg-${color}-500 rounded-full ${status === 'active' ? 'animate-pulse' : ''}"></div>
+                            <span class="font-semibold text-sm text-gray-900">${v.name}</span>
                         </div>
-                        <div class="w-8 h-8 ${vehicle.status === 'online' ? 'bg-green-500' : 'bg-red-500'} rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
-                            </svg>
-                        </div>
-                        ${position.speed > 0 ? `<div class="absolute top-0 left-0 w-8 h-8 ${vehicle.status === 'online' ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-ping opacity-75"></div>` : ''}
+                        <span class="text-xs font-bold text-gray-700">${speed} km/h</span>
                     </div>
-                `,
-                className: '',
-                iconSize: [32, 32]
-            });
+                    <p class="text-xs text-gray-600 mb-2">${v.route || 'No route'}</p>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-${color}-500" style="width: ${progress}%"></div>
+                        </div>
+                        <span class="text-xs text-gray-500">${progress}%</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
 
-            const newLatLng = [position.latitude, position.longitude];
-            const groupId = document.getElementById('groupFilter').value;
-            const category = document.getElementById('categoryFilter').value;
+    function updateMapMarkers(vehicles) {
+        Object.values(vehicleMarkers).forEach(marker => marker.remove());
+        vehicleMarkers = {};
 
-            let shouldShow = true;
-            if (groupId && vehicle.groupId != groupId) shouldShow = false;
-            if (category && vehicle.category !== category) shouldShow = false;
+        vehicles.forEach(v => {
+            if (v.latitude && v.longitude) {
+                const status = v.status === 'online' ? 'active' : 'stopped';
+                const color = status === 'active' ? '#10b981' : '#f59e0b';
 
-            if (markers[vehicle.id]) {
-                markers[vehicle.id].setLatLng(newLatLng);
-                markers[vehicle.id].setIcon(icon);
+                const marker = L.circleMarker([v.latitude, v.longitude], {
+                    radius: 8,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 3,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }).addTo(map);
 
-                if (!map.getBounds().contains(newLatLng)) {
-                    if (!selectedVehicleId || selectedVehicleId === vehicle.id) {
-                        map.panTo(newLatLng, { animate: true, duration: 0.5 });
-                    }
-                }
-            } else {
-                const marker = L.marker(newLatLng, { icon })
-                    .on('click', () => selectVehicle(vehicle.id));
+                marker.bindPopup(`
+                    <div class="p-2">
+                        <div class="font-semibold text-sm">${v.name}</div>
+                        <div class="text-xs text-gray-600 mt-1">Speed: ${v.speed || 0} km/h</div>
+                        <div class="text-xs text-gray-600">Status: ${status}</div>
+                    </div>
+                `);
 
-                markers[vehicle.id] = marker;
-
-                if (shouldShow) {
-                    marker.addTo(map);
-                }
+                vehicleMarkers[v.id] = marker;
             }
         });
     }
 
-    function updateSpeeds(vehicles) {
-        let moving = 0;
-        vehicles.forEach(vehicle => {
-            const position = vehicle.latest_position;
-            const speed = position ? Math.round(position.speed * 1.852) : 0;
+    function updateStats(vehicles) {
+        const total = vehicles.length;
+        const online = vehicles.filter(v => v.status === 'online').length;
+        const speeds = vehicles.filter(v => v.speed > 0).map(v => v.speed);
+        const avgSpeed = speeds.length > 0 ? (speeds.reduce((a, b) => a + b, 0) / speeds.length).toFixed(1) : 0;
 
-            const speedEl = document.querySelector(`.vehicle-speed[data-vehicle-id="${vehicle.id}"]`);
-            if (speedEl) speedEl.textContent = speed + ' km/h';
-
-            const item = document.querySelector(`.vehicle-item[data-vehicle-id="${vehicle.id}"]`);
-            if (speed > 0 && item && !item.classList.contains('hidden')) {
-                moving++;
-            }
-        });
-
-        document.getElementById('movingCount').textContent = moving;
+        document.getElementById('totalVehicles').textContent = total;
+        document.getElementById('movingVehicles').textContent = online;
+        document.getElementById('avgSpeed').textContent = `${avgSpeed} km/h`;
     }
 
-    function selectVehicle(vehicleId) {
-        selectedVehicleId = vehicleId;
-
-        fetch(`/api/vehicles/${vehicleId}/detail`)
-            .then(response => response.json())
-            .then(vehicle => {
-                showVehicleDetail(vehicle);
-
-                if (vehicle.latest_position) {
-                    map.setView([vehicle.latest_position.latitude, vehicle.latest_position.longitude], 15, { animate: true });
-                }
-
-                document.querySelectorAll('.vehicle-item').forEach(el => {
-                    el.classList.remove('bg-blue-100', 'border-blue-300');
-                    el.classList.add('bg-gray-50', 'border-gray-200');
-                });
-
-                const selectedEl = document.querySelector(`.vehicle-item[data-vehicle-id="${vehicleId}"]`);
-                if (selectedEl) {
-                    selectedEl.classList.remove('bg-gray-50', 'border-gray-200');
-                    selectedEl.classList.add('bg-blue-100', 'border-blue-300');
-                    selectedEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-            });
-    }
-
-    function showVehicleDetail(vehicle) {
-        const panel = document.getElementById('vehicleDetail');
-        const mapContainer = document.getElementById('mapContainer');
-        const position = vehicle.latest_position;
-
-        document.getElementById('detailName').textContent = vehicle.name;
-        document.getElementById('detailId').textContent = vehicle.uniqueId;
-        document.getElementById('detailSpeed').textContent = position ? Math.round(position.speed * 1.852) + ' km/h' : '0 km/h';
-        document.getElementById('detailStatus').textContent = vehicle.status;
-
-        if (vehicle.lastUpdate) {
-            const lastUpdate = new Date(vehicle.lastUpdate);
-            const now = new Date();
-            const diffMinutes = Math.floor((now - lastUpdate) / 60000);
-            document.getElementById('detailUpdate').textContent = diffMinutes > 0 ? diffMinutes + ' min ago' : 'Just now';
-        }
-
-        panel.classList.remove('hidden');
-        mapContainer.style.height = 'calc(100% - 200px)';
-
-        setTimeout(() => {
-            map.invalidateSize();
-        }, 300);
-    }
-
-    function closeDetail() {
-        const panel = document.getElementById('vehicleDetail');
-        const mapContainer = document.getElementById('mapContainer');
-
-        panel.classList.add('hidden');
-        mapContainer.style.height = '100%';
-        selectedVehicleId = null;
-
-        document.querySelectorAll('.vehicle-item').forEach(el => {
-            el.classList.remove('bg-blue-100', 'border-blue-300');
-            el.classList.add('bg-gray-50', 'border-gray-200');
-        });
-
-        setTimeout(() => {
-            map.invalidateSize();
-        }, 300);
-    }
-
-    function centerMap() {
-        const bounds = [];
-        Object.entries(markers).forEach(([vehicleId, marker]) => {
-            const groupId = document.getElementById('groupFilter').value;
-            const category = document.getElementById('categoryFilter').value;
-            const item = document.querySelector(`.vehicle-item[data-vehicle-id="${vehicleId}"]`);
-
-            if (item && !item.classList.contains('hidden')) {
-                bounds.push(marker.getLatLng());
-            }
-        });
-        if (bounds.length > 0) map.fitBounds(bounds, { padding: [50, 50] });
-    }
-
-    function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-        } else {
-            document.exitFullscreen();
+    function focusVehicle(vehicleId) {
+        const marker = vehicleMarkers[vehicleId];
+        if (marker) {
+            map.setView(marker.getLatLng(), 12);
+            marker.openPopup();
         }
     }
 
-    function trackVehicle() {
-        if (selectedVehicleId) window.location.href = `/vehicles/${selectedVehicleId}/live`;
+    function filterVehicles(filter) {
+        currentFilter = filter;
+        let filtered = allVehicles;
+
+        if (filter === 'active') {
+            filtered = allVehicles.filter(v => v.status === 'online');
+        } else if (filter === 'stopped') {
+            filtered = allVehicles.filter(v => v.status !== 'online');
+        }
+
+        updateVehicleList(filtered);
     }
 
-    function viewHistory() {
-        if (selectedVehicleId) window.location.href = `/vehicles/${selectedVehicleId}`;
-    }
+    // Auto-refresh
+    setInterval(() => {
+        loadVehicles();
+        document.getElementById('lastUpdate').textContent = 'now';
+    }, 5000);
+
+    loadVehicles();
 </script>
 {% endblock %}
