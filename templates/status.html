@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen p-6 bg-gray-50">
+    <div class="max-w-7xl mx-auto">
+
+        <div class="mb-6">
+            <h2 class="text-3xl font-bold text-gray-800">System Status</h2>
+            <p class="text-gray-600 mt-1">Application health and diagnostics</p>
+        </div>
+
+        {% if error %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p class="text-red-800">⚠️ Error: {{ error }}</p>
+        </div>
+        {% endif %}
+
+        {% if stats %}
+        <!-- Status Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+
+            <div class="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm mb-1">Traccar Version</p>
+                        <p class="text-2xl font-bold text-gray-800">{{ stats.traccar_version }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm mb-1">Total Devices</p>
+                        <p class="text-2xl font-bold text-gray-800">{{ stats.total_devices }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm mb-1">Online Devices</p>
+                        <p class="text-2xl font-bold text-green-600">{{ stats.online_devices }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm mb-1">Recent Alerts</p>
+                        <p class="text-2xl font-bold text-yellow-600">{{ stats.recent_alerts }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Server Information -->
+        {% if server_info %}
+        <div class="bg-white rounded-xl p-6 shadow-md border border-gray-200 mb-6">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Server Information</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">Version</p>
+                    <p class="text-gray-800 font-medium">{{ server_info.version }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-600">Registration</p>
+                    <p class="text-gray-800 font-medium">{{ 'Enabled' if server_info.registration else 'Disabled' }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-600">Map Provider</p>
+                    <p class="text-gray-800 font-medium">{{ server_info.map or 'Default' }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-gray-600">Coordinates Format</p>
+                    <p class="text-gray-800 font-medium">{{ server_info.coordinateFormat or 'Default' }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Database Information -->
+        <div class="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Database Information</h3>
+
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Database Path</span>
+                    <span class="text-gray-800 font-mono text-sm">{{ stats.database_path }}</span>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Status</span>
+                    <span class="text-green-600 font-medium">✓ Connected</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
