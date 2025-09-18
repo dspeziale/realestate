@@ -13,7 +13,8 @@
                 <button @click="sidebarExpanded = !sidebarExpanded"
                         class="w-full p-2 hover:bg-gray-100 rounded-lg">
                     <svg class="w-6 h-6 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
                 </button>
             </div>
@@ -81,14 +82,16 @@
                     <button onclick="toggleFullscreen()"
                             class="bg-white border border-gray-300 p-3 rounded-lg hover:bg-gray-50 transition shadow-md">
                         <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
                         </svg>
                     </button>
 
                     <button onclick="centerMap()"
                             class="bg-white border border-gray-300 p-3 rounded-lg hover:bg-gray-50 transition shadow-md">
                         <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                         </svg>
                     </button>
                 </div>
@@ -113,8 +116,10 @@
                                 <p class="text-xs text-gray-500" id="detailId"></p>
                             </div>
                             <button onclick="closeDetail()" class="p-1 hover:bg-gray-100 rounded-lg">
-                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M6 18L18 6M6 6l12 12"/>
                                 </svg>
                             </button>
                         </div>
@@ -147,10 +152,12 @@
                         </div>
 
                         <div class="flex space-x-2">
-                            <button onclick="trackVehicle()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition text-sm font-medium">
+                            <button onclick="trackVehicle()"
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition text-sm font-medium">
                                 Track Vehicle
                             </button>
-                            <button onclick="viewHistory()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg transition text-sm font-medium">
+                            <button onclick="viewHistory()"
+                                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg transition text-sm font-medium">
                                 View History
                             </button>
                         </div>
@@ -158,187 +165,187 @@
                 </div>
             </div>
         </div>
+    </div>
 </div>
-
 <script>
-let map, markers = {}, selectedVehicleId = null;
+    let map, markers = {}, selectedVehicleId = null;
 
-function liveMapData() {
-    return {
-        sidebarExpanded: true,
-        movingCount: 0
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    map = L.map('map', { zoomControl: false }).setView([41.9028, 12.4964], 12);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-    }).addTo(map);
-
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-    loadPositions();
-    setInterval(loadPositions, 3000);
-});
-
-function loadPositions() {
-    fetch('/api/vehicles/positions')
-        .then(response => response.json())
-        .then(data => {
-            updateMarkers(data);
-            updateSpeeds(data);
-        });
-}
-
-function updateMarkers(vehicles) {
-    vehicles.forEach(vehicle => {
-        const position = vehicle.latest_position;
-        if (!position) return;
-
-        const icon = L.divIcon({
-            html: `
-                <div class="relative">
-                    <div class="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded text-xs border border-gray-300 shadow-md whitespace-nowrap text-gray-800 font-medium">
-                        ${vehicle.name}
-                    </div>
-                    <div class="w-8 h-8 ${vehicle.status === 'online' ? 'bg-green-500' : 'bg-red-500'} rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
-                        </svg>
-                    </div>
-                    ${position.speed > 0 ? `<div class="absolute top-0 left-0 w-8 h-8 ${vehicle.status === 'online' ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-ping opacity-75"></div>` : ''}
-                </div>
-            `,
-            className: '',
-            iconSize: [32, 32]
-        });
-
-        if (markers[vehicle.id]) {
-            markers[vehicle.id].setLatLng([position.latitude, position.longitude]);
-            markers[vehicle.id].setIcon(icon);
-        } else {
-            markers[vehicle.id] = L.marker([position.latitude, position.longitude], { icon })
-                .addTo(map)
-                .on('click', () => selectVehicle(vehicle.id));
+    function liveMapData() {
+        return {
+            sidebarExpanded: true,
+            movingCount: 0
         }
-    });
-}
-
-function updateSpeeds(vehicles) {
-    let moving = 0;
-    vehicles.forEach(vehicle => {
-        const position = vehicle.latest_position;
-        const speed = position ? Math.round(position.speed * 1.852) : 0;
-
-        const speedEl = document.querySelector(`.vehicle-speed[data-vehicle-id="${vehicle.id}"]`);
-        if (speedEl) speedEl.textContent = speed + ' km/h';
-
-        if (speed > 0) moving++;
-    });
-
-    const alpineData = document.querySelector('[x-data]');
-    if (alpineData && alpineData.__x) {
-        alpineData.__x.$data.movingCount = moving;
     }
-}
 
-function selectVehicle(vehicleId) {
-    selectedVehicleId = vehicleId;
+    document.addEventListener('DOMContentLoaded', function() {
+        map = L.map('map', { zoomControl: false }).setView([41.9028, 12.4964], 12);
 
-    fetch(`/api/vehicles/${vehicleId}/detail`)
-        .then(response => response.json())
-        .then(vehicle => {
-            showVehicleDetail(vehicle);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
 
-            if (vehicle.latest_position) {
-                map.setView([vehicle.latest_position.latitude, vehicle.latest_position.longitude], 15, { animate: true });
-            }
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            document.querySelectorAll('.vehicle-item').forEach(el => {
-                el.classList.remove('bg-blue-100', 'border-blue-300');
-                el.classList.add('bg-gray-50', 'border-gray-200');
+        loadPositions();
+        setInterval(loadPositions, 3000);
+    });
+
+    function loadPositions() {
+        fetch('/api/vehicles/positions')
+            .then(response => response.json())
+            .then(data => {
+                updateMarkers(data);
+                updateSpeeds(data);
+            });
+    }
+
+    function updateMarkers(vehicles) {
+        vehicles.forEach(vehicle => {
+            const position = vehicle.latest_position;
+            if (!position) return;
+
+            const icon = L.divIcon({
+                html: `
+                    <div class="relative">
+                        <div class="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded text-xs border border-gray-300 shadow-md whitespace-nowrap text-gray-800 font-medium">
+                            ${vehicle.name}
+                        </div>
+                        <div class="w-8 h-8 ${vehicle.status === 'online' ? 'bg-green-500' : 'bg-red-500'} rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                            </svg>
+                        </div>
+                        ${position.speed > 0 ? `<div class="absolute top-0 left-0 w-8 h-8 ${vehicle.status === 'online' ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-ping opacity-75"></div>` : ''}
+                    </div>
+                `,
+                className: '',
+                iconSize: [32, 32]
             });
 
-            const selectedEl = document.querySelector(`.vehicle-item[data-vehicle-id="${vehicleId}"]`);
-            if (selectedEl) {
-                selectedEl.classList.remove('bg-gray-50', 'border-gray-200');
-                selectedEl.classList.add('bg-blue-100', 'border-blue-300');
-
-                // Scroll to selected vehicle
-                selectedEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (markers[vehicle.id]) {
+                markers[vehicle.id].setLatLng([position.latitude, position.longitude]);
+                markers[vehicle.id].setIcon(icon);
+            } else {
+                markers[vehicle.id] = L.marker([position.latitude, position.longitude], { icon })
+                    .addTo(map)
+                    .on('click', () => selectVehicle(vehicle.id));
             }
         });
-}
-
-function showVehicleDetail(vehicle) {
-    const panel = document.getElementById('vehicleDetail');
-    const mapContainer = document.getElementById('mapContainer');
-    const position = vehicle.latest_position;
-
-    document.getElementById('detailName').textContent = vehicle.name;
-    document.getElementById('detailId').textContent = vehicle.uniqueId;
-    document.getElementById('detailSpeed').textContent = position ? Math.round(position.speed * 1.852) + ' km/h' : '0 km/h';
-    document.getElementById('detailStatus').textContent = vehicle.status;
-
-    if (vehicle.lastUpdate) {
-        const lastUpdate = new Date(vehicle.lastUpdate);
-        const now = new Date();
-        const diffMinutes = Math.floor((now - lastUpdate) / 60000);
-        document.getElementById('detailUpdate').textContent = diffMinutes > 0 ? diffMinutes + ' min ago' : 'Just now';
     }
 
-    // Mostra il pannello e ridimensiona la mappa
-    panel.classList.remove('hidden');
-    mapContainer.style.height = 'calc(100% - 200px)'; // Riduce l'altezza della mappa
+    function updateSpeeds(vehicles) {
+        let moving = 0;
+        vehicles.forEach(vehicle => {
+            const position = vehicle.latest_position;
+            const speed = position ? Math.round(position.speed * 1.852) : 0;
 
-    // Forza Leaflet a ridimensionarsi
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 300);
-}
+            const speedEl = document.querySelector(`.vehicle-speed[data-vehicle-id="${vehicle.id}"]`);
+            if (speedEl) speedEl.textContent = speed + ' km/h';
 
-function closeDetail() {
-    const panel = document.getElementById('vehicleDetail');
-    const mapContainer = document.getElementById('mapContainer');
+            if (speed > 0) moving++;
+        });
 
-    panel.classList.add('hidden');
-    mapContainer.style.height = '100%'; // Ripristina l'altezza completa della mappa
-    selectedVehicleId = null;
-
-    document.querySelectorAll('.vehicle-item').forEach(el => {
-        el.classList.remove('bg-blue-100', 'border-blue-300');
-        el.classList.add('bg-gray-50', 'border-gray-200');
-    });
-
-    // Forza Leaflet a ridimensionarsi
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 300);
-}
-
-function centerMap() {
-    const bounds = [];
-    Object.values(markers).forEach(marker => bounds.push(marker.getLatLng()));
-    if (bounds.length > 0) map.fitBounds(bounds, { padding: [50, 50] });
-}
-
-function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-    } else {
-        document.exitFullscreen();
+        const alpineData = document.querySelector('[x-data]');
+        if (alpineData && alpineData.__x) {
+            alpineData.__x.$data.movingCount = moving;
+        }
     }
-}
 
-function trackVehicle() {
-    if (selectedVehicleId) window.location.href = `/vehicles/${selectedVehicleId}/live`;
-}
+    function selectVehicle(vehicleId) {
+        selectedVehicleId = vehicleId;
 
-function viewHistory() {
-    if (selectedVehicleId) window.location.href = `/vehicles/${selectedVehicleId}`;
-}
+        fetch(`/api/vehicles/${vehicleId}/detail`)
+            .then(response => response.json())
+            .then(vehicle => {
+                showVehicleDetail(vehicle);
+
+                if (vehicle.latest_position) {
+                    map.setView([vehicle.latest_position.latitude, vehicle.latest_position.longitude], 15, { animate: true });
+                }
+
+                document.querySelectorAll('.vehicle-item').forEach(el => {
+                    el.classList.remove('bg-blue-100', 'border-blue-300');
+                    el.classList.add('bg-gray-50', 'border-gray-200');
+                });
+
+                const selectedEl = document.querySelector(`.vehicle-item[data-vehicle-id="${vehicleId}"]`);
+                if (selectedEl) {
+                    selectedEl.classList.remove('bg-gray-50', 'border-gray-200');
+                    selectedEl.classList.add('bg-blue-100', 'border-blue-300');
+
+                    // Scroll to selected vehicle
+                    selectedEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            });
+    }
+
+    function showVehicleDetail(vehicle) {
+        const panel = document.getElementById('vehicleDetail');
+        const mapContainer = document.getElementById('mapContainer');
+        const position = vehicle.latest_position;
+
+        document.getElementById('detailName').textContent = vehicle.name;
+        document.getElementById('detailId').textContent = vehicle.uniqueId;
+        document.getElementById('detailSpeed').textContent = position ? Math.round(position.speed * 1.852) + ' km/h' : '0 km/h';
+        document.getElementById('detailStatus').textContent = vehicle.status;
+
+        if (vehicle.lastUpdate) {
+            const lastUpdate = new Date(vehicle.lastUpdate);
+            const now = new Date();
+            const diffMinutes = Math.floor((now - lastUpdate) / 60000);
+            document.getElementById('detailUpdate').textContent = diffMinutes > 0 ? diffMinutes + ' min ago' : 'Just now';
+        }
+
+        // Mostra il pannello e ridimensiona la mappa
+        panel.classList.remove('hidden');
+        mapContainer.style.height = 'calc(100% - 200px)'; // Riduce l'altezza della mappa
+
+        // Forza Leaflet a ridimensionarsi
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300);
+    }
+
+    function closeDetail() {
+        const panel = document.getElementById('vehicleDetail');
+        const mapContainer = document.getElementById('mapContainer');
+
+        panel.classList.add('hidden');
+        mapContainer.style.height = '100%'; // Ripristina l'altezza completa della mappa
+        selectedVehicleId = null;
+
+        document.querySelectorAll('.vehicle-item').forEach(el => {
+            el.classList.remove('bg-blue-100', 'border-blue-300');
+            el.classList.add('bg-gray-50', 'border-gray-200');
+        });
+
+        // Forza Leaflet a ridimensionarsi
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300);
+    }
+
+    function centerMap() {
+        const bounds = [];
+        Object.values(markers).forEach(marker => bounds.push(marker.getLatLng()));
+        if (bounds.length > 0) map.fitBounds(bounds, { padding: [50, 50] });
+    }
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    function trackVehicle() {
+        if (selectedVehicleId) window.location.href = `/vehicles/${selectedVehicleId}/live`;
+    }
+
+    function viewHistory() {
+        if (selectedVehicleId) window.location.href = `/vehicles/${selectedVehicleId}`;
+    }
 </script>
 {% endblock %}
