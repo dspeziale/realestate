@@ -19,19 +19,65 @@
                 </button>
             </div>
 
-            <div x-show="sidebarExpanded" class="px-4 space-y-4">
+            <div x-show="sidebarExpanded" class="px-4 space-y-4 flex flex-col h-[calc(100%-80px)]">
+                <!-- Filters Section -->
+                <div class="space-y-3 border-b border-gray-200 pb-4">
+                    <!-- Group Filter -->
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase block mb-1">Group</label>
+                        <select onchange="filterVehicles()" id="groupFilter"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">All Groups</option>
+                            {% for group in groups %}
+                            <option value="{{ group.id }}">{{ group.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase block mb-1">Category</label>
+                        <select onchange="filterVehicles()" id="categoryFilter"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="grid grid-cols-2 gap-2 pt-2">
+                        <div class="bg-gray-50 rounded-lg p-2">
+                            <div class="text-xs text-gray-500">Total</div>
+                            <div class="text-lg font-bold text-gray-800" id="totalCount">0</div>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-2">
+                            <div class="text-xs text-green-600">Moving</div>
+                            <div class="text-lg font-bold text-green-700" id="movingCount">0</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Vehicle List -->
-                <div class="space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto">
+                <div class="flex-1 overflow-y-auto space-y-3">
                     <h3 class="text-sm font-semibold text-gray-600 uppercase sticky top-0 bg-white py-2">Vehicles</h3>
 
                     {% for vehicle in vehicles %}
                     <div onclick="selectVehicle({{ vehicle.id }})"
                          class="bg-gray-50 border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-100 transition vehicle-item"
-                         data-vehicle-id="{{ vehicle.id }}">
+                         data-vehicle-id="{{ vehicle.id }}"
+                         data-group-id="{{ vehicle.groupId }}"
+                         data-category="{{ vehicle.category }}">
                         <div class="flex items-center justify-between">
                             <div class="flex-1">
                                 <div class="font-medium text-gray-800">{{ vehicle.name }}</div>
                                 <div class="text-xs text-gray-500">{{ vehicle.uniqueId }}</div>
+                                {% if vehicle.category %}
+                                <span class="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
+                                    {{ vehicle.category }}
+                                </span>
+                                {% endif %}
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="{{ 'bg-green-500 status-pulse' if vehicle.status == 'online' else 'bg-red-500' }} w-2 h-2 rounded-full"></div>
@@ -47,7 +93,7 @@
         <!-- Main Map Area -->
         <div class="flex-1 relative bg-gray-100 flex flex-col">
 
-            <!-- Map Container - si riduce quando appare il dettaglio -->
+            <!-- Map Container -->
             <div id="mapContainer" class="w-full transition-all duration-300" style="height: 100%">
                 <div id="map" class="w-full h-full"></div>
 
@@ -79,7 +125,7 @@
                 </div>
             </div>
 
-            <!-- Vehicle Detail Panel - DENTRO IL DIV DELLA MAPPA, IN BASSO -->
+            <!-- Vehicle Detail Panel -->
             <div id="vehicleDetail"
                  class="hidden h-[200px] bg-white shadow-2xl border-t-2 border-gray-300 z-30 overflow-hidden">
                 <div class="h-full overflow-y-auto">
@@ -143,6 +189,7 @@
 </div>
 <script>
     let map, markers = {}, selectedVehicleId = null;
+    let filteredVehicles = new Set();
 
     function liveMapData() {
         return {
@@ -163,7 +210,59 @@
 
         loadPositions();
         setInterval(loadPositions, 3000);
+        updateCounts();
     });
+
+    function filterVehicles() {
+        const groupId = document.getElementById('groupFilter').value;
+        const category = document.getElementById('categoryFilter').value;
+
+        filteredVehicles.clear();
+
+        document.querySelectorAll('.vehicle-item').forEach(item => {
+            const vehicleId = parseInt(item.dataset.vehicleId);
+            const vehicleGroupId = item.dataset.groupId;
+            const vehicleCategory = item.dataset.category;
+
+            let show = true;
+
+            if (groupId && vehicleGroupId !== groupId) {
+                show = false;
+            }
+
+            if (category && vehicleCategory !== category) {
+                show = false;
+            }
+
+            if (show) {
+                item.classList.remove('hidden');
+                filteredVehicles.add(vehicleId);
+            } else {
+                item.classList.add('hidden');
+            }
+
+            // Hide/show markers
+            if (markers[vehicleId]) {
+                if (show) {
+                    markers[vehicleId].addTo(map);
+                } else {
+                    markers[vehicleId].remove();
+                }
+            }
+        });
+
+        updateCounts();
+
+        // Center map on filtered vehicles
+        if (filteredVehicles.size > 0) {
+            setTimeout(centerMap, 100);
+        }
+    }
+
+    function updateCounts() {
+        const visible = document.querySelectorAll('.vehicle-item:not(.hidden)').length;
+        document.getElementById('totalCount').textContent = visible;
+    }
 
     function loadPositions() {
         fetch('/api/vehicles/positions')
@@ -198,23 +297,31 @@
             });
 
             const newLatLng = [position.latitude, position.longitude];
+            const groupId = document.getElementById('groupFilter').value;
+            const category = document.getElementById('categoryFilter').value;
+
+            let shouldShow = true;
+            if (groupId && vehicle.groupId != groupId) shouldShow = false;
+            if (category && vehicle.category !== category) shouldShow = false;
 
             if (markers[vehicle.id]) {
-                const oldLatLng = markers[vehicle.id].getLatLng();
                 markers[vehicle.id].setLatLng(newLatLng);
                 markers[vehicle.id].setIcon(icon);
 
-                // Controlla se il veicolo è uscito dalla vista corrente
                 if (!map.getBounds().contains(newLatLng)) {
-                    // Se nessun veicolo è selezionato o questo è quello selezionato, ricentra
                     if (!selectedVehicleId || selectedVehicleId === vehicle.id) {
                         map.panTo(newLatLng, { animate: true, duration: 0.5 });
                     }
                 }
             } else {
-                markers[vehicle.id] = L.marker(newLatLng, { icon })
-                    .addTo(map)
+                const marker = L.marker(newLatLng, { icon })
                     .on('click', () => selectVehicle(vehicle.id));
+
+                markers[vehicle.id] = marker;
+
+                if (shouldShow) {
+                    marker.addTo(map);
+                }
             }
         });
     }
@@ -228,13 +335,13 @@
             const speedEl = document.querySelector(`.vehicle-speed[data-vehicle-id="${vehicle.id}"]`);
             if (speedEl) speedEl.textContent = speed + ' km/h';
 
-            if (speed > 0) moving++;
+            const item = document.querySelector(`.vehicle-item[data-vehicle-id="${vehicle.id}"]`);
+            if (speed > 0 && item && !item.classList.contains('hidden')) {
+                moving++;
+            }
         });
 
-        const alpineData = document.querySelector('[x-data]');
-        if (alpineData && alpineData.__x) {
-            alpineData.__x.$data.movingCount = moving;
-        }
+        document.getElementById('movingCount').textContent = moving;
     }
 
     function selectVehicle(vehicleId) {
@@ -258,8 +365,6 @@
                 if (selectedEl) {
                     selectedEl.classList.remove('bg-gray-50', 'border-gray-200');
                     selectedEl.classList.add('bg-blue-100', 'border-blue-300');
-
-                    // Scroll to selected vehicle
                     selectedEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             });
@@ -282,11 +387,9 @@
             document.getElementById('detailUpdate').textContent = diffMinutes > 0 ? diffMinutes + ' min ago' : 'Just now';
         }
 
-        // Mostra il pannello e ridimensiona la mappa
         panel.classList.remove('hidden');
-        mapContainer.style.height = 'calc(100% - 200px)'; // Riduce l'altezza della mappa
+        mapContainer.style.height = 'calc(100% - 200px)';
 
-        // Forza Leaflet a ridimensionarsi
         setTimeout(() => {
             map.invalidateSize();
         }, 300);
@@ -297,7 +400,7 @@
         const mapContainer = document.getElementById('mapContainer');
 
         panel.classList.add('hidden');
-        mapContainer.style.height = '100%'; // Ripristina l'altezza completa della mappa
+        mapContainer.style.height = '100%';
         selectedVehicleId = null;
 
         document.querySelectorAll('.vehicle-item').forEach(el => {
@@ -305,7 +408,6 @@
             el.classList.add('bg-gray-50', 'border-gray-200');
         });
 
-        // Forza Leaflet a ridimensionarsi
         setTimeout(() => {
             map.invalidateSize();
         }, 300);
@@ -313,7 +415,15 @@
 
     function centerMap() {
         const bounds = [];
-        Object.values(markers).forEach(marker => bounds.push(marker.getLatLng()));
+        Object.entries(markers).forEach(([vehicleId, marker]) => {
+            const groupId = document.getElementById('groupFilter').value;
+            const category = document.getElementById('categoryFilter').value;
+            const item = document.querySelector(`.vehicle-item[data-vehicle-id="${vehicleId}"]`);
+
+            if (item && !item.classList.contains('hidden')) {
+                bounds.push(marker.getLatLng());
+            }
+        });
         if (bounds.length > 0) map.fitBounds(bounds, { padding: [50, 50] });
     }
 

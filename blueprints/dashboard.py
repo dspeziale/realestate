@@ -1,4 +1,4 @@
-# blueprints/dashboard.py - Fixed with login check
+# blueprints/dashboard.py
 
 from flask import Blueprint, render_template, current_app, jsonify, redirect, url_for, session
 from datetime import datetime, timedelta
@@ -44,12 +44,26 @@ def index():
 @dashboard_bp.route('/live-map')
 @login_required
 def live_map():
-    """Live map view"""
+    """Live map view with filters"""
     traccar = current_app.config['TRACCAR_API']
 
     try:
+        # Get devices
         devices = traccar.devices.get_devices()
 
+        # Get groups
+        groups = traccar.groups.get_groups()
+
+        # Extract unique categories from devices
+        categories = set()
+        for device in devices:
+            category = device.get('category')
+            if category:
+                categories.add(category)
+
+        categories = sorted(list(categories))
+
+        # Calculate stats
         stats = {
             'total_vehicles': len(devices),
             'active_vehicles': len([d for d in devices if d.get('status') == 'online']),
@@ -58,10 +72,14 @@ def live_map():
 
         return render_template('dashboard/live_map.html',
                                stats=stats,
-                               vehicles=devices)
+                               vehicles=devices,
+                               groups=groups,
+                               categories=categories)
 
     except TraccarException as e:
         return render_template('dashboard/live_map.html',
                                error=str(e),
                                stats={},
-                               vehicles=[])
+                               vehicles=[],
+                               groups=[],
+                               categories=[])

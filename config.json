@@ -17,8 +17,8 @@
     "path": "fleet.db"
   },
   "app": {
-    "name": "Fleet Manager Pro",
-    "company": "Your Company",
+    "name": "myTracker",
+    "company": "DS Consulting",
     "items_per_page": 20
   }
 }
