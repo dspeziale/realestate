@@ -269,9 +269,28 @@
     {% endwith %}
 
     <!-- Main Content -->
-    <div class="{% if session.get('user') %}pt-14{% endif %}">
+    <div class="{% if session.get('user') %}pt-14 pb-16{% endif %}">
         {% block content %}{% endblock %}
     </div>
+
+    <!-- Footer -->
+    {% if session.get('user') %}
+    <footer class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-3 px-4 z-40">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between text-sm text-gray-600">
+            <div class="flex items-center space-x-2 mb-2 md:mb-0">
+                <span>© {{ current_year }} {{ app_name }}</span>
+                <span class="hidden md:inline">•</span>
+                <span class="hidden md:inline">{{ company_name }}</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="#" class="hover:text-primary-600 transition">Privacy</a>
+                <a href="#" class="hover:text-primary-600 transition">Terms</a>
+                <a href="{{ url_for('status') }}" class="hover:text-primary-600 transition">System Status</a>
+                <span class="text-gray-400">v1.0.0</span>
+            </div>
+        </div>
+    </footer>
+    {% endif %}
 
     {% block extra_js %}{% endblock %}
 </body>
