@@ -12,9 +12,24 @@
     "password": "Elisa2025!",
     "debug": false
   },
+  "google_maps": {
+    "api_key": "AIzaSyAZLNmrmri-HUzex5s4FaJZPk8xVeAyFVk",
+    "cache_max_age_days": 90,
+    "default_language": "it"
+  },
+  "geocoding": {
+    "cache_db_path": "data/geocoding_cache.db",
+    "max_age_days": 90,
+    "precision": 5
+  },
   "database": {
     "type": "sqlite",
-    "path": "fleet.db"
+    "path": "data/fleet.db"
+  },
+  "cache": {
+    "route_cache_dir": "data/route_cache",
+    "max_cache_size": 1000,
+    "cleanup_interval_hours": 24
   },
   "app": {
     "name": "myTracker",
