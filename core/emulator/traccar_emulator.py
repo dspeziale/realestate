@@ -39,12 +39,13 @@ class Location:
 
     def to_key_string(self) -> str:
         """Genera una stringa chiave per la cache basata su coordinate o nome"""
-        # Se abbiamo coordinate valide, usale
-        if self.latitude != 0.0 or self.longitude != 0.0:
-            return f"{round(self.latitude, 4)},{round(self.longitude, 4)}"
-        # Altrimenti usa il nome/indirizzo per la cache
-        elif self.address:
+        # FIX: Priorità all'indirizzo se presente per garantire cache hit
+        if self.address:
+            # Normalizza l'indirizzo per la cache
             return self.address.lower().strip()
+        # Se abbiamo coordinate valide, usale
+        elif self.latitude != 0.0 and self.longitude != 0.0:
+            return f"{round(self.latitude, 4)},{round(self.longitude, 4)}"
         else:
             return "unknown_location"
 
@@ -118,13 +119,18 @@ class RouteCache:
         logger.info(f"🗄️ RouteCache inizializzato: {len(self.memory_cache)} percorsi in cache")
 
     def _generate_route_key(self, origin: Location, destination: Location,
-                           waypoints: List[Location] = None, mode: str = "driving") -> str:
+                            waypoints: List[Location] = None, mode: str = "driving") -> str:
         """Genera chiave univoca per un percorso"""
         waypoints_str = ""
         if waypoints:
             waypoints_str = "|".join([wp.to_key_string() for wp in waypoints])
 
+        # Costruisci la stringa del percorso
         route_string = f"{origin.to_key_string()}->{destination.to_key_string()}|{waypoints_str}|{mode}"
+
+        # DEBUG: Log della chiave generata
+        logger.debug(f"🔑 Chiave cache generata: {route_string}")
+
         return hashlib.md5(route_string.encode()).hexdigest()
 
     def _get_cache_file_path(self, route_key: str) -> str:

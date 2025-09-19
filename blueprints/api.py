@@ -1,7 +1,11 @@
-# blueprints/api.py
+# blueprints/api.py - FIXED VERSION
+
 from flask import Blueprint, jsonify, current_app, request
 from datetime import datetime, timedelta
 from core.traccar_framework import TraccarException
+import logging
+
+logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -14,17 +18,15 @@ def get_vehicles():
     # Get optional filters
     group_id = request.args.get('group_id', type=int)
     category = request.args.get('category')
-    status_filter = request.args.get('status')  # 'active', 'stopped', 'all'
+    status_filter = request.args.get('status')
 
     try:
         # Get devices
         devices = traccar.devices.get_devices()
 
-        # Get positions for all devices
-        positions = traccar.positions.get_positions()
-
-        # Create position lookup
-        position_map = {p['deviceId']: p for p in positions}
+        # Get all positions once
+        all_positions = traccar.positions.get_positions()
+        position_map = {p['deviceId']: p for p in all_positions}
 
         # Build vehicle data
         vehicles = []
@@ -46,7 +48,7 @@ def get_vehicles():
                 'course': pos.get('course', 0),
                 'lastUpdate': pos.get('deviceTime', pos.get('serverTime')),
                 'attributes': device.get('attributes', {}),
-                'route': f"{device.get('attributes', {}).get('origin', 'Sconosciuto')} → {device.get('attributes', {}).get('destination', 'Sconosciuto')}"
+                'latest_position': pos
             }
 
             # Apply filters
@@ -67,26 +69,40 @@ def get_vehicles():
         return jsonify(vehicles)
 
     except TraccarException as e:
+        logger.error(f"TraccarException in get_vehicles: {e}")
         return jsonify({'error': str(e)}), 500
     except Exception as e:
+        logger.error(f"Exception in get_vehicles: {e}")
         return jsonify({'error': str(e)}), 500
 
 
 @api_bp.route('/vehicles/<int:vehicle_id>')
 def get_vehicle(vehicle_id):
-    """Get specific vehicle details"""
+    """Get specific vehicle details - FIXED VERSION"""
     traccar = current_app.config['TRACCAR_API']
 
     try:
+        # Get device info
         devices = traccar.devices.get_devices()
         device = next((d for d in devices if d['id'] == vehicle_id), None)
 
         if not device:
             return jsonify({'error': 'Vehicle not found'}), 404
 
-        # Get position
-        positions = traccar.positions.get_positions(device_id=vehicle_id)
-        pos = positions[0] if positions else {}
+        # Get position - TRY/CATCH per gestire errori
+        try:
+            # Get ALL positions first
+            all_positions = traccar.positions.get_positions()
+            # Find position for this device
+            pos = next((p for p in all_positions if p.get('deviceId') == vehicle_id), {})
+
+            # If not found, try with device_id parameter
+            if not pos:
+                positions = traccar.positions.get_positions(device_id=vehicle_id)
+                pos = positions[0] if positions else {}
+        except Exception as e:
+            logger.warning(f"Error getting position for vehicle {vehicle_id}: {e}")
+            pos = {}
 
         vehicle = {
             'id': device['id'],
@@ -98,26 +114,30 @@ def get_vehicle(vehicle_id):
             'longitude': pos.get('longitude'),
             'speed': round(pos.get('speed', 0) * 1.852, 1) if pos.get('speed') else 0,
             'course': pos.get('course', 0),
+            'altitude': pos.get('altitude', 0),
+            'accuracy': pos.get('accuracy', 0),
             'lastUpdate': pos.get('deviceTime', pos.get('serverTime')),
             'attributes': device.get('attributes', {}),
-            'address': pos.get('address', 'Posizione sconosciuta')
+            'address': pos.get('address', 'Unknown location')
         }
 
         return jsonify(vehicle)
 
     except TraccarException as e:
+        logger.error(f"TraccarException getting vehicle {vehicle_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        logger.error(f"Exception getting vehicle {vehicle_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
 
 @api_bp.route('/vehicles/<int:vehicle_id>/track')
 def get_vehicle_track(vehicle_id):
-    """Get vehicle tracking positions for live tracking"""
+    """Get vehicle tracking positions"""
     traccar = current_app.config['TRACCAR_API']
 
     try:
         # Get recent positions (last hour by default)
-        from datetime import datetime, timedelta
-
         from_time = request.args.get('from')
         if from_time:
             from_time = datetime.fromisoformat(from_time)
@@ -142,12 +162,14 @@ def get_vehicle_track(vehicle_id):
                 'course': pos.get('course', 0),
                 'altitude': pos.get('altitude', 0),
                 'deviceTime': pos.get('deviceTime'),
-                'serverTime': pos.get('serverTime')
+                'serverTime': pos.get('serverTime'),
+                'accuracy': pos.get('accuracy', 0)
             })
 
         return jsonify(track)
 
     except TraccarException as e:
+        logger.error(f"Error getting track for vehicle {vehicle_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -182,6 +204,48 @@ def get_all_positions():
         return jsonify({'error': str(e)}), 500
 
 
+@api_bp.route('/stats')
+def get_stats():
+    """Get fleet statistics - ADDED ENDPOINT"""
+    traccar = current_app.config['TRACCAR_API']
+
+    try:
+        devices = traccar.devices.get_devices()
+        positions = traccar.positions.get_positions()
+
+        # Calculate stats
+        total_vehicles = len(devices)
+        online_vehicles = len([d for d in devices if d.get('status') == 'online'])
+
+        # Calculate average speed from positions
+        speeds = []
+        for pos in positions:
+            speed_kmh = pos.get('speed', 0) * 1.852
+            if speed_kmh > 0:
+                speeds.append(speed_kmh)
+
+        avg_speed = round(sum(speeds) / len(speeds), 1) if speeds else 0
+        moving_vehicles = len(speeds)
+
+        stats = {
+            'totalVehicles': total_vehicles,
+            'onlineVehicles': online_vehicles,
+            'offlineVehicles': total_vehicles - online_vehicles,
+            'averageSpeed': avg_speed,
+            'movingVehicles': moving_vehicles,
+            'efficiency': round((online_vehicles / total_vehicles * 100) if total_vehicles > 0 else 0, 1)
+        }
+
+        return jsonify(stats)
+
+    except TraccarException as e:
+        logger.error(f"Error getting stats: {e}")
+        return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        logger.error(f"Unexpected error in stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @api_bp.route('/groups')
 def get_groups():
     """Get all groups"""
@@ -203,37 +267,5 @@ def get_categories():
         devices = traccar.devices.get_devices()
         categories = list(set(d.get('category') for d in devices if d.get('category')))
         return jsonify(sorted(categories))
-    except TraccarException as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@api_bp.route('/stats')
-def get_stats():
-    """Get fleet statistics"""
-    traccar = current_app.config['TRACCAR_API']
-
-    try:
-        devices = traccar.devices.get_devices()
-        positions = traccar.positions.get_positions()
-
-        # Calculate stats
-        total_vehicles = len(devices)
-        online_vehicles = len([d for d in devices if d.get('status') == 'online'])
-
-        # Calculate average speed
-        speeds = [p.get('speed', 0) * 1.852 for p in positions if p.get('speed', 0) > 0]
-        avg_speed = round(sum(speeds) / len(speeds), 1) if speeds else 0
-
-        stats = {
-            'totalVehicles': total_vehicles,
-            'onlineVehicles': online_vehicles,
-            'offlineVehicles': total_vehicles - online_vehicles,
-            'averageSpeed': avg_speed,
-            'movingVehicles': len([p for p in positions if p.get('speed', 0) > 0]),
-            'efficiency': round((online_vehicles / total_vehicles * 100) if total_vehicles > 0 else 0, 1)
-        }
-
-        return jsonify(stats)
-
     except TraccarException as e:
         return jsonify({'error': str(e)}), 500

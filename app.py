@@ -1,4 +1,4 @@
-# app.py - Complete Flask Application with all features
+# app.py - Updated version with enhanced API endpoints
 
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from flask_cors import CORS

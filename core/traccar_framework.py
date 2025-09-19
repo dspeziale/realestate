@@ -435,99 +435,119 @@ class GeofenceManager:
 
 
 class ReportManager:
-    """Gestione dei report"""
+    """Gestione report Traccar - FIXED per multiple device IDs"""
 
-    def __init__(self, client: TraccarClient):
+    def __init__(self, client):
         self.client = client
 
     def get_summary_report(self, device_ids: List[int] = None, group_ids: List[int] = None,
-                          from_time: datetime = None, to_time: datetime = None) -> List[Dict]:
-        """Ottieni report riassuntivo"""
-        params = {}
+                           from_time: datetime = None, to_time: datetime = None) -> List[Dict]:
+        """Ottieni report riassuntivo - FIXED per gestire più device_ids
+
+        Traccar API accetta parametri ripetuti: ?deviceId=1&deviceId=2&deviceId=3
+        """
+        # Usa lista di tuple per parametri ripetuti
+        params = []
+
         if device_ids:
             for device_id in device_ids:
-                params['deviceId'] = device_id
+                params.append(('deviceId', device_id))
+
         if group_ids:
             for group_id in group_ids:
-                params['groupId'] = group_id
+                params.append(('groupId', group_id))
+
         if from_time:
-            params['from'] = from_time.isoformat() + 'Z'
+            params.append(('from', from_time.isoformat() + 'Z'))
         if to_time:
-            params['to'] = to_time.isoformat() + 'Z'
+            params.append(('to', to_time.isoformat() + 'Z'))
 
         return self.client.get("/reports/summary", params)
 
     def get_trips_report(self, device_ids: List[int] = None, group_ids: List[int] = None,
-                        from_time: datetime = None, to_time: datetime = None) -> List[Dict]:
-        """Ottieni report dei viaggi"""
-        params = {}
+                         from_time: datetime = None, to_time: datetime = None) -> List[Dict]:
+        """Ottieni report dei viaggi - FIXED"""
+        params = []
+
         if device_ids:
             for device_id in device_ids:
-                params['deviceId'] = device_id
+                params.append(('deviceId', device_id))
+
         if group_ids:
             for group_id in group_ids:
-                params['groupId'] = group_id
+                params.append(('groupId', group_id))
+
         if from_time:
-            params['from'] = from_time.isoformat() + 'Z'
+            params.append(('from', from_time.isoformat() + 'Z'))
         if to_time:
-            params['to'] = to_time.isoformat() + 'Z'
+            params.append(('to', to_time.isoformat() + 'Z'))
 
         return self.client.get("/reports/trips", params)
 
     def get_stops_report(self, device_ids: List[int] = None, group_ids: List[int] = None,
-                        from_time: datetime = None, to_time: datetime = None) -> List[Dict]:
-        """Ottieni report delle soste"""
-        params = {}
+                         from_time: datetime = None, to_time: datetime = None) -> List[Dict]:
+        """Ottieni report delle soste - FIXED"""
+        params = []
+
         if device_ids:
             for device_id in device_ids:
-                params['deviceId'] = device_id
+                params.append(('deviceId', device_id))
+
         if group_ids:
             for group_id in group_ids:
-                params['groupId'] = group_id
+                params.append(('groupId', group_id))
+
         if from_time:
-            params['from'] = from_time.isoformat() + 'Z'
+            params.append(('from', from_time.isoformat() + 'Z'))
         if to_time:
-            params['to'] = to_time.isoformat() + 'Z'
+            params.append(('to', to_time.isoformat() + 'Z'))
 
         return self.client.get("/reports/stops", params)
 
-    def get_events_report(self, device_ids: List[int] = None, group_ids: List[int] = None,
-                         event_types: List[str] = None, from_time: datetime = None,
-                         to_time: datetime = None) -> List[Dict]:
-        """Ottieni report degli eventi"""
-        params = {}
-        if device_ids:
-            for device_id in device_ids:
-                params['deviceId'] = device_id
-        if group_ids:
-            for group_id in group_ids:
-                params['groupId'] = group_id
-        if event_types:
-            for event_type in event_types:
-                params['type'] = event_type
-        if from_time:
-            params['from'] = from_time.isoformat() + 'Z'
-        if to_time:
-            params['to'] = to_time.isoformat() + 'Z'
-
-        return self.client.get("/reports/events", params)
-
     def get_route_report(self, device_ids: List[int] = None, group_ids: List[int] = None,
-                        from_time: datetime = None, to_time: datetime = None) -> List[Dict]:
-        """Ottieni report del percorso (tutte le posizioni)"""
-        params = {}
+                         from_time: datetime = None, to_time: datetime = None) -> List[Dict]:
+        """Ottieni report del percorso - FIXED"""
+        params = []
+
         if device_ids:
             for device_id in device_ids:
-                params['deviceId'] = device_id
+                params.append(('deviceId', device_id))
+
         if group_ids:
             for group_id in group_ids:
-                params['groupId'] = group_id
+                params.append(('groupId', group_id))
+
         if from_time:
-            params['from'] = from_time.isoformat() + 'Z'
+            params.append(('from', from_time.isoformat() + 'Z'))
         if to_time:
-            params['to'] = to_time.isoformat() + 'Z'
+            params.append(('to', to_time.isoformat() + 'Z'))
 
         return self.client.get("/reports/route", params)
+
+    def get_events_report(self, device_ids: List[int] = None, group_ids: List[int] = None,
+                          event_types: List[str] = None, from_time: datetime = None,
+                          to_time: datetime = None) -> List[Dict]:
+        """Ottieni report degli eventi - FIXED"""
+        params = []
+
+        if device_ids:
+            for device_id in device_ids:
+                params.append(('deviceId', device_id))
+
+        if group_ids:
+            for group_id in group_ids:
+                params.append(('groupId', group_id))
+
+        if event_types:
+            for event_type in event_types:
+                params.append(('type', event_type))
+
+        if from_time:
+            params.append(('from', from_time.isoformat() + 'Z'))
+        if to_time:
+            params.append(('to', to_time.isoformat() + 'Z'))
+
+        return self.client.get("/reports/events", params)
 
 
 class NotificationManager:
