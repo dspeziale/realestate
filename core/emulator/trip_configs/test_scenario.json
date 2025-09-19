@@ -21,12 +21,42 @@
       "enabled": true
     },
     {
-      "name": "Test Rapido 1",
+      "name": "Test Rapido 2",
       "origin": "San Pelino, AQ, Italia",
       "destination": "Ortucchio, AQ, Italia",
-      "waypoints": ["Pescina","Sulmone","Collarmele"],
+      "waypoints": ["Pescina","Sulmona","Collarmele"],
       "transport_mode": "driving",
       "device_name": "FIAT Punto Evo - EX540KL",
+      "update_interval": 2.0,
+      "enabled": true
+    },
+    {
+      "name": "Test Rapido 3",
+      "origin": "Exmouth, Australia",
+      "destination": "Melbourne, Australia",
+      "waypoints": ["Maningrida, Australia","Borroloola, Australia"],
+      "transport_mode": "driving",
+      "device_name": "Dacia BIGSTER",
+      "update_interval": 2.0,
+      "enabled": true
+    },
+    {
+      "name": "Test Rapido 4",
+      "origin": "Ho Chi Minh, Vietnam",
+      "destination": "Dacca, Bangladesh",
+      "waypoints": ["Guangyuan, Cina","Shanghai, Cina"],
+      "transport_mode": "driving",
+      "device_name": "IVECO STRALIS GNL",
+      "update_interval": 2.0,
+      "enabled": true
+    },
+    {
+      "name": "Test Rapido 5",
+      "origin": "Tangeri, Marocco",
+      "destination": "Città del Capo, Sudafrica",
+      "waypoints": ["Auasa, Etiopia","Goma, Repubblica Democratica del Congo", "Bujumbura, Burundi","Dar es Salaam, Tanzania"],
+      "transport_mode": "driving",
+      "device_name": "Nissan QASHQAI",
       "update_interval": 2.0,
       "enabled": true
     }
