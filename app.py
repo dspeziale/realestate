@@ -1,11 +1,17 @@
-# app.py - Enhanced version with Geocoding Service
+# app.py
+"""
+Fleet Manager Pro - Applicazione principale con gestione cache avanzata
+Integra Traccar API, Database SQLite, Geocoding Service e Cache Manager
+"""
 
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from flask_cors import CORS
 import json
 import os
+import logging
 from datetime import datetime, timedelta
 from functools import wraps
+import atexit
 
 # Import blueprints
 from blueprints.api import api_bp
@@ -15,9 +21,12 @@ from blueprints.reports import reports_bp
 from blueprints.vehicles import vehicles_bp
 from blueprints.alerts import alerts_bp
 
-# Import framework and models
+# Import framework e modelli
 from core.traccar_framework import TraccarAPI
 from models.database import Database
+
+# Import servizi cache
+from core.services.cache_manager import cache_manager
 
 # Import geocoding service e blueprint
 try:
@@ -26,26 +35,86 @@ try:
 
     GEOCODING_AVAILABLE = True
 except ImportError:
-    print("⚠️  Geocoding module not available")
+    print("⚠️ Geocoding module not available")
     GEOCODING_AVAILABLE = False
 
-# Initialize Flask app
+# Import status blueprint
+try:
+    from blueprints.status import status_bp
+
+    STATUS_AVAILABLE = True
+except ImportError:
+    print("⚠️ Status module not available")
+    STATUS_AVAILABLE = False
+
+# Import cache management blueprint
+try:
+    from blueprints.cache_management import cache_management_bp
+
+    CACHE_MANAGEMENT_AVAILABLE = True
+except ImportError:
+    print("⚠️ Cache management module not available")
+    CACHE_MANAGEMENT_AVAILABLE = False
+
+
+# Configura logging
+def setup_logging():
+    """Configura sistema di logging"""
+    try:
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+
+        log_config = config.get('logging', {})
+        log_file = log_config.get('file', 'logs/fleet_manager.log')
+        log_level = getattr(logging, log_config.get('level', 'INFO').upper())
+        log_format = log_config.get('format', '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+        # Crea directory logs
+        log_dir = os.path.dirname(log_file)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
+
+        # Configura logging
+        logging.basicConfig(
+            level=log_level,
+            format=log_format,
+            handlers=[
+                logging.FileHandler(log_file, encoding='utf-8'),
+                logging.StreamHandler()
+            ]
+        )
+
+    except Exception as e:
+        logging.basicConfig(level=logging.INFO)
+        logging.error(f"Errore configurazione logging: {e}")
+
+
+# Inizializza Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 CORS(app)
 
-# Load configuration
-with open('config.json', 'r') as f:
-    config = json.load(f)
+# Setup logging
+setup_logging()
+logger = logging.getLogger('FleetApp')
 
-# Crea directory necessarie PRIMA di inizializzare i servizi
+# Carica configurazione
+try:
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    logger.info("📋 Configurazione caricata")
+except Exception as e:
+    logger.error(f"❌ Errore caricamento config: {e}")
+    raise
+
+# Crea directory necessarie
 db_path = config['database']['path']
 db_dir = os.path.dirname(db_path)
 if db_dir and not os.path.exists(db_dir):
     os.makedirs(db_dir, exist_ok=True)
-    print(f"📁 Created database directory: {db_dir}")
+    logger.info(f"📁 Directory database creata: {db_dir}")
 
-# Initialize Traccar API
+# Inizializza Traccar API
 traccar = TraccarAPI(
     host=config['traccar']['host'],
     port=config['traccar']['port'],
@@ -55,17 +124,17 @@ traccar = TraccarAPI(
     debug=config['traccar'].get('debug', False)
 )
 
-# Initialize Database
+# Inizializza Database
 db = Database(db_path)
 
-# Initialize Geocoding Service
+# Inizializza Geocoding Service
 geocoding_service = None
-if GEOCODING_AVAILABLE:
+if GEOCODING_AVAILABLE and config.get('features', {}).get('geocoding_enabled', True):
     try:
         geocoding_config = config.get('geocoding', {})
         google_config = config.get('google_maps', {})
 
-        # Crea directory per cache se non esiste
+        # Crea directory per cache geocoding
         cache_db_path = geocoding_config.get('cache_db_path', 'data/geocoding_cache.db')
         cache_dir = os.path.dirname(cache_db_path)
         if cache_dir:
@@ -75,21 +144,41 @@ if GEOCODING_AVAILABLE:
         if api_key:
             geocoding_service = GeocodingService(
                 api_key=api_key,
-                cache_db_path=cache_db_path
+                cache_db_path=cache_db_path,
+                max_age_days=geocoding_config.get('max_age_days', 90),
+                precision=geocoding_config.get('precision', 5)
             )
-            print("✅ Geocoding service initialized")
-        else:
-            print("⚠️  No Google Maps API key configured")
-    except Exception as e:
-        print(f"⚠️  Geocoding service initialization failed: {e}")
 
-# Store instances in app config for blueprint access
+            # Registra geocoding service nel cache manager
+            cache_manager.register_service(
+                name='geocoding',
+                service_instance=geocoding_service,
+                cleanup_method='cleanup_cache',
+                optimize_method='optimize_cache',
+                stats_method='get_statistics'
+            )
+
+            logger.info("✅ Geocoding service inizializzato e registrato")
+        else:
+            logger.warning("⚠️ Google Maps API key mancante")
+    except Exception as e:
+        logger.error(f"❌ Errore inizializzazione geocoding: {e}")
+
+# Avvia cache manager automatico se abilitato
+if config.get('geocoding', {}).get('enable_auto_cleanup', True):
+    cleanup_interval = config.get('geocoding', {}).get('cleanup_interval_hours', 24)
+    cache_manager.cleanup_interval_hours = cleanup_interval
+    cache_manager.start_automatic_cleanup()
+    logger.info(f"🔄 Cache manager automatico avviato (intervallo: {cleanup_interval}h)")
+
+# Memorizza istanze nell'app config per l'accesso dai blueprint
 app.config['TRACCAR_API'] = traccar
 app.config['DATABASE'] = db
 app.config['CONFIG'] = config
 app.config['GEOCODING_SERVICE'] = geocoding_service
+app.config['CACHE_MANAGER'] = cache_manager
 
-# Register all blueprints
+# Registra tutti i blueprint
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
 app.register_blueprint(vehicles_bp, url_prefix='/vehicles')
@@ -97,15 +186,25 @@ app.register_blueprint(reports_bp, url_prefix='/reports')
 app.register_blueprint(alerts_bp, url_prefix='/alerts')
 app.register_blueprint(api_bp, url_prefix='/api')
 
-# Register geocoding blueprint if service is available
+# Registra status blueprint se disponibile
+if STATUS_AVAILABLE:
+    app.register_blueprint(status_bp, url_prefix='/status')
+    logger.info("✅ Status blueprint registrato")
+
+# Registra cache management blueprint se disponibile
+if CACHE_MANAGEMENT_AVAILABLE:
+    app.register_blueprint(cache_management_bp, url_prefix='/api/cache')
+    logger.info("✅ Cache management blueprint registrato")
+
+# Registra geocoding blueprint se disponibile
 if GEOCODING_AVAILABLE and geocoding_service:
     app.register_blueprint(geocoding_bp, url_prefix='/api/geocoding')
-    # Initialize geocoding service for blueprint
     with app.app_context():
         init_geocoding_service(app)
+    logger.info("✅ Geocoding blueprint registrato")
 
 
-# Login required decorator
+# Decorator per login richiesto
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -118,7 +217,7 @@ def login_required(f):
 
 @app.route('/')
 def index():
-    """Root route - redirect based on auth status"""
+    """Route principale - redirect in base allo stato auth"""
     if 'user' in session:
         return redirect(url_for('dashboard.index'))
     return redirect(url_for('auth.login'))
@@ -126,329 +225,248 @@ def index():
 
 @app.route('/health')
 def health():
-    """Health check endpoint"""
-    try:
-        server_info = traccar.server.get_server_info()
-
-        # Check database
-        try:
-            alerts = db.get_alerts(limit=1)
-            db_status = 'healthy'
-        except Exception as e:
-            db_status = f'error: {str(e)}'
-
-        # Check geocoding service
-        geo_status = 'disabled'
-        geo_stats = None
-        if geocoding_service:
-            try:
-                geo_stats = geocoding_service.get_statistics()
-                geo_status = 'healthy'
-            except Exception as e:
-                geo_status = f'error: {str(e)}'
-
-        return jsonify({
-            'status': 'healthy',
-            'traccar': {
-                'connected': True,
-                'version': server_info.get('version')
-            },
-            'database': {
-                'status': db_status
-            },
-            'geocoding': {
-                'status': geo_status,
-                'stats': geo_stats
-            },
-            'timestamp': datetime.now().isoformat()
-        })
-    except Exception as e:
-        return jsonify({
-            'status': 'unhealthy',
-            'error': str(e),
-            'timestamp': datetime.now().isoformat()
-        }), 500
-
-
-@app.route('/status')
-@login_required
-def status():
-    """System status page"""
-    try:
-        server_info = traccar.server.get_server_info()
-        devices = traccar.devices.get_devices()
-        alerts = db.get_alerts(limit=10)
-
-        stats = {
-            'traccar_version': server_info.get('version'),
-            'total_devices': len(devices),
-            'online_devices': len([d for d in devices if d.get('status') == 'online']),
-            'recent_alerts': len(alerts),
-            'database_path': config['database']['path']
-        }
-
-        # Aggiungi statistiche geocoding se disponibile
-        if geocoding_service:
-            try:
-                geo_stats = geocoding_service.get_statistics()
-                stats['geocoding'] = {
-                    'enabled': True,
-                    'api_calls': geo_stats['api_calls'],
-                    'cache_hits': geo_stats['cache_hits'],
-                    'hit_rate': f"{geo_stats['hit_rate']}%",
-                    'cached_addresses': geo_stats['cache_stats']['total_addresses']
-                }
-            except:
-                stats['geocoding'] = {'enabled': True, 'error': 'Stats unavailable'}
-        else:
-            stats['geocoding'] = {'enabled': False}
-
-        return render_template('status.html', stats=stats, server_info=server_info)
-    except Exception as e:
-        return render_template('status.html', error=str(e))
-
-
-# Error handlers
-@app.errorhandler(404)
-def not_found(e):
-    return render_template('errors/404.html'), 404
-
-
-@app.errorhandler(500)
-def internal_error(e):
-    return render_template('errors/500.html'), 500
-
-
-@app.errorhandler(403)
-def forbidden(e):
-    return render_template('errors/403.html'), 403
-
-
-# Template filters
-@app.template_filter('datetime')
-def format_datetime(value):
-    """Format datetime for display"""
-    if isinstance(value, str):
-        try:
-            value = datetime.fromisoformat(value.replace('Z', '+00:00'))
-        except:
-            return value
-    if isinstance(value, datetime):
-        return value.strftime('%d/%m/%Y %H:%M')
-    return value
-
-
-@app.template_filter('date')
-def format_date(value):
-    """Format date only"""
-    if isinstance(value, str):
-        try:
-            value = datetime.fromisoformat(value.replace('Z', '+00:00'))
-        except:
-            return value
-    if isinstance(value, datetime):
-        return value.strftime('%d/%m/%Y')
-    return value
-
-
-@app.template_filter('time')
-def format_time(value):
-    """Format time only"""
-    if isinstance(value, str):
-        try:
-            value = datetime.fromisoformat(value.replace('Z', '+00:00'))
-        except:
-            return value
-    if isinstance(value, datetime):
-        return value.strftime('%H:%M:%S')
-    return value
-
-
-@app.template_filter('distance')
-def format_distance(meters):
-    """Format distance in meters to km"""
-    if meters is None:
-        return '0 km'
-    km = meters / 1000
-    return f'{km:.2f} km'
-
-
-@app.template_filter('speed')
-def format_speed(knots):
-    """Convert knots to km/h"""
-    if knots is None:
-        return '0 km/h'
-    kmh = knots * 1.852
-    return f'{kmh:.1f} km/h'
-
-
-@app.template_filter('duration')
-def format_duration(seconds):
-    """Format duration in seconds to human readable"""
-    if seconds is None:
-        return '0s'
-
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    secs = seconds % 60
-
-    if hours > 0:
-        return f'{int(hours)}h {int(minutes)}m'
-    elif minutes > 0:
-        return f'{int(minutes)}m {int(secs)}s'
-    else:
-        return f'{int(secs)}s'
-
-
-@app.template_filter('timeago')
-def format_timeago(value):
-    """Format datetime as time ago"""
-    if isinstance(value, str):
-        try:
-            value = datetime.fromisoformat(value.replace('Z', '+00:00'))
-        except:
-            return value
-
-    if isinstance(value, datetime):
-        now = datetime.now(value.tzinfo) if value.tzinfo else datetime.now()
-        diff = now - value
-
-        seconds = diff.total_seconds()
-
-        if seconds < 60:
-            return 'just now'
-        elif seconds < 3600:
-            minutes = int(seconds / 60)
-            return f'{minutes}m ago'
-        elif seconds < 86400:
-            hours = int(seconds / 3600)
-            return f'{hours}h ago'
-        else:
-            days = int(seconds / 86400)
-            return f'{days}d ago'
-
-    return value
-
-
-# Context processor - add global variables to all templates
-@app.context_processor
-def inject_globals():
-    """Inject global variables into templates"""
-    return {
-        'app_name': config['app']['name'],
-        'company_name': config['app']['company'],
-        'current_year': datetime.now().year,
-        'geocoding_enabled': geocoding_service is not None
+    """Health check endpoint completo"""
+    health_status = {
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'services': {}
     }
 
+    overall_healthy = True
 
-# Before request handler
+    # Check Traccar
+    try:
+        server_info = traccar.server.get_server_info()
+        health_status['services']['traccar'] = {
+            'status': 'healthy',
+            'version': server_info.get('version'),
+            'host': f"{config['traccar']['host']}:{config['traccar']['port']}"
+        }
+    except Exception as e:
+        health_status['services']['traccar'] = {
+            'status': 'unhealthy',
+            'error': str(e)
+        }
+        overall_healthy = False
+
+    # Check Database
+    try:
+        db.get_alerts(limit=1)
+        health_status['services']['database'] = {
+            'status': 'healthy',
+            'path': config['database']['path']
+        }
+    except Exception as e:
+        health_status['services']['database'] = {
+            'status': 'unhealthy',
+            'error': str(e)
+        }
+        overall_healthy = False
+
+    # Check Geocoding Service
+    if geocoding_service:
+        try:
+            stats = geocoding_service.get_statistics()
+            health_status['services']['geocoding'] = {
+                'status': 'healthy',
+                'cache_addresses': stats.get('cache_stats', {}).get('total_addresses', 0),
+                'hit_rate': stats.get('cache_stats', {}).get('hit_rate_percent', 0)
+            }
+        except Exception as e:
+            health_status['services']['geocoding'] = {
+                'status': 'degraded',
+                'error': str(e)
+            }
+    else:
+        health_status['services']['geocoding'] = {
+            'status': 'disabled',
+            'message': 'Geocoding service not configured'
+        }
+
+    # Check Cache Manager
+    try:
+        cache_info = cache_manager.get_service_info()
+        health_status['services']['cache_manager'] = {
+            'status': 'healthy',
+            'running': cache_manager.running,
+            'registered_services': len(cache_info),
+            'cleanup_interval_hours': cache_manager.cleanup_interval_hours
+        }
+    except Exception as e:
+        health_status['services']['cache_manager'] = {
+            'status': 'unhealthy',
+            'error': str(e)
+        }
+
+    health_status['status'] = 'healthy' if overall_healthy else 'degraded'
+    status_code = 200 if overall_healthy else 503
+
+    return jsonify(health_status), status_code
+
+
+# Route diretta per compatibility con il template esistente
+@app.route('/status')
+def status_redirect():
+    """Redirect al blueprint status per compatibility"""
+    if STATUS_AVAILABLE:
+        return redirect(url_for('status.index'))
+    else:
+        # Fallback se status blueprint non disponibile
+        return redirect(url_for('health'))
+
+
 @app.before_request
 def before_request():
-    """Execute before each request"""
-    # Make session permanent
-    session.permanent = True
-    app.permanent_session_lifetime = timedelta(hours=24)
-
-    # Log request (if debug enabled)
-    if config['flask'].get('debug', False):
-        app.logger.debug(f'{request.method} {request.path}')
+    """Eseguito prima di ogni richiesta"""
+    # Rate limiting se abilitato
+    if config.get('security', {}).get('enable_rate_limiting', False):
+        # Implementa rate limiting qui se necessario
+        pass
 
 
-# After request handler
 @app.after_request
 def after_request(response):
-    """Execute after each request"""
-    # Add security headers
+    """Eseguito dopo ogni richiesta"""
+    # Aggiungi header di sicurezza
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
 
+    # CORS headers se abilitato
+    if config.get('security', {}).get('enable_cors', True):
+        allowed_origins = config.get('security', {}).get('allowed_origins', ['*'])
+        if '*' in allowed_origins:
+            response.headers['Access-Control-Allow-Origin'] = '*'
+
     return response
 
 
-# Cleanup on shutdown
 @app.teardown_appcontext
 def cleanup(error=None):
-    """Cleanup resources"""
+    """Pulizia risorse al termine del contesto"""
+    if error:
+        logger.error(f"Errore nel contesto app: {error}")
+
+
+def shutdown_handler():
+    """Handler per shutdown dell'applicazione"""
+    logger.info("🛑 Shutdown dell'applicazione in corso...")
+
+    # Ferma cache manager
+    cache_manager.stop_automatic_cleanup()
+
+    # Chiudi geocoding service
     if geocoding_service:
         try:
             geocoding_service.close()
-        except:
-            pass
+            logger.info("🌍 Geocoding service chiuso")
+        except Exception as e:
+            logger.error(f"Errore chiusura geocoding service: {e}")
+
+    # Chiudi database
+    try:
+        if hasattr(db, 'close'):
+            db.close()
+            logger.info("📊 Database chiuso")
+    except Exception as e:
+        logger.error(f"Errore chiusura database: {e}")
+
+    logger.info("✅ Shutdown completato")
 
 
-# Startup check
+# Registra handler per shutdown
+atexit.register(shutdown_handler)
+
+
 def startup_check():
-    """Perform startup checks"""
-    print("\n" + "=" * 60)
-    print("🚀 Fleet Manager Pro - Enhanced Edition")
-    print("=" * 60)
+    """Controlli di avvio dell'applicazione"""
+    print("\n" + "=" * 70)
+    print("🚀 Fleet Manager Pro - Enhanced Edition v2.0")
+    print("=" * 70)
 
-    # Check Traccar connection
-    print("\n📡 Checking Traccar connection...")
+    # Check Traccar
+    print("\n📡 Controllo connessione Traccar...")
     try:
         server_info = traccar.server.get_server_info()
-        print(f"✅ Connected to Traccar v{server_info.get('version')}")
+        print(f"✅ Connesso a Traccar v{server_info.get('version')}")
         print(
             f"   Server: {config['traccar'].get('protocol', 'http')}://{config['traccar']['host']}:{config['traccar']['port']}")
     except Exception as e:
-        print(f"❌ Failed to connect to Traccar: {e}")
-        print("⚠️  Application will start but some features may not work")
+        print(f"❌ Errore connessione Traccar: {e}")
+        print("⚠️ L'applicazione partirà ma alcune funzioni potrebbero non funzionare")
 
     # Check database
-    print("\n💾 Checking database...")
+    print("\n💾 Controllo database...")
     try:
         db.get_alerts(limit=1)
-        print(f"✅ Database ready at {config['database']['path']}")
+        print(f"✅ Database operativo: {config['database']['path']}")
     except Exception as e:
-        print(f"⚠️  Database warning: {e}")
+        print(f"⚠️ Warning database: {e}")
 
     # Check geocoding service
-    print("\n🌍 Checking Geocoding service...")
+    print("\n🌍 Controllo servizio Geocoding...")
     if geocoding_service:
         try:
             stats = geocoding_service.get_statistics()
-            print(f"✅ Geocoding service active")
+            cache_stats = stats.get('cache_stats', {})
+            print(f"✅ Servizio Geocoding attivo")
             print(f"   Cache DB: {config.get('geocoding', {}).get('cache_db_path', 'N/A')}")
-            print(f"   Cached addresses: {stats['cache_stats']['total_addresses']}")
-            print(f"   Cache size: {stats['cache_stats']['db_size_kb']:.2f} KB")
+            print(f"   Indirizzi in cache: {cache_stats.get('total_addresses', 0)}")
+            print(f"   Dimensione cache: {cache_stats.get('db_size_mb', 0):.2f} MB")
+            print(f"   Hit rate: {cache_stats.get('hit_rate_percent', 0):.1f}%")
         except Exception as e:
-            print(f"⚠️  Geocoding service error: {e}")
+            print(f"⚠️ Errore servizio Geocoding: {e}")
     else:
-        print("⚠️  Geocoding service not configured")
+        print("⚠️ Servizio Geocoding non configurato")
 
-    print("\n" + "=" * 60)
-    print(f"✨ Application ready!")
-    print(f"🌐 Access at: http://{config['flask']['host']}:{config['flask']['port']}")
-    print("=" * 60 + "\n")
+    # Check cache manager
+    print("\n🔧 Controllo Cache Manager...")
+    try:
+        services_info = cache_manager.get_service_info()
+        print(f"✅ Cache Manager attivo")
+        print(f"   Servizi registrati: {len(services_info)}")
+        print(f"   Pulizia automatica: {'Attiva' if cache_manager.running else 'Inattiva'}")
+        print(f"   Intervallo pulizia: {cache_manager.cleanup_interval_hours}h")
 
-    # Mostra API endpoints disponibili
-    if config['flask'].get('debug', False):
-        print("📋 Available API Endpoints:")
-        print("   • /api/vehicles - Vehicle management")
-        print("   • /api/positions - GPS positions")
-        print("   • /api/reports - Trip reports")
-        if geocoding_service:
-            print("   • /api/geocoding/reverse - Reverse geocoding")
-            print("   • /api/geocoding/batch - Batch geocoding")
-            print("   • /api/geocoding/traccar/positions - Positions with addresses")
-        print()
+        for service in services_info:
+            print(f"   - {service['name']}: cleanup={service['cleanup_method']}")
+    except Exception as e:
+        print(f"⚠️ Errore Cache Manager: {e}")
+
+    # Check blueprints
+    print("\n🔌 Blueprint registrati...")
+    if STATUS_AVAILABLE:
+        print("✅ Status Blueprint: /status")
+    if CACHE_MANAGEMENT_AVAILABLE:
+        print("✅ Cache Management Blueprint: /api/cache")
+    if GEOCODING_AVAILABLE and geocoding_service:
+        print("✅ Geocoding Blueprint: /api/geocoding")
+
+    print("\n" + "=" * 70)
+    print("✨ Applicazione pronta!")
+    print(f"🌐 URL: http://localhost:5000")
+    print(f"📊 Dashboard: http://localhost:5000/dashboard")
+    print(f"📱 Health check: http://localhost:5000/health")
+    if STATUS_AVAILABLE:
+        print(f"🔧 System status: http://localhost:5000/status")
+    print(f"🗂️ Cache stats: http://localhost:5000/api/cache/statistics")
+    print("=" * 70)
+    print()
 
 
 if __name__ == '__main__':
-    # Crea directory necessarie all'avvio
-    for directory in ['data', 'data/route_cache', 'templates', 'static']:
-        if not os.path.exists(directory):
-            os.makedirs(directory, exist_ok=True)
-
-    # Perform startup checks
     startup_check()
 
-    # Run Flask app
-    app.run(
-        host=config['flask']['host'],
-        port=config['flask']['port'],
-        debug=config['flask'].get('debug', False),
-        threaded=True
-    )
+    try:
+        app.run(
+            debug=config.get('app', {}).get('debug', False),
+            host='0.0.0.0',
+            port=5000
+        )
+    except KeyboardInterrupt:
+        print("\n🛑 Interruzione da tastiera ricevuta")
+        shutdown_handler()
+    except Exception as e:
+        logger.error(f"❌ Errore avvio applicazione: {e}")
+        shutdown_handler()
+        raise

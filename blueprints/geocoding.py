@@ -1,288 +1,426 @@
 # blueprints/geocoding.py
 """
-Geocoding API Blueprint - Endpoint per servizio di geocoding
+Blueprint per API Geocoding con cache SQLite
+Fornisce endpoint REST per servizi di geocoding
 """
 
 from flask import Blueprint, jsonify, request, current_app
-from core.services.geocoding_service import GeocodingService
+from datetime import datetime
 import logging
 
-geocoding_bp = Blueprint('geocoding', __name__)
-logger = logging.getLogger('GeocodingAPI')
+logger = logging.getLogger('GeocodingBlueprint')
 
-# Inizializza il servizio (verrà fatto nell'app principale)
-geocoding_service = None
+geocoding_bp = Blueprint('geocoding', __name__)
 
 
 def init_geocoding_service(app):
-    """Inizializza il servizio geocoding con configurazione app"""
-    global geocoding_service
-
-    config = app.config.get('CONFIG', {})
-    google_config = config.get('google_maps', {})
-    geocoding_config = config.get('geocoding', {})
-
-    geocoding_service = GeocodingService(
-        api_key=google_config.get('api_key'),
-        cache_db_path=geocoding_config.get('cache_db_path', 'geocoding_cache.db')
-    )
-
-    logger.info("🌍 Geocoding service inizializzato per Flask API")
-    return geocoding_service
+    """Inizializza il servizio geocoding nel contesto dell'app"""
+    with app.app_context():
+        app.geocoding_service = current_app.config.get('GEOCODING_SERVICE')
 
 
-@geocoding_bp.route('/reverse', methods=['GET', 'POST'])
+@geocoding_bp.route('/reverse', methods=['POST'])
 def reverse_geocode():
     """
-    Reverse geocoding - ottieni indirizzo da coordinate
-
-    GET params:
-        - lat: latitudine
-        - lon: longitudine
-        - language: lingua (opzionale, default: it)
-
-    POST body:
-        {
-            "latitude": 41.9028,
-            "longitude": 12.4964,
-            "language": "it"
-        }
+    Reverse geocoding: coordinate -> indirizzo
+    POST /api/geocoding/reverse
+    Body: {"latitude": 45.0642, "longitude": 7.6614, "force_refresh": false}
     """
-    if request.method == 'POST':
-        data = request.get_json()
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
-        language = data.get('language', 'it')
-    else:
-        latitude = request.args.get('lat', type=float)
-        longitude = request.args.get('lon', type=float)
-        language = request.args.get('language', 'it')
-
-    if latitude is None or longitude is None:
-        return jsonify({
-            'error': 'Missing required parameters: latitude and longitude'
-        }), 400
-
     try:
-        address = geocoding_service.get_address_from_coords(latitude, longitude, language)
+        data = request.get_json()
+
+        if not data or 'latitude' not in data or 'longitude' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Parametri latitude e longitude richiesti'
+            }), 400
+
+        latitude = float(data['latitude'])
+        longitude = float(data['longitude'])
+        force_refresh = data.get('force_refresh', False)
+
+        # Validazione coordinate
+        if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+            return jsonify({
+                'success': False,
+                'error': 'Coordinate non valide'
+            }), 400
+
+        geocoding_service = current_app.config.get('GEOCODING_SERVICE')
+        if not geocoding_service:
+            return jsonify({
+                'success': False,
+                'error': 'Servizio geocoding non disponibile'
+            }), 503
+
+        # Esegui reverse geocoding
+        address = geocoding_service.get_address_from_coordinates(
+            latitude, longitude, force_refresh
+        )
 
         if address:
             return jsonify({
                 'success': True,
                 'address': {
-                    'formatted': address.formatted_address,
+                    'formatted_address': address.formatted_address,
                     'street': address.street,
                     'city': address.city,
                     'state': address.state,
                     'country': address.country,
-                    'postal_code': address.postal_code
+                    'postal_code': address.postal_code,
+                    'latitude': address.latitude,
+                    'longitude': address.longitude
                 },
-                'coordinates': {
-                    'latitude': latitude,
-                    'longitude': longitude
-                }
+                'source': 'cache' if not force_refresh else 'api',
+                'timestamp': datetime.now().isoformat()
             })
         else:
             return jsonify({
                 'success': False,
-                'error': 'Address not found'
+                'error': 'Indirizzo non trovato per le coordinate specificate',
+                'latitude': latitude,
+                'longitude': longitude
             }), 404
 
-    except Exception as e:
-        logger.error(f"Errore geocoding: {e}")
+    except ValueError as e:
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'Parametri non validi: {str(e)}'
+        }), 400
+    except Exception as e:
+        logger.error(f"Errore reverse geocoding: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Errore interno del server'
         }), 500
 
 
 @geocoding_bp.route('/batch', methods=['POST'])
-def batch_reverse_geocode():
+def batch_geocode():
     """
-    Batch reverse geocoding - geocodifica multiple coordinate
-
-    POST body:
-        {
-            "coordinates": [
-                {"latitude": 41.9028, "longitude": 12.4964},
-                {"latitude": 45.4642, "longitude": 9.1900}
-            ],
-            "language": "it"
-        }
+    Batch reverse geocoding per multiple coordinate
+    POST /api/geocoding/batch
+    Body: {"coordinates": [[45.0642, 7.6614], [45.0700, 7.6700]]}
     """
-    data = request.get_json()
-    coordinates = data.get('coordinates', [])
-    language = data.get('language', 'it')
+    try:
+        data = request.get_json()
 
-    if not coordinates:
-        return jsonify({'error': 'No coordinates provided'}), 400
+        if not data or 'coordinates' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Array coordinates richiesto'
+            }), 400
 
-    results = []
+        coordinates = data['coordinates']
 
-    for coord in coordinates:
-        lat = coord.get('latitude')
-        lon = coord.get('longitude')
+        if not isinstance(coordinates, list) or len(coordinates) == 0:
+            return jsonify({
+                'success': False,
+                'error': 'Array coordinates deve contenere almeno una coordinata'
+            }), 400
 
-        if lat is not None and lon is not None:
-            address = geocoding_service.get_address_from_coords(lat, lon, language)
+        if len(coordinates) > 100:  # Limite per evitare sovraccarico
+            return jsonify({
+                'success': False,
+                'error': 'Massimo 100 coordinate per richiesta batch'
+            }), 400
 
-            results.append({
-                'coordinates': {'latitude': lat, 'longitude': lon},
-                'address': {
-                    'formatted': address.formatted_address,
-                    'city': address.city,
-                    'country': address.country
-                } if address else None
-            })
+        # Valida e converti coordinate
+        coord_tuples = []
+        for i, coord in enumerate(coordinates):
+            if not isinstance(coord, list) or len(coord) != 2:
+                return jsonify({
+                    'success': False,
+                    'error': f'Coordinata {i} deve essere [lat, lon]'
+                }), 400
 
-    return jsonify({
-        'success': True,
-        'count': len(results),
-        'results': results
-    })
+            try:
+                lat, lon = float(coord[0]), float(coord[1])
+                if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+                    return jsonify({
+                        'success': False,
+                        'error': f'Coordinata {i} non valida: [{lat}, {lon}]'
+                    }), 400
+                coord_tuples.append((lat, lon))
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'error': f'Coordinata {i} deve essere numerica'
+                }), 400
+
+        geocoding_service = current_app.config.get('GEOCODING_SERVICE')
+        if not geocoding_service:
+            return jsonify({
+                'success': False,
+                'error': 'Servizio geocoding non disponibile'
+            }), 503
+
+        # Esegui batch geocoding
+        results = geocoding_service.batch_geocode(coord_tuples)
+
+        # Formatta risultati
+        formatted_results = []
+        for lat, lon in coord_tuples:
+            address = results.get((lat, lon))
+            if address:
+                formatted_results.append({
+                    'latitude': lat,
+                    'longitude': lon,
+                    'success': True,
+                    'address': {
+                        'formatted_address': address.formatted_address,
+                        'street': address.street,
+                        'city': address.city,
+                        'state': address.state,
+                        'country': address.country,
+                        'postal_code': address.postal_code
+                    }
+                })
+            else:
+                formatted_results.append({
+                    'latitude': lat,
+                    'longitude': lon,
+                    'success': False,
+                    'error': 'Indirizzo non trovato'
+                })
+
+        successful_count = len(results)
+
+        return jsonify({
+            'success': True,
+            'results': formatted_results,
+            'summary': {
+                'total_requested': len(coordinates),
+                'successful': successful_count,
+                'failed': len(coordinates) - successful_count,
+                'success_rate': (successful_count / len(coordinates)) * 100
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Errore batch geocoding: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Errore interno del server'
+        }), 500
 
 
 @geocoding_bp.route('/statistics', methods=['GET'])
 def get_statistics():
-    """Ottieni statistiche del servizio geocoding"""
-    stats = geocoding_service.get_statistics()
+    """
+    Ottieni statistiche del servizio geocoding
+    GET /api/geocoding/statistics
+    """
+    try:
+        geocoding_service = current_app.config.get('GEOCODING_SERVICE')
+        if not geocoding_service:
+            return jsonify({
+                'success': False,
+                'error': 'Servizio geocoding non disponibile'
+            }), 503
 
-    return jsonify({
-        'success': True,
-        'statistics': stats
-    })
+        stats = geocoding_service.get_statistics()
+
+        return jsonify({
+            'success': True,
+            'statistics': stats,
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Errore recupero statistiche: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Errore interno del server'
+        }), 500
 
 
 @geocoding_bp.route('/cache/cleanup', methods=['POST'])
 def cleanup_cache():
-    """Pulisci cache scaduta"""
-    deleted_count = geocoding_service.cleanup_cache()
-
-    return jsonify({
-        'success': True,
-        'deleted_entries': deleted_count
-    })
-
-
-@geocoding_bp.route('/traccar/positions', methods=['GET'])
-def get_traccar_positions_with_addresses():
     """
-    Ottieni posizioni Traccar con indirizzi geocodificati
-
-    Query params:
-        - device_id: ID dispositivo (opzionale)
-        - limit: numero massimo risultati (default: 10)
+    Pulizia manuale della cache
+    POST /api/geocoding/cache/cleanup
     """
-    traccar = current_app.config.get('TRACCAR_API')
-
-    device_id = request.args.get('device_id', type=int)
-    limit = request.args.get('limit', 10, type=int)
-
     try:
-        # Ottieni posizioni da Traccar
-        if device_id:
-            positions = traccar.get_positions(device_id=device_id)
-        else:
-            positions = traccar.get_positions()
-
-        # Limita risultati
-        positions = positions[:limit]
-
-        # Arricchisci con geocoding
-        enriched_positions = []
-
-        for pos in positions:
-            address = geocoding_service.get_address_from_coords(
-                pos['latitude'],
-                pos['longitude']
-            )
-
-            enriched_pos = {
-                'device_id': pos['deviceId'],
-                'position': {
-                    'latitude': pos['latitude'],
-                    'longitude': pos['longitude'],
-                    'speed': pos.get('speed', 0),
-                    'course': pos.get('course', 0)
-                },
-                'address': {
-                    'formatted': address.formatted_address,
-                    'city': address.city,
-                    'country': address.country
-                } if address else None,
-                'timestamp': pos.get('fixTime') or pos.get('deviceTime')
-            }
-
-            enriched_positions.append(enriched_pos)
-
-        return jsonify({
-            'success': True,
-            'count': len(enriched_positions),
-            'positions': enriched_positions
-        })
-
-    except Exception as e:
-        logger.error(f"Errore recupero posizioni: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-
-@geocoding_bp.route('/traccar/device/<int:device_id>/location', methods=['GET'])
-def get_device_location_with_address(device_id):
-    """Ottieni posizione corrente dispositivo con indirizzo"""
-    traccar = current_app.config.get('TRACCAR_API')
-
-    try:
-        positions = traccar.get_positions(device_id=device_id)
-
-        if not positions:
+        geocoding_service = current_app.config.get('GEOCODING_SERVICE')
+        if not geocoding_service:
             return jsonify({
                 'success': False,
-                'error': 'No position found for device'
-            }), 404
+                'error': 'Servizio geocoding non disponibile'
+            }), 503
 
-        # Ultima posizione
-        latest_pos = positions[0]
-
-        # Geocodifica
-        address = geocoding_service.get_address_from_coords(
-            latest_pos['latitude'],
-            latest_pos['longitude']
-        )
-
-        # Info dispositivo
-        device = traccar.get_device(device_id)
+        deleted_count = geocoding_service.cleanup_cache()
 
         return jsonify({
             'success': True,
-            'device': {
-                'id': device_id,
-                'name': device.get('name'),
-                'status': device.get('status')
-            },
-            'location': {
-                'latitude': latest_pos['latitude'],
-                'longitude': latest_pos['longitude'],
-                'speed': latest_pos.get('speed', 0),
-                'course': latest_pos.get('course', 0),
-                'altitude': latest_pos.get('altitude', 0)
-            },
-            'address': {
-                'formatted': address.formatted_address,
-                'street': address.street,
-                'city': address.city,
-                'state': address.state,
-                'country': address.country,
-                'postal_code': address.postal_code
-            } if address else None,
-            'timestamp': latest_pos.get('fixTime') or latest_pos.get('deviceTime')
+            'message': f'Cache pulita: {deleted_count} indirizzi rimossi',
+            'deleted_entries': deleted_count,
+            'timestamp': datetime.now().isoformat()
         })
 
     except Exception as e:
-        logger.error(f"Errore recupero location: {e}")
+        logger.error(f"Errore pulizia cache: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Errore interno del server'
         }), 500
+
+
+@geocoding_bp.route('/cache/optimize', methods=['POST'])
+def optimize_cache():
+    """
+    Ottimizza database cache
+    POST /api/geocoding/cache/optimize
+    """
+    try:
+        geocoding_service = current_app.config.get('GEOCODING_SERVICE')
+        if not geocoding_service:
+            return jsonify({
+                'success': False,
+                'error': 'Servizio geocoding non disponibile'
+            }), 503
+
+        geocoding_service.optimize_cache()
+
+        return jsonify({
+            'success': True,
+            'message': 'Database cache ottimizzato',
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Errore ottimizzazione cache: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Errore interno del server'
+        }), 500
+
+
+@geocoding_bp.route('/search', methods=['GET'])
+def search_addresses():
+    """
+    Ricerca indirizzi nella cache
+    GET /api/geocoding/search?country=Italy&city=Milano&limit=50
+    """
+    try:
+        geocoding_service = current_app.config.get('GEOCODING_SERVICE')
+        if not geocoding_service:
+            return jsonify({
+                'success': False,
+                'error': 'Servizio geocoding non disponibile'
+            }), 503
+
+        country = request.args.get('country')
+        city = request.args.get('city')
+        state = request.args.get('state')
+        limit = min(int(request.args.get('limit', 50)), 200)  # Max 200
+
+        addresses = geocoding_service.cache.get_addresses_by_region(
+            country=country,
+            state=state,
+            city=city,
+            limit=limit
+        )
+
+        return jsonify({
+            'success': True,
+            'addresses': addresses,
+            'filters': {
+                'country': country,
+                'state': state,
+                'city': city,
+                'limit': limit
+            },
+            'count': len(addresses),
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': f'Parametro limit non valido: {str(e)}'
+        }), 400
+    except Exception as e:
+        logger.error(f"Errore ricerca indirizzi: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Errore interno del server'
+        }), 500
+
+
+@geocoding_bp.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check del servizio geocoding
+    GET /api/geocoding/health
+    """
+    try:
+        geocoding_service = current_app.config.get('GEOCODING_SERVICE')
+
+        if not geocoding_service:
+            return jsonify({
+                'success': False,
+                'status': 'unhealthy',
+                'error': 'Servizio geocoding non configurato'
+            }), 503
+
+        # Test connessione cache
+        try:
+            stats = geocoding_service.cache.get_statistics()
+            cache_healthy = True
+            cache_error = None
+        except Exception as e:
+            cache_healthy = False
+            cache_error = str(e)
+
+        health_status = {
+            'success': True,
+            'status': 'healthy' if cache_healthy else 'degraded',
+            'service': 'geocoding',
+            'cache': {
+                'status': 'healthy' if cache_healthy else 'error',
+                'error': cache_error,
+                'total_addresses': stats.get('cache_stats', {}).get('total_addresses', 0) if cache_healthy else 0
+            },
+            'api': {
+                'status': 'configured' if geocoding_service.api_key else 'missing_key'
+            },
+            'timestamp': datetime.now().isoformat()
+        }
+
+        status_code = 200 if cache_healthy else 503
+        return jsonify(health_status), status_code
+
+    except Exception as e:
+        logger.error(f"Errore health check: {e}")
+        return jsonify({
+            'success': False,
+            'status': 'unhealthy',
+            'error': 'Errore interno del server'
+        }), 500
+
+
+# Error handlers per il blueprint
+@geocoding_bp.errorhandler(404)
+def not_found(error):
+    return jsonify({
+        'success': False,
+        'error': 'Endpoint non trovato'
+    }), 404
+
+
+@geocoding_bp.errorhandler(405)
+def method_not_allowed(error):
+    return jsonify({
+        'success': False,
+        'error': 'Metodo HTTP non consentito'
+    }), 405
+
+
+@geocoding_bp.errorhandler(500)
+def internal_error(error):
+    return jsonify({
+        'success': False,
+        'error': 'Errore interno del server'
+    }), 500
