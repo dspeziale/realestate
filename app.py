@@ -215,6 +215,19 @@ def login_required(f):
     return decorated_function
 
 
+def datetime_filter(datetime_str):
+    """Convert datetime string to formatted string"""
+    if not datetime_str:
+        return 'N/A'
+    try:
+        if isinstance(datetime_str, str):
+            dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+        else:
+            dt = datetime_str
+        return dt.strftime('%d/%m/%Y %H:%M')
+    except:
+        return str(datetime_str)
+
 @app.route('/')
 def index():
     """Route principale - redirect in base allo stato auth"""
@@ -376,6 +389,7 @@ def shutdown_handler():
 
 # Registra handler per shutdown
 atexit.register(shutdown_handler)
+app.jinja_env.filters['datetime'] = datetime_filter
 
 
 def startup_check():

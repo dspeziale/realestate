@@ -19,6 +19,38 @@
     .filter-btn { transition: all 0.2s ease; }
     .filter-btn.active { background: #3b82f6; color: white; }
 
+    /* Enhanced popup styles */
+    .vehicle-popup {
+        min-width: 320px;
+    }
+    .vehicle-popup .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px 8px 0 0;
+        margin: -12px -16px 12px -16px;
+    }
+    .vehicle-popup .status-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .vehicle-popup .status-active {
+        background: #10b981;
+        color: white;
+    }
+    .vehicle-popup .status-stopped {
+        background: #f59e0b;
+        color: white;
+    }
+    .vehicle-popup .status-offline {
+        background: #ef4444;
+        color: white;
+    }
+
     /* Fullscreen styles */
     .fullscreen #map { top: 0; }
     .fullscreen .left-sidebar,
@@ -83,6 +115,10 @@
         /* Mobile toggle button - hide it on mobile */
         .mobile-toggle {
             display: none;
+        }
+
+        .vehicle-popup {
+            min-width: 280px;
         }
     }
 
@@ -346,11 +382,11 @@
 
         vehicles.forEach(v => {
             if (v.latitude && v.longitude) {
-                const status = v.status === 'online' && v.speed > 0 ? 'active' : 'stopped';
-                const color = status === 'active' ? '#10b981' : '#f59e0b';
+                const status = getVehicleStatus(v);
+                const color = getStatusColor(status);
 
                 const marker = L.circleMarker([v.latitude, v.longitude], {
-                    radius: 8,
+                    radius: 10,
                     fillColor: color,
                     color: '#fff',
                     weight: 3,
@@ -358,13 +394,12 @@
                     fillOpacity: 0.9
                 }).addTo(map);
 
-                marker.bindPopup(`
-                    <div class="p-2">
-                        <div class="font-semibold text-sm">${v.name}</div>
-                        <div class="text-xs text-gray-600 mt-1">Velocità: ${v.speed || 0} km/h</div>
-                        <div class="text-xs text-gray-600">Stato: ${status === 'active' ? 'In movimento' : 'Fermo'}</div>
-                    </div>
-                `);
+                // Enhanced popup with detailed information
+                marker.bindPopup(createVehiclePopup(v), {
+                    className: 'vehicle-popup',
+                    maxWidth: 350,
+                    offset: [0, -10]
+                });
 
                 vehicleMarkers[v.id] = marker;
             }
@@ -375,6 +410,127 @@
         if (bounds.length > 0) {
             map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
         }
+    }
+
+    function getVehicleStatus(vehicle) {
+        if (vehicle.status === 'offline') return 'offline';
+        if (vehicle.status === 'online' && vehicle.speed > 0) return 'active';
+        return 'stopped';
+    }
+
+    function getStatusColor(status) {
+        switch (status) {
+            case 'active': return '#10b981';
+            case 'stopped': return '#f59e0b';
+            case 'offline': return '#ef4444';
+            default: return '#6b7280';
+        }
+    }
+
+    function getStatusText(status) {
+        switch (status) {
+            case 'active': return 'In movimento';
+            case 'stopped': return 'Fermo';
+            case 'offline': return 'Offline';
+            default: return 'Sconosciuto';
+        }
+    }
+
+    function createVehiclePopup(vehicle) {
+        const status = getVehicleStatus(vehicle);
+        const statusText = getStatusText(status);
+        const lastUpdate = vehicle.lastUpdate ? new Date(vehicle.lastUpdate).toLocaleString('it-IT') : 'N/A';
+        const attributes = vehicle.attributes || {};
+
+        return `
+            <div class="vehicle-popup">
+                <div class="header">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-bold">${vehicle.name}</h3>
+                        <span class="status-badge status-${status}">${statusText}</span>
+                    </div>
+                    <p class="text-sm opacity-90 mt-1">${vehicle.uniqueId || 'N/A'}</p>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Informazioni principali -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="text-center p-3 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600">${vehicle.speed || 0}</div>
+                            <div class="text-xs text-blue-800">km/h</div>
+                        </div>
+                        <div class="text-center p-3 bg-purple-50 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600">${vehicle.course || 0}°</div>
+                            <div class="text-xs text-purple-800">Direzione</div>
+                        </div>
+                    </div>
+
+                    <!-- Posizione e tempo -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-xs text-gray-600">Coordinate:</span>
+                            <span class="text-xs font-mono">${vehicle.latitude?.toFixed(6)}, ${vehicle.longitude?.toFixed(6)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-xs text-gray-600">Ultimo aggiornamento:</span>
+                            <span class="text-xs">${lastUpdate}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-xs text-gray-600">Altitudine:</span>
+                            <span class="text-xs">${attributes.altitude || 0} m</span>
+                        </div>
+                    </div>
+
+                    <!-- Informazioni aggiuntive -->
+                    <div class="border-t pt-2 space-y-1">
+                        <div class="flex justify-between">
+                            <span class="text-xs text-gray-600">Categoria:</span>
+                            <span class="text-xs">${vehicle.category || 'N/A'}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-xs text-gray-600">Modello:</span>
+                            <span class="text-xs">${vehicle.model || 'N/A'}</span>
+                        </div>
+                        ${vehicle.phone ? `
+                        <div class="flex justify-between">
+                            <span class="text-xs text-gray-600">Telefono:</span>
+                            <span class="text-xs">${vehicle.phone}</span>
+                        </div>
+                        ` : ''}
+                        ${attributes.batteryLevel ? `
+                        <div class="flex justify-between">
+                            <span class="text-xs text-gray-600">Batteria:</span>
+                            <span class="text-xs">${attributes.batteryLevel}%</span>
+                        </div>
+                        ` : ''}
+                        ${attributes.odometer ? `
+                        <div class="flex justify-between">
+                            <span class="text-xs text-gray-600">Odometro:</span>
+                            <span class="text-xs">${(attributes.odometer / 1000).toFixed(1)} km</span>
+                        </div>
+                        ` : ''}
+                        ${attributes.fuel ? `
+                        <div class="flex justify-between">
+                            <span class="text-xs text-gray-600">Carburante:</span>
+                            <span class="text-xs">${attributes.fuel}%</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Azioni -->
+                    <div class="flex gap-2 pt-2 border-t">
+                        <button class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-xs py-2 px-3 rounded-lg"
+                                onclick="window.open('/vehicles/${vehicle.id}', '_blank')">
+                            Dettagli
+                        </button>
+                        <button class="flex-1 bg-green-500 hover:bg-green-600 text-white text-xs py-2 px-3 rounded-lg"
+                                onclick="window.open('https://www.google.com/maps?q=${vehicle.latitude},${vehicle.longitude}', '_blank')">
+                            Google Maps
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     function updateStats(vehicles) {
@@ -415,7 +571,7 @@
     setInterval(() => {
         loadVehicles();
         document.getElementById('lastUpdate').textContent = 'ora';
-    }, 5000);
+    }, 10000);
 
     // Initial load
     loadVehicles();
@@ -441,8 +597,5 @@
             icon.classList.remove('rotate-180');
         }
     }
-
-    // Remove mobile-specific code
-    // Mobile users will use the collapse button instead
 </script>
 {% endblock %}
