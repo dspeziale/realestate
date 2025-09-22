@@ -1,277 +1,482 @@
 <!-- templates/vehicles/live_tracking.html -->
 {% extends "base.html" %}
 
-{% block title %}Live Tracking - {{ vehicle.name }}{% endblock %}
+{% block title %}Live Tracking {{ vehicle.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+    body { overflow: hidden; }
+    #liveMap { height: calc(100vh - 64px); }
+    .live-panel {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: saturate(180%) blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Header info bar -->
-<div class="bg-white p-4 flex items-center justify-between shadow-md border-b">
-    <div class="flex items-center space-x-4">
-        <a href="{{ url_for('vehicles.detail', vehicle_id=vehicle.id) }}"
-           class="text-gray-600 hover:text-gray-800 font-medium">
-            ← Back
-        </a>
-        <div>
-            <h2 class="text-xl font-bold text-gray-800">{{ vehicle.name }}</h2>
-            <p class="text-gray-600 text-sm">Live Tracking</p>
-        </div>
-    </div>
+<div class="fixed inset-0 top-16 z-0">
+    <div id="liveMap"></div>
+</div>
 
-    <div class="flex items-center space-x-4">
-        <div class="text-center">
-            <p class="text-gray-600 text-xs">Speed</p>
-            <p class="text-gray-800 font-bold" id="currentSpeed">-- km/h</p>
+<!-- Top Info Panel -->
+<div class="fixed top-20 left-6 z-20 w-80">
+    <div class="live-panel rounded-xl p-6 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">{{ vehicle.name }}</h2>
+                <p class="text-sm text-gray-600">{{ vehicle.uniqueId or vehicle.id }}</p>
+            </div>
+            <div class="live-status">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-green-500 rounded-full pulse"></div>
+                    <span class="text-sm font-medium text-green-600">LIVE</span>
+                </div>
+            </div>
         </div>
-        <div class="text-center">
-            <p class="text-gray-600 text-xs">Status</p>
-            <p class="font-bold text-green-600" id="connectionStatus">{{ vehicle.status|capitalize }}</p>
+
+        <!-- Current Status -->
+        <div id="currentStatus" class="space-y-3">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="text-center p-3 bg-blue-50 rounded-lg">
+                    <div class="text-2xl font-bold text-blue-600" id="currentSpeed">--</div>
+                    <div class="text-xs text-blue-800">km/h</div>
+                </div>
+                <div class="text-center p-3 bg-purple-50 rounded-lg">
+                    <div class="text-2xl font-bold text-purple-600" id="currentDirection">--</div>
+                    <div class="text-xs text-purple-800">direzione</div>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Posizione:</span>
+                    <span class="font-medium" id="currentCoords">--</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Ultimo aggiornamento:</span>
+                    <span class="font-medium" id="lastUpdate">--</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Stato:</span>
+                    <span class="font-medium" id="vehicleStatus">--</span>
+                </div>
+            </div>
         </div>
-        <div class="flex items-center space-x-2 px-3 py-1 bg-green-50 border border-green-200 rounded-lg">
-            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse" id="liveIndicator"></div>
-            <span class="text-sm text-green-700 font-medium">Live</span>
+
+        <!-- Controls -->
+        <div class="mt-6 pt-4 border-t border-gray-200">
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="centerOnVehicle()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    📍 Centra
+                </button>
+                <button onclick="toggleAutoFollow()" id="autoFollowBtn"
+                        class="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
+                    🎯 Segui
+                </button>
+            </div>
+            <button onclick="toggleHistory()" id="historyBtn"
+                    class="w-full mt-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                📊 Mostra Traccia
+            </button>
         </div>
     </div>
 </div>
 
-<!-- Map Container - FIXED HEIGHT -->
-<div style="height: calc(100vh - 200px);" class="relative">
-    <div id="map" class="w-full h-full"></div>
+<!-- Right Controls Panel -->
+<div class="fixed top-20 right-6 z-20 w-64">
+    <div class="live-panel rounded-xl p-4 shadow-xl">
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">⚙️ Controlli</h3>
 
-    <!-- Map Controls -->
-    <div class="absolute top-4 right-4 space-y-2 z-[1000]">
-        <button onclick="centerOnVehicle()"
-                class="bg-white border border-gray-300 p-3 rounded-lg hover:bg-gray-50 transition shadow-md"
-                title="Center on vehicle">
-            <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-            </svg>
-        </button>
+        <!-- Auto refresh -->
+        <div class="mb-4">
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" id="autoRefresh" checked class="rounded">
+                <span class="text-sm text-gray-700">Aggiornamento automatico</span>
+            </label>
+            <div class="mt-2">
+                <label class="text-xs text-gray-600">Intervallo (secondi):</label>
+                <select id="refreshInterval" class="w-full mt-1 text-xs border rounded px-2 py-1">
+                    <option value="5">5 secondi</option>
+                    <option value="10" selected>10 secondi</option>
+                    <option value="30">30 secondi</option>
+                    <option value="60">1 minuto</option>
+                </select>
+            </div>
+        </div>
 
-        <button onclick="toggleAutoFollow()" id="autoFollowBtn"
-                class="bg-white border border-gray-300 p-3 rounded-lg hover:bg-gray-50 transition shadow-md bg-blue-100 border-blue-300"
-                title="Toggle auto-follow">
-            <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-        </button>
-    </div>
+        <!-- Track settings -->
+        <div class="mb-4">
+            <label class="text-xs font-medium text-gray-700 block mb-2">Traccia:</label>
+            <div class="space-y-1">
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" id="showTrack" class="rounded">
+                    <span class="text-xs text-gray-700">Mostra percorso</span>
+                </label>
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" id="showMarkers" class="rounded">
+                    <span class="text-xs text-gray-700">Mostra punti</span>
+                </label>
+            </div>
+        </div>
 
-    <!-- Error Message -->
-    <div id="errorMessage" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg z-[1000]">
-        <p class="font-semibold">Connection Error</p>
-        <p class="text-sm">Unable to fetch vehicle position</p>
+        <!-- Last positions -->
+        <div class="mb-4">
+            <label class="text-xs font-medium text-gray-700 block mb-2">Ultime posizioni:</label>
+            <select id="trackLength" class="w-full text-xs border rounded px-2 py-1">
+                <option value="10">10 punti</option>
+                <option value="50" selected>50 punti</option>
+                <option value="100">100 punti</option>
+                <option value="0">Tutte</option>
+            </select>
+        </div>
+
+        <!-- Actions -->
+        <div class="space-y-2">
+            <button onclick="refreshNow()"
+                    class="w-full px-3 py-2 bg-blue-500 text-white rounded-lg text-xs hover:bg-blue-600 transition-colors">
+                🔄 Aggiorna Ora
+            </button>
+            <a href="{{ url_for('vehicles.history', vehicle_id=vehicle.id) }}"
+               class="block w-full px-3 py-2 bg-gray-500 text-white rounded-lg text-xs hover:bg-gray-600 transition-colors text-center">
+                📊 Vai allo Storico
+            </a>
+        </div>
     </div>
 </div>
 
+<!-- Bottom Status Bar -->
+<div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
+    <div class="live-panel rounded-full px-6 py-3 shadow-xl">
+        <div class="flex items-center space-x-4 text-sm">
+            <div class="flex items-center space-x-2">
+                <div class="w-2 h-2 bg-green-500 rounded-full pulse"></div>
+                <span class="font-medium text-green-600">Connesso</span>
+            </div>
+            <div class="h-4 w-px bg-gray-300"></div>
+            <span class="text-gray-600">Prossimo aggiornamento: <span id="countdown" class="font-medium">--</span>s</span>
+            <div class="h-4 w-px bg-gray-300"></div>
+            <span class="text-gray-600">Posizioni: <span id="positionCount" class="font-medium">{{ positions|length }}</span></span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script>
-const vehicleId = {{ vehicle.id }};
-let map, vehicleMarker, routeLine;
-let autoFollow = true;
-let routeCoords = [];
-let updateInterval;
-let errorCount = 0;
-const MAX_ERRORS = 3;
+// Live tracking management
+class LiveTrackingManager {
+    constructor(vehicleId) {
+        this.vehicleId = vehicleId;
+        this.map = null;
+        this.currentMarker = null;
+        this.trackPolyline = null;
+        this.trackMarkers = [];
+        this.positions = [];
+        this.autoFollow = false;
+        this.showingHistory = false;
+        this.refreshTimer = null;
+        this.countdownTimer = null;
+        this.countdownValue = 0;
 
-// Initialize map
-function initMap() {
-    map = L.map('map', { zoomControl: false }).setView([41.9, 12.5], 6);
+        this.initMap();
+        this.loadInitialData();
+        this.setupEventListeners();
+        this.startAutoRefresh();
+    }
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap, © CartoDB',
-        maxZoom: 19
-    }).addTo(map);
+    initMap() {
+        this.map = L.map('liveMap').setView([41.9, 12.5], 10);
 
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(this.map);
+    }
 
-    // Force map to recalculate size
-    setTimeout(() => map.invalidateSize(), 100);
-}
-
-// Setup initial route
-function setupRoute() {
-    const initialPositions = {{ positions|tojson|safe }};
-
-    console.log('Initial positions:', initialPositions);
-
-    if (initialPositions && initialPositions.length > 0) {
-        initialPositions.forEach(pos => {
-            if (pos.latitude && pos.longitude) {
-                routeCoords.push([pos.latitude, pos.longitude]);
+    setupEventListeners() {
+        document.getElementById('autoRefresh').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                this.startAutoRefresh();
+            } else {
+                this.stopAutoRefresh();
             }
         });
 
-        if (routeCoords.length > 0) {
-            routeLine = L.polyline(routeCoords, {
-                color: '#3b82f6',
-                weight: 3,
-                opacity: 0.6
-            }).addTo(map);
+        document.getElementById('refreshInterval').addEventListener('change', () => {
+            if (document.getElementById('autoRefresh').checked) {
+                this.startAutoRefresh();
+            }
+        });
 
-            const lastPos = routeCoords[routeCoords.length - 1];
-            createVehicleMarker(lastPos);
-            map.setView(lastPos, 13);
+        document.getElementById('showTrack').addEventListener('change', (e) => {
+            this.toggleTrack(e.target.checked);
+        });
+
+        document.getElementById('showMarkers').addEventListener('change', (e) => {
+            this.toggleMarkers(e.target.checked);
+        });
+
+        document.getElementById('trackLength').addEventListener('change', () => {
+            this.updateTrackDisplay();
+        });
+    }
+
+    async loadInitialData() {
+        // Load initial positions
+        const positions = {{ positions|tojson|safe }};
+        this.positions = positions;
+        this.updatePositionCount();
+
+        if (positions.length > 0) {
+            this.updateCurrentPosition(positions[positions.length - 1]);
+            this.centerOnVehicle();
+        }
+
+        // Start real-time updates
+        this.refreshNow();
+    }
+
+    async refreshNow() {
+        try {
+            const response = await fetch(`/api/vehicles/${this.vehicleId}`);
+            const vehicle = await response.json();
+
+            if (vehicle.error) throw new Error(vehicle.error);
+
+            // Update current position if we have coordinates
+            if (vehicle.latitude && vehicle.longitude) {
+                const newPosition = {
+                    latitude: vehicle.latitude,
+                    longitude: vehicle.longitude,
+                    speed: vehicle.speed || 0,
+                    course: vehicle.course || 0,
+                    deviceTime: vehicle.lastUpdate,
+                    address: vehicle.address || ''
+                };
+
+                this.positions.push(newPosition);
+
+                // Keep only recent positions based on trackLength setting
+                const maxPositions = parseInt(document.getElementById('trackLength').value);
+                if (maxPositions > 0 && this.positions.length > maxPositions) {
+                    this.positions = this.positions.slice(-maxPositions);
+                }
+
+                this.updateCurrentPosition(newPosition);
+                this.updateTrackDisplay();
+                this.updatePositionCount();
+
+                if (this.autoFollow) {
+                    this.centerOnVehicle();
+                }
+            }
+
+        } catch (error) {
+            console.error('Error refreshing position:', error);
         }
     }
-}
 
-// Create vehicle marker
-function createVehicleMarker(position) {
-    if (vehicleMarker) {
-        vehicleMarker.setLatLng(position);
-        return;
+    updateCurrentPosition(position) {
+        // Update marker
+        const lat = position.latitude;
+        const lng = position.longitude;
+
+        if (this.currentMarker) {
+            this.map.removeLayer(this.currentMarker);
+        }
+
+        this.currentMarker = L.circleMarker([lat, lng], {
+            radius: 12,
+            fillColor: '#10b981',
+            color: '#fff',
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 0.9
+        }).addTo(this.map);
+
+        // Add direction arrow if we have course
+        if (position.course) {
+            const arrow = L.divIcon({
+                html: `<div style="transform: rotate(${position.course}deg); color: #fff; font-size: 16px;">➤</div>`,
+                iconSize: [20, 20],
+                className: 'direction-arrow'
+            });
+            L.marker([lat, lng], { icon: arrow }).addTo(this.map);
+        }
+
+        // Update UI
+        document.getElementById('currentSpeed').textContent = Math.round(position.speed || 0);
+        document.getElementById('currentDirection').textContent = this.getDirectionText(position.course);
+        document.getElementById('currentCoords').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        document.getElementById('lastUpdate').textContent = position.deviceTime ?
+            new Date(position.deviceTime).toLocaleTimeString('it-IT') : '--';
+        document.getElementById('vehicleStatus').textContent = position.speed > 0 ? '🚗 In movimento' : '⏸️ Fermo';
     }
 
-    vehicleMarker = L.marker(position, {
-        icon: L.divIcon({
-            html: `
-                <div class="relative">
-                    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
-                        </svg>
-                    </div>
-                    <div class="absolute top-0 left-0 w-10 h-10 bg-blue-600 rounded-full animate-ping opacity-75"></div>
-                </div>
-            `,
-            className: '',
-            iconSize: [40, 40]
-        })
-    }).addTo(map);
-}
+    updateTrackDisplay() {
+        // Remove existing track
+        if (this.trackPolyline) {
+            this.map.removeLayer(this.trackPolyline);
+        }
+        this.trackMarkers.forEach(marker => this.map.removeLayer(marker));
+        this.trackMarkers = [];
 
-// Update vehicle position
-function updatePosition() {
-    fetch(`/api/vehicles/${vehicleId}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(vehicle => {
-            errorCount = 0;
-            hideError();
+        if (!document.getElementById('showTrack').checked && !document.getElementById('showMarkers').checked) {
+            return;
+        }
 
-            if (vehicle.latitude && vehicle.longitude) {
-                const newPos = [vehicle.latitude, vehicle.longitude];
+        if (this.positions.length < 2) return;
 
-                if (vehicleMarker) {
-                    vehicleMarker.setLatLng(newPos);
-                } else {
-                    createVehicleMarker(newPos);
-                }
+        const coords = this.positions.map(p => [p.latitude, p.longitude]);
 
-                // Update route
-                routeCoords.push(newPos);
-                if (routeCoords.length > 100) routeCoords.shift();
+        // Show track line
+        if (document.getElementById('showTrack').checked) {
+            this.trackPolyline = L.polyline(coords, {
+                color: '#3b82f6',
+                weight: 3,
+                opacity: 0.7
+            }).addTo(this.map);
+        }
 
-                if (routeLine) {
-                    routeLine.setLatLngs(routeCoords);
-                } else {
-                    routeLine = L.polyline([newPos], {
-                        color: '#3b82f6',
-                        weight: 3,
-                        opacity: 0.6
-                    }).addTo(map);
-                }
+        // Show markers
+        if (document.getElementById('showMarkers').checked) {
+            this.positions.forEach((pos, index) => {
+                if (index === this.positions.length - 1) return; // Skip current position (already shown)
 
-                // Auto-follow
-                if (autoFollow) {
-                    map.panTo(newPos, {
-                        animate: true,
-                        duration: 0.5
-                    });
-                }
+                const marker = L.circleMarker([pos.latitude, pos.longitude], {
+                    radius: 4,
+                    fillColor: '#6b7280',
+                    color: '#fff',
+                    weight: 1,
+                    opacity: 0.8,
+                    fillOpacity: 0.6
+                }).addTo(this.map);
 
-                // Update UI
-                const speed = vehicle.speed || 0;
-                document.getElementById('currentSpeed').textContent = `${Math.round(speed)} km/h`;
-
-                const status = vehicle.status === 'online' ? 'Connected' : 'Offline';
-                const color = vehicle.status === 'online' ? 'green' : 'orange';
-                updateConnectionStatus(status, color);
-            }
-        })
-        .catch(err => {
-            console.error('Update error:', err);
-            errorCount++;
-
-            if (errorCount >= MAX_ERRORS) {
-                showError();
-                updateConnectionStatus('Error', 'red');
-            }
-        });
-}
-
-function updateConnectionStatus(status, color) {
-    const statusEl = document.getElementById('connectionStatus');
-    const indicator = document.getElementById('liveIndicator');
-
-    if (statusEl) {
-        statusEl.textContent = status;
-        statusEl.className = `font-bold text-${color}-600`;
+                this.trackMarkers.push(marker);
+            });
+        }
     }
 
-    if (indicator) {
-        indicator.className = `w-2 h-2 bg-${color}-500 rounded-full ${color === 'green' ? 'animate-pulse' : ''}`;
+    centerOnVehicle() {
+        if (this.currentMarker) {
+            this.map.setView(this.currentMarker.getLatLng(), 16);
+        }
+    }
+
+    toggleAutoFollow() {
+        this.autoFollow = !this.autoFollow;
+        const btn = document.getElementById('autoFollowBtn');
+
+        if (this.autoFollow) {
+            btn.textContent = '🎯 Seguendo';
+            btn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+            btn.classList.add('bg-green-600', 'hover:bg-green-700');
+            this.centerOnVehicle();
+        } else {
+            btn.textContent = '🎯 Segui';
+            btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            btn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+        }
+    }
+
+    toggleHistory() {
+        this.showingHistory = !this.showingHistory;
+        const btn = document.getElementById('historyBtn');
+
+        if (this.showingHistory) {
+            btn.textContent = '📊 Nascondi Traccia';
+            document.getElementById('showTrack').checked = true;
+            document.getElementById('showMarkers').checked = true;
+        } else {
+            btn.textContent = '📊 Mostra Traccia';
+            document.getElementById('showTrack').checked = false;
+            document.getElementById('showMarkers').checked = false;
+        }
+
+        this.updateTrackDisplay();
+    }
+
+    toggleTrack(show) {
+        this.updateTrackDisplay();
+    }
+
+    toggleMarkers(show) {
+        this.updateTrackDisplay();
+    }
+
+    startAutoRefresh() {
+        this.stopAutoRefresh();
+
+        const interval = parseInt(document.getElementById('refreshInterval').value) * 1000;
+        this.countdownValue = interval / 1000;
+
+        this.refreshTimer = setInterval(() => {
+            this.refreshNow();
+            this.countdownValue = interval / 1000;
+        }, interval);
+
+        this.countdownTimer = setInterval(() => {
+            this.countdownValue--;
+            document.getElementById('countdown').textContent = Math.max(0, this.countdownValue);
+        }, 1000);
+    }
+
+    stopAutoRefresh() {
+        if (this.refreshTimer) {
+            clearInterval(this.refreshTimer);
+            this.refreshTimer = null;
+        }
+        if (this.countdownTimer) {
+            clearInterval(this.countdownTimer);
+            this.countdownTimer = null;
+        }
+        document.getElementById('countdown').textContent = '--';
+    }
+
+    updatePositionCount() {
+        document.getElementById('positionCount').textContent = this.positions.length;
+    }
+
+    getDirectionText(course) {
+        if (!course) return 'N/D';
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        const index = Math.round(course / 45) % 8;
+        return directions[index];
     }
 }
 
-function showError() {
-    const errorEl = document.getElementById('errorMessage');
-    if (errorEl) errorEl.classList.remove('hidden');
-}
-
-function hideError() {
-    const errorEl = document.getElementById('errorMessage');
-    if (errorEl) errorEl.classList.add('hidden');
-}
+// Global functions
+let liveTracker;
 
 function centerOnVehicle() {
-    if (vehicleMarker) {
-        map.setView(vehicleMarker.getLatLng(), 13);
-    }
+    liveTracker.centerOnVehicle();
 }
 
 function toggleAutoFollow() {
-    autoFollow = !autoFollow;
-    const btn = document.getElementById('autoFollowBtn');
-
-    if (btn) {
-        if (autoFollow) {
-            btn.classList.add('bg-blue-100', 'border-blue-300');
-            if (vehicleMarker) {
-                map.setView(vehicleMarker.getLatLng(), map.getZoom());
-            }
-        } else {
-            btn.classList.remove('bg-blue-100', 'border-blue-300');
-        }
-    }
+    liveTracker.toggleAutoFollow();
 }
 
-// Initialize when ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
+function toggleHistory() {
+    liveTracker.toggleHistory();
 }
 
-function init() {
-    console.log('Initializing live tracking for vehicle:', vehicleId);
-
-    initMap();
-    setupRoute();
-
-    // Start polling
-    updatePosition();
-    updateInterval = setInterval(updatePosition, 5000);
+function refreshNow() {
+    liveTracker.refreshNow();
 }
 
-// Cleanup
-window.addEventListener('beforeunload', () => {
-    if (updateInterval) clearInterval(updateInterval);
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    liveTracker = new LiveTrackingManager({{ vehicle.id }});
 });
 </script>
 {% endblock %}

@@ -1,330 +1,1001 @@
-<!-- templates/reports/index.html - WITH PDF EXPORT -->
+<!-- templates/reports/index.html -->
 {% extends "base.html" %}
 
-{% block content %}
-<div class="min-h-screen p-6 bg-gray-50">
-    <div class="max-w-7xl mx-auto">
+{% block title %}Report Avanzati{% endblock %}
 
-        <!-- Header -->
-        <div class="mb-6">
-            <h2 class="text-3xl font-bold text-gray-800">Fleet Reports</h2>
-            <p class="text-gray-600 mt-1">Generate comprehensive reports for your fleet</p>
+{% block extra_css %}
+<style>
+    .report-card {
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    .report-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        border-color: #3b82f6;
+    }
+    .report-card.selected {
+        border-color: #10b981;
+        background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    }
+    .loading-spinner {
+        display: none;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3b82f6;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .geocoding-info {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border: 1px solid #3b82f6;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+    }
+    .geocoding-disabled {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 1px solid #f59e0b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">📊 Report Avanzati</h1>
+            <p class="text-gray-600 mt-2">Genera report dettagliati con indirizzi automatici</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <div class="text-sm text-gray-600">
+                <span class="font-medium">Veicoli disponibili:</span> {{ vehicles|length }}
+            </div>
+            {% if geocoding_available %}
+            <div class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                🌍 Geocoding Attivo
+            </div>
+            {% else %}
+            <div class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                ⚠️ Geocoding Non Disponibile
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Geocoding Status Info -->
+    {% if geocoding_available %}
+    <div class="geocoding-info">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <span class="text-white text-sm">🌍</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-900">Servizio Geocoding Attivo</h3>
+                    <p class="text-sm text-gray-600">Gli indirizzi saranno risolti automaticamente nei report</p>
+                </div>
+            </div>
+            <div id="geocodingStats" class="text-right text-sm text-gray-600">
+                <div>Cache: <span class="font-medium" id="cacheCount">--</span> indirizzi</div>
+                <div>Hit rate: <span class="font-medium" id="hitRate">--</span>%</div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="geocoding-info geocoding-disabled">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                <span class="text-white text-sm">⚠️</span>
+            </div>
+            <div>
+                <h3 class="font-medium text-gray-900">Geocoding Non Disponibile</h3>
+                <p class="text-sm text-gray-600">I report non includeranno indirizzi automatici. Configura il servizio Google Maps per abilitare questa funzione.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Panel - Report Types -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Seleziona Tipo di Report</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Summary Report -->
+                    <div class="report-card bg-gray-50 rounded-lg p-4 cursor-pointer" onclick="selectReport('summary')">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                                <span class="text-white text-lg">📈</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Report Riassuntivo</h3>
+                                <p class="text-sm text-gray-600">Statistiche generali per veicolo</p>
+                            </div>
+                        </div>
+                        <ul class="text-xs text-gray-500 space-y-1">
+                            <li>• Distanza totale percorsa</li>
+                            <li>• Velocità media e massima</li>
+                            <li>• Ore di funzionamento motore</li>
+                            <li>• Consumo carburante stimato</li>
+                        </ul>
+                    </div>
+
+                    <!-- Trips Report -->
+                    <div class="report-card bg-gray-50 rounded-lg p-4 cursor-pointer" onclick="selectReport('trips')">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                                <span class="text-white text-lg">🚗</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Report Viaggi</h3>
+                                <p class="text-sm text-gray-600">Dettaglio di ogni viaggio</p>
+                            </div>
+                        </div>
+                        <ul class="text-xs text-gray-500 space-y-1">
+                            <li>• Inizio e fine di ogni viaggio</li>
+                            <li>• 📍 <strong>Indirizzi di partenza e arrivo</strong></li>
+                            <li>• Distanza e durata</li>
+                            <li>• Velocità media del viaggio</li>
+                        </ul>
+                    </div>
+
+                    <!-- Stops Report -->
+                    <div class="report-card bg-gray-50 rounded-lg p-4 cursor-pointer" onclick="selectReport('stops')">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                <span class="text-white text-lg">⏸️</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Report Soste</h3>
+                                <p class="text-sm text-gray-600">Analisi delle fermate</p>
+                            </div>
+                        </div>
+                        <ul class="text-xs text-gray-500 space-y-1">
+                            <li>• Durata di ogni sosta</li>
+                            <li>• 📍 <strong>Indirizzo preciso della sosta</strong></li>
+                            <li>• Orario inizio e fine</li>
+                            <li>• Consumo durante la sosta</li>
+                        </ul>
+                    </div>
+
+                    <!-- Route Report -->
+                    <div class="report-card bg-gray-50 rounded-lg p-4 cursor-pointer" onclick="selectReport('route')">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                                <span class="text-white text-lg">🗺️</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Report Percorso</h3>
+                                <p class="text-sm text-gray-600">Traccia dettagliata GPS</p>
+                            </div>
+                        </div>
+                        <ul class="text-xs text-gray-500 space-y-1">
+                            <li>• Ogni posizione GPS registrata</li>
+                            <li>• 📍 <strong>Indirizzi dei punti principali</strong></li>
+                            <li>• Velocità in ogni punto</li>
+                            <li>• Direzione e altitudine</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Period Selection -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Seleziona Periodo</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <button onclick="setPeriod('today')" class="period-btn px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Oggi
+                        </button>
+                        <button onclick="setPeriod('yesterday')" class="period-btn px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Ieri
+                        </button>
+                        <button onclick="setPeriod('week')" class="period-btn px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Ultima Settimana
+                        </button>
+                        <button onclick="setPeriod('month')" class="period-btn px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Ultimo Mese
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Data Inizio</label>
+                            <input type="datetime-local" id="fromDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Data Fine</label>
+                            <input type="datetime-local" id="toDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate Button -->
+                <div class="flex items-center justify-center">
+                    <button id="generateBtn" onclick="generateReport()" disabled
+                            class="flex items-center space-x-2 px-6 py-3 bg-gray-400 text-white font-medium rounded-lg transition-colors disabled:cursor-not-allowed">
+                        <div class="loading-spinner"></div>
+                        <span>Seleziona un tipo di report</span>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- Report Configuration -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Right Panel - Settings -->
+        <div class="space-y-6">
+            <!-- Vehicle Selection -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Seleziona Veicoli</h3>
 
-            <!-- Configuration Panel -->
-            <div class="lg:col-span-1 bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Report Settings</h3>
-
-                <!-- Report Type -->
                 <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Report Type</label>
-                    <select id="reportType" class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-800">
-                        <option value="summary">Summary Report</option>
-                        <option value="trips">Trips Report</option>
-                        <option value="stops">Stops Report</option>
-                        <option value="route">Route Report</option>
-                    </select>
-                </div>
-
-                <!-- Date Range -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Date Range</label>
-                    <div class="space-y-2">
-                        <input type="date" id="fromDate" class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-800">
-                        <input type="date" id="toDate" class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-800">
-                    </div>
-                    <div class="mt-2 flex gap-2">
-                        <button onclick="setDateRange('today')" class="flex-1 text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">Today</button>
-                        <button onclick="setDateRange('week')" class="flex-1 text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">Week</button>
-                        <button onclick="setDateRange('month')" class="flex-1 text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">Month</button>
-                    </div>
-                </div>
-
-                <!-- Vehicle Selection -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Select Vehicles</label>
-                    <div class="mb-2">
-                        <label class="flex items-center">
-                            <input type="checkbox" id="selectAll" onchange="toggleAllVehicles()" class="mr-2">
-                            <span class="text-sm font-medium">Select All</span>
-                        </label>
-                    </div>
-                    <div class="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                        {% for vehicle in vehicles %}
-                        <label class="flex items-center py-1 hover:bg-gray-50 px-2 rounded">
-                            <input type="checkbox" value="{{ vehicle.id }}" class="vehicle-checkbox mr-2">
-                            <span class="text-sm">{{ vehicle.name }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div class="space-y-2">
-                    <button onclick="generateReport()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition">
-                        Generate Report
+                    <button onclick="selectAllVehicles()" class="text-sm text-blue-600 hover:text-blue-800 mr-4">
+                        Seleziona Tutti
                     </button>
+                    <button onclick="clearAllVehicles()" class="text-sm text-gray-600 hover:text-gray-800">
+                        Deseleziona Tutti
+                    </button>
+                </div>
 
-                    <!-- Export Buttons -->
-                    <div id="exportButtons" class="hidden space-y-2">
-                        <button onclick="exportPDF()" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition flex items-center justify-center">
-                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z"/>
-                                <path d="M3 8a2 2 0 012-2v10h8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
-                            </svg>
-                            Export to PDF
-                        </button>
-                        <button onclick="exportCSV()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition flex items-center justify-center">
-                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"/>
-                            </svg>
-                            Export to CSV
-                        </button>
+                <div class="max-h-64 overflow-y-auto space-y-2">
+                    {% for vehicle in vehicles %}
+                    <label class="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                        <input type="checkbox" class="vehicle-checkbox" value="{{ vehicle.id }}" checked
+                               onchange="updateSelectedVehicles()">
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-900">{{ vehicle.name }}</span>
+                                <span class="text-xs px-2 py-1 rounded-full {{ 'bg-green-100 text-green-800' if vehicle.status == 'online' else 'bg-red-100 text-red-800' }}">
+                                    {{ 'Online' if vehicle.status == 'online' else 'Offline' }}
+                                </span>
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {{ vehicle.uniqueId }} • {{ vehicle.category or 'Non specificata' }}
+                            </div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-4 text-sm text-gray-600">
+                    <span id="selectedCount">{{ vehicles|length }}</span> veicoli selezionati
+                </div>
+            </div>
+
+            <!-- Export Options -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Opzioni Export</h3>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" id="includeAddresses" checked
+                                   {{ 'disabled' if not geocoding_available else '' }}>
+                            <div>
+                                <span class="text-sm font-medium text-gray-700">Includi Indirizzi</span>
+                                <p class="text-xs text-gray-500">
+                                    {% if geocoding_available %}
+                                    Risolvi automaticamente gli indirizzi dalle coordinate
+                                    {% else %}
+                                    Non disponibile (servizio geocoding non configurato)
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Formato Export</label>
+                        <select id="exportFormat" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="csv">CSV (Excel compatibile)</option>
+                            <option value="pdf">PDF (Report formattato)</option>
+                        </select>
                     </div>
                 </div>
             </div>
 
-            <!-- Report Results -->
-            <div class="lg:col-span-3 bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-semibold text-gray-800">Report Results</h3>
-                    <div id="reportStats" class="text-gray-600 text-sm"></div>
-                </div>
+            <!-- Quick Stats -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistiche Rapide</h3>
 
-                <div id="reportResults" class="text-gray-600 text-center py-12">
-                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <p class="text-gray-600">Configure settings and click "Generate Report"</p>
-                </div>
-
-                <!-- Loading Spinner -->
-                <div id="loadingSpinner" class="hidden text-center py-12">
-                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                    <p class="text-gray-600 mt-4">Generating report...</p>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600">Veicoli totali:</span>
+                        <span class="text-sm font-medium text-gray-900">{{ vehicles|length }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600">Veicoli online:</span>
+                        <span class="text-sm font-medium text-green-600">
+                            {{ vehicles|selectattr('status', 'equalto', 'online')|list|length }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600">Veicoli offline:</span>
+                        <span class="text-sm font-medium text-red-600">
+                            {{ vehicles|rejectattr('status', 'equalto', 'online')|list|length }}
+                        </span>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
 
+    <!-- Results Section -->
+    <div id="resultsSection" class="mt-8 hidden">
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Risultati Report</h3>
+                    <p class="text-sm text-gray-600" id="reportMetadata"></p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="exportReport()" id="exportBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        📊 Esporta Report
+                    </button>
+                    <button onclick="clearResults()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                        🗑️ Pulisci
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div id="reportResults" class="overflow-x-auto">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
+let selectedReportType = null;
+let selectedVehicles = [];
 let currentReportData = null;
+let currentReportMetadata = null;
 
-const today = new Date();
-const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateSelectedVehicles();
+    setDefaultDates();
+    loadGeocodingStats();
 
-document.getElementById('toDate').valueAsDate = today;
-document.getElementById('fromDate').valueAsDate = lastWeek;
+    // Update geocoding stats every 30 seconds
+    setInterval(loadGeocodingStats, 30000);
+});
 
-function setDateRange(range) {
-    const toDate = new Date();
-    let fromDate = new Date();
+function setDefaultDates() {
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    switch(range) {
+    document.getElementById('fromDate').value = yesterday.toISOString().slice(0, 16);
+    document.getElementById('toDate').value = now.toISOString().slice(0, 16);
+}
+
+function loadGeocodingStats() {
+    {% if geocoding_available %}
+    fetch('/reports/geocoding-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.available) {
+                document.getElementById('cacheCount').textContent = data.cache_addresses || 0;
+                document.getElementById('hitRate').textContent = (data.hit_rate || 0).toFixed(1);
+            }
+        })
+        .catch(error => console.warn('Error loading geocoding stats:', error));
+    {% endif %}
+}
+
+function selectReport(type) {
+    selectedReportType = type;
+
+    // Update UI
+    document.querySelectorAll('.report-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    event.currentTarget.classList.add('selected');
+
+    // Update button
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = false;
+    btn.classList.remove('bg-gray-400');
+    btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+    btn.querySelector('span').textContent = `Genera Report ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+}
+
+function setPeriod(period) {
+    const now = new Date();
+    let fromDate, toDate;
+
+    switch (period) {
         case 'today':
-            fromDate = new Date(toDate);
+            fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            toDate = now;
+            break;
+        case 'yesterday':
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            fromDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+            toDate = new Date(fromDate.getTime() + 24 * 60 * 60 * 1000 - 1000);
             break;
         case 'week':
-            fromDate = new Date(toDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+            fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            toDate = now;
             break;
         case 'month':
-            fromDate = new Date(toDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+            fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            toDate = now;
             break;
     }
 
-    document.getElementById('toDate').valueAsDate = toDate;
-    document.getElementById('fromDate').valueAsDate = fromDate;
+    document.getElementById('fromDate').value = fromDate.toISOString().slice(0, 16);
+    document.getElementById('toDate').value = toDate.toISOString().slice(0, 16);
+
+    // Update button styles
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-500', 'text-white');
+        btn.classList.add('border-gray-300', 'hover:bg-gray-50');
+    });
+    event.target.classList.remove('border-gray-300', 'hover:bg-gray-50');
+    event.target.classList.add('bg-blue-500', 'text-white');
 }
 
-function toggleAllVehicles() {
-    const selectAll = document.getElementById('selectAll').checked;
-    document.querySelectorAll('.vehicle-checkbox').forEach(cb => {
-        cb.checked = selectAll;
-    });
+function updateSelectedVehicles() {
+    const checkboxes = document.querySelectorAll('.vehicle-checkbox');
+    selectedVehicles = Array.from(checkboxes)
+        .filter(cb => cb.checked)
+        .map(cb => parseInt(cb.value));
+
+    document.getElementById('selectedCount').textContent = selectedVehicles.length;
+}
+
+function selectAllVehicles() {
+    document.querySelectorAll('.vehicle-checkbox').forEach(cb => cb.checked = true);
+    updateSelectedVehicles();
+}
+
+function clearAllVehicles() {
+    document.querySelectorAll('.vehicle-checkbox').forEach(cb => cb.checked = false);
+    updateSelectedVehicles();
 }
 
 async function generateReport() {
-    const reportType = document.getElementById('reportType').value;
-    const fromDate = document.getElementById('fromDate').value + 'T00:00:00';
-    const toDate = document.getElementById('toDate').value + 'T23:59:59';
-
-    const selectedVehicles = Array.from(document.querySelectorAll('.vehicle-checkbox:checked'))
-        .map(cb => parseInt(cb.value));
-
-    if (selectedVehicles.length === 0) {
-        alert('Please select at least one vehicle');
+    if (!selectedReportType || selectedVehicles.length === 0) {
+        alert('Seleziona un tipo di report e almeno un veicolo');
         return;
     }
 
-    document.getElementById('reportResults').classList.add('hidden');
-    document.getElementById('loadingSpinner').classList.remove('hidden');
-    document.getElementById('exportButtons').classList.add('hidden');
+    const fromDate = document.getElementById('fromDate').value;
+    const toDate = document.getElementById('toDate').value;
+    const includeAddresses = document.getElementById('includeAddresses').checked;
+
+    if (!fromDate || !toDate) {
+        alert('Seleziona il periodo del report');
+        return;
+    }
+
+    // Show loading
+    const btn = document.getElementById('generateBtn');
+    const spinner = btn.querySelector('.loading-spinner');
+    const btnText = btn.querySelector('span');
+
+    btn.disabled = true;
+    spinner.style.display = 'inline-block';
+    btnText.textContent = 'Generazione in corso...';
 
     try {
         const response = await fetch('/reports/generate', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
-                type: reportType,
+                type: selectedReportType,
                 device_ids: selectedVehicles,
                 from: fromDate,
-                to: toDate
+                to: toDate,
+                include_addresses: includeAddresses
             })
         });
 
         const result = await response.json();
 
         if (result.success) {
-            currentReportData = result;
-            displayReport(result);
-            document.getElementById('exportButtons').classList.remove('hidden');
+            currentReportData = result.data;
+            currentReportMetadata = result.metadata;
+            displayResults(result.data, result.metadata);
         } else {
-            alert('Error: ' + result.error);
+            throw new Error(result.error || 'Errore nella generazione del report');
         }
+
     } catch (error) {
-        alert('Error generating report: ' + error);
+        console.error('Error generating report:', error);
+        alert(`Errore nella generazione del report: ${error.message}`);
     } finally {
-        document.getElementById('loadingSpinner').classList.add('hidden');
+        // Hide loading
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = `Genera Report ${selectedReportType.charAt(0).toUpperCase() + selectedReportType.slice(1)}`;
     }
 }
 
-function displayReport(result) {
-    const container = document.getElementById('reportResults');
-    container.classList.remove('hidden');
+function displayResults(data, metadata) {
+    const resultsSection = document.getElementById('resultsSection');
+    const reportResults = document.getElementById('reportResults');
+    const reportMetadata = document.getElementById('reportMetadata');
 
-    document.getElementById('reportStats').textContent = `${result.count} records found`;
+    // Update metadata
+    const fromDate = new Date(metadata.period_from).toLocaleDateString('it-IT');
+    const toDate = new Date(metadata.period_to).toLocaleDateString('it-IT');
+    const addressesText = metadata.addresses_included ? ' (con indirizzi)' : '';
+    reportMetadata.textContent = `${metadata.record_count} record • ${fromDate} - ${toDate}${addressesText}`;
 
-    let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-300">';
-    html += '<thead class="bg-gray-100"><tr>';
+    // Generate table based on report type
+    let tableHTML = '';
 
-    if (result.report_type === 'summary') {
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Vehicle</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Distance</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Max Speed</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Avg Speed</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Engine Hours</th>';
-    } else if (result.report_type === 'trips') {
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Vehicle</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Start Time</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">End Time</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Distance</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Duration</th>';
-    } else if (result.report_type === 'stops') {
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Vehicle</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Start Time</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">End Time</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Duration</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Address</th>';
-    } else if (result.report_type === 'route') {
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Vehicle</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Time</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Coordinates</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Speed</th>';
-        html += '<th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Altitude</th>';
+    if (selectedReportType === 'summary') {
+        tableHTML = generateSummaryTable(data);
+    } else if (selectedReportType === 'trips') {
+        tableHTML = generateTripsTable(data, metadata.addresses_included);
+    } else if (selectedReportType === 'stops') {
+        tableHTML = generateStopsTable(data, metadata.addresses_included);
+    } else if (selectedReportType === 'route') {
+        tableHTML = generateRouteTable(data, metadata.addresses_included);
     }
 
-    html += '</tr></thead><tbody>';
+    reportResults.innerHTML = tableHTML;
+    resultsSection.classList.remove('hidden');
+}
 
-    result.data.forEach((item, index) => {
-        html += `<tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">`;
+function generateTripsTable(data, includeAddresses) {
+    if (!data || data.length === 0) {
+        return '<p class="text-center text-gray-500 py-8">Nessun viaggio trovato per il periodo selezionato</p>';
+    }
 
-        if (result.report_type === 'summary') {
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${item.deviceName}</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.distance / 1000).toFixed(2)} km</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.maxSpeed * 1.852).toFixed(1)} km/h</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.averageSpeed * 1.852).toFixed(1)} km/h</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${item.engineHours || 0} h</td>`;
-        } else if (result.report_type === 'trips') {
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${item.deviceName}</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-600">${new Date(item.startTime).toLocaleString()}</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-600">${new Date(item.endTime).toLocaleString()}</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.distance / 1000).toFixed(2)} km</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.duration / 60).toFixed(0)} min</td>`;
-        } else if (result.report_type === 'stops') {
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${item.deviceName}</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-600">${new Date(item.startTime).toLocaleString()}</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-600">${new Date(item.endTime).toLocaleString()}</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.duration / 60000).toFixed(0)} min</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-600">${item.address || 'N/A'}</td>`;
-        } else if (result.report_type === 'route') {
-            const time = new Date(item.deviceTime || item.serverTime).toLocaleString();
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${item.deviceName}</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-600">${time}</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${item.latitude?.toFixed(6)}, ${item.longitude?.toFixed(6)}</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${(item.speed * 1.852).toFixed(1)} km/h</td>`;
-            html += `<td class="px-4 py-3 text-sm text-gray-800">${item.altitude?.toFixed(0)} m</td>`;
+    let html = `
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Veicolo</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Partenza</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Arrivo</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Distanza</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durata</th>
+    `;
+
+    if (includeAddresses) {
+        html += `
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">📍 Da</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">📍 A</th>
+        `;
+    }
+
+    html += `
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+    `;
+
+    data.forEach((item, index) => {
+        const isEven = index % 2 === 0;
+        html += `
+            <tr class="${isEven ? 'bg-white' : 'bg-gray-50'}">
+                <td class="px-4 py-3 text-sm text-gray-800">${item.deviceName || 'N/A'}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">${formatDateTime(item.startTime)}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">${formatDateTime(item.endTime)}</td>
+                <td class="px-4 py-3 text-sm text-gray-800">${((item.distance || 0) / 1000).toFixed(2)} km</td>
+                <td class="px-4 py-3 text-sm text-gray-800">${((item.duration || 0) / 60).toFixed(0)} min</td>
+        `;
+
+        if (includeAddresses) {
+            html += `
+                <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title="${item.startAddress || 'N/A'}">
+                    ${item.startAddress || 'N/A'}
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title="${item.endAddress || 'N/A'}">
+                    ${item.endAddress || 'N/A'}
+                </td>
+            `;
         }
 
         html += '</tr>';
     });
 
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
+    html += '</tbody></table>';
+    return html;
 }
 
-async function exportPDF() {
-    if (!currentReportData) {
-        alert('No report data to export');
+function generateStopsTable(data, includeAddresses) {
+    if (!data || data.length === 0) {
+        return '<p class="text-center text-gray-500 py-8">Nessuna sosta trovata per il periodo selezionato</p>';
+    }
+
+    let html = `
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Veicolo</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inizio</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fine</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durata</th>
+    `;
+
+    if (includeAddresses) {
+        html += `<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">📍 Indirizzo</th>`;
+    }
+
+    html += `
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+    `;
+
+    data.forEach((item, index) => {
+        const isEven = index % 2 === 0;
+        html += `
+            <tr class="${isEven ? 'bg-white' : 'bg-gray-50'}">
+                <td class="px-4 py-3 text-sm text-gray-800">${item.deviceName || 'N/A'}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">${formatDateTime(item.startTime)}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">${formatDateTime(item.endTime)}</td>
+                <td class="px-4 py-3 text-sm text-gray-800">${((item.duration || 0) / 60).toFixed(0)} min</td>
+        `;
+
+        if (includeAddresses) {
+            html += `
+                <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title="${item.address || 'N/A'}">
+                    ${item.address || 'N/A'}
+                </td>
+            `;
+        }
+
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    return html;
+}
+
+function generateSummaryTable(data) {
+    if (!data || data.length === 0) {
+        return '<p class="text-center text-gray-500 py-8">Nessun dato disponibile per il periodo selezionato</p>';
+    }
+
+    let html = `
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Veicolo</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Distanza</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vel. Max</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vel. Media</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ore Motore</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+    `;
+
+    data.forEach((item, index) => {
+        const isEven = index % 2 === 0;
+        html += `
+            <tr class="${isEven ? 'bg-white' : 'bg-gray-50'}">
+                <td class="px-4 py-3 text-sm text-gray-800">${item.deviceName || 'N/A'}</td>
+                <td class="px-4 py-3 text-sm text-gray-800">${((item.distance || 0) / 1000).toFixed(2)} km</td>
+                <td class="px-4 py-3 text-sm text-gray-800">${((item.maxSpeed || 0) * 1.852).toFixed(1)} km/h</td>
+                <td class="px-4 py-3 text-sm text-gray-800">${((item.averageSpeed || 0) * 1.852).toFixed(1)} km/h</td>
+                <td class="px-4 py-3 text-sm text-gray-800">${((item.engineHours || 0) / 3600).toFixed(1)} h</td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table>';
+    return html;
+}
+
+function generateRouteTable(data, includeAddresses) {
+    if (!data || data.length === 0) {
+        return '<p class="text-center text-gray-500 py-8">Nessuna posizione trovata per il periodo selezionato</p>';
+    }
+
+    // Limit to 100 positions for display
+    const displayData = data.slice(0, 100);
+
+    let html = `
+        <div class="mb-4 text-sm text-gray-600">
+            Mostrando ${displayData.length} di ${data.length} posizioni
+            ${data.length > 100 ? '(prime 100 per performance)' : ''}
+        </div>
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Coordinate</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Velocità</th>
+    `;
+
+    if (includeAddresses) {
+        html += `<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">📍 Indirizzo</th>`;
+    }
+
+    html += `
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+    `;
+
+    displayData.forEach((item, index) => {
+        const isEven = index % 2 === 0;
+        html += `
+            <tr class="${isEven ? 'bg-white' : 'bg-gray-50'}">
+                <td class="px-4 py-3 text-sm text-gray-600">${formatDateTime(item.fixTime || item.deviceTime)}</td>
+                <td class="px-4 py-3 text-sm text-gray-600 font-mono">${(item.latitude || 0).toFixed(6)}, ${(item.longitude || 0).toFixed(6)}</td>
+                <td class="px-4 py-3 text-sm text-gray-800">${((item.speed || 0) * 1.852).toFixed(1)} km/h</td>
+        `;
+
+        if (includeAddresses) {
+            html += `
+                <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title="${item.address || 'N/A'}">
+                    ${item.address || 'N/A'}
+                </td>
+            `;
+        }
+
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    return html;
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('it-IT');
+    } catch (e) {
+        return dateString;
+    }
+}
+
+async function exportReport() {
+    if (!currentReportData || !currentReportMetadata) {
+        alert('Nessun report da esportare');
         return;
     }
 
+    const format = document.getElementById('exportFormat').value;
+
     try {
-        const response = await fetch(`/reports/export/pdf/${currentReportData.report_type}`, {
+        const response = await fetch('/reports/export', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
-                data: currentReportData.data,
-                from_date: currentReportData.from_date,
-                to_date: currentReportData.to_date
+                data: currentReportData,
+                type: selectedReportType,
+                format: format,
+                metadata: currentReportMetadata
             })
         });
 
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `report_${currentReportData.report_type}_${new Date().toISOString().slice(0,10)}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        if (response.ok) {
+            // Create download link
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+
+            // Get filename from response headers or create default
+            const contentDisposition = response.headers.get('content-disposition');
+            let filename = `report_${selectedReportType}_${new Date().toISOString().slice(0, 10)}.${format}`;
+
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch) {
+                    filename = filenameMatch[1];
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // Show success message
+            showNotification('Report esportato con successo!', 'success');
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Errore nell\'esportazione');
+        }
+
     } catch (error) {
-        alert('Error exporting PDF: ' + error);
+        console.error('Error exporting report:', error);
+        alert(`Errore nell'esportazione: ${error.message}`);
+        showNotification('Errore nell\'esportazione del report', 'error');
     }
 }
 
-async function exportCSV() {
-    if (!currentReportData) {
-        alert('No report data to export');
+function clearResults() {
+    document.getElementById('resultsSection').classList.add('hidden');
+    currentReportData = null;
+    currentReportMetadata = null;
+
+    // Reset report selection
+    document.querySelectorAll('.report-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+
+    selectedReportType = null;
+
+    // Reset button
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true;
+    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+    btn.classList.add('bg-gray-400');
+    btn.querySelector('span').textContent = 'Seleziona un tipo di report';
+
+    showNotification('Risultati puliti', 'info');
+}
+
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        type === 'warning' ? 'bg-yellow-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+
+    notification.innerHTML = `
+        <div class="flex items-center space-x-3">
+            <div class="flex-shrink-0">
+                ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" class="flex-shrink-0 text-white hover:text-gray-200">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Animate in
+    setTimeout(() => {
+        notification.classList.remove('translate-x-full');
+    }, 100);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (document.body.contains(notification)) {
+            notification.classList.add('translate-x-full');
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// Utility functions for enhanced UX
+function previewReport() {
+    if (!selectedReportType) {
+        alert('Seleziona prima un tipo di report');
         return;
     }
 
-    try {
-        const response = await fetch(`/reports/export/csv/${currentReportData.report_type}`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                data: currentReportData.data
-            })
+    let description = '';
+    switch (selectedReportType) {
+        case 'summary':
+            description = 'Mostra statistiche aggregate per ogni veicolo: distanza totale, velocità media/massima, ore di funzionamento.';
+            break;
+        case 'trips':
+            description = 'Elenca tutti i viaggi con inizio, fine, distanza, durata e indirizzi automatici.';
+            break;
+        case 'stops':
+            description = 'Dettagli di ogni sosta: durata, posizione, indirizzo risolto automaticamente.';
+            break;
+        case 'route':
+            description = 'Traccia GPS completa con coordinate, velocità e indirizzi dei punti principali.';
+            break;
+    }
+
+    const modal = `
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl max-w-md w-full p-6">
+                <h3 class="text-lg font-semibold mb-4">Anteprima Report ${selectedReportType.charAt(0).toUpperCase() + selectedReportType.slice(1)}</h3>
+                <p class="text-gray-600 mb-4">${description}</p>
+                <div class="bg-blue-50 p-3 rounded-lg mb-4">
+                    <p class="text-sm text-blue-800">
+                        <strong>Indirizzi:</strong>
+                        ${document.getElementById('includeAddresses').checked ?
+                          'Saranno inclusi automaticamente tramite geocoding' :
+                          'Non inclusi in questo report'}
+                    </p>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="this.closest('.fixed').remove()" class="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+                        Chiudi
+                    </button>
+                    <button onclick="this.closest('.fixed').remove(); generateReport()" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                        Genera Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + G for generate
+    if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+        e.preventDefault();
+        if (!document.getElementById('generateBtn').disabled) {
+            generateReport();
+        }
+    }
+
+    // Ctrl/Cmd + E for export
+    if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        if (currentReportData) {
+            exportReport();
+        }
+    }
+
+    // Escape to clear results
+    if (e.key === 'Escape') {
+        if (!document.getElementById('resultsSection').classList.contains('hidden')) {
+            clearResults();
+        }
+    }
+});
+
+// Add tooltips for better UX
+function addTooltips() {
+    const tooltipElements = document.querySelectorAll('[title]');
+    tooltipElements.forEach(element => {
+        element.addEventListener('mouseenter', function(e) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'absolute z-50 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg';
+            tooltip.textContent = e.target.title;
+            tooltip.style.left = e.pageX + 10 + 'px';
+            tooltip.style.top = e.pageY + 10 + 'px';
+            tooltip.id = 'custom-tooltip';
+
+            document.body.appendChild(tooltip);
+            e.target.removeAttribute('title');
+            e.target.setAttribute('data-original-title', tooltip.textContent);
         });
 
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `report_${currentReportData.report_type}_${new Date().toISOString().slice(0,10)}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-    } catch (error) {
-        alert('Error exporting CSV: ' + error);
-    }
+        element.addEventListener('mouseleave', function(e) {
+            const tooltip = document.getElementById('custom-tooltip');
+            if (tooltip) {
+                tooltip.remove();
+            }
+            if (e.target.getAttribute('data-original-title')) {
+                e.target.title = e.target.getAttribute('data-original-title');
+                e.target.removeAttribute('data-original-title');
+            }
+        });
+    });
 }
+
+// Initialize tooltips after DOM load
+document.addEventListener('DOMContentLoaded', addTooltips);
 </script>
 {% endblock %}
