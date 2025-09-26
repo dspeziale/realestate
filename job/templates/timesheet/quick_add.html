@@ -1,0 +1,465 @@
+<!-- templates/timesheet/quick_add.html - Quick Add Manual Entry -->
+{% extends "base.html" %}
+
+{% block title %}Aggiungi Voce Manuale - Timesheet App{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-plus-circle"></i> Aggiungi Voce Manuale
+                </h1>
+                <div>
+                    <a href="{{ url_for('timesheet.index') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Torna al Timesheet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-pencil-square"></i> Nuova Voce Temporale
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="quick-add-form">
+                        <div class="row">
+                            <!-- Project Selection -->
+                            <div class="col-md-6 mb-3">
+                                <label for="project_id" class="form-label">
+                                    <i class="bi bi-folder"></i> Progetto *
+                                </label>
+                                <select class="form-select" id="project_id" name="project_id" required onchange="updateProjectInfo()">
+                                    <option value="">Seleziona progetto...</option>
+                                    {% for project in active_projects %}
+                                    <option value="{{ project.id }}"
+                                            data-color="{{ project.color }}"
+                                            data-rate="{{ project.hourly_rate }}">
+                                        {{ project.name }}
+                                        {% if project.hourly_rate > 0 %}
+                                        (€{{ "%.0f"|format(project.hourly_rate) }}/h)
+                                        {% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">
+                                    Scegli il progetto per questa attività
+                                </div>
+                            </div>
+
+                            <!-- Duration -->
+                            <div class="col-md-6 mb-3">
+                                <label for="duration_hours" class="form-label">
+                                    <i class="bi bi-clock"></i> Durata (ore) *
+                                </label>
+                                <input type="number" class="form-control" id="duration_hours" name="duration_hours"
+                                       step="0.25" min="0.25" max="24" required placeholder="es. 1.5"
+                                       onchange="calculateEarnings()">
+                                <div class="form-text">
+                                    Inserisci la durata in ore (es. 1.5 per 1h 30min)
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Date -->
+                            <div class="col-md-6 mb-3">
+                                <label for="start_date" class="form-label">
+                                    <i class="bi bi-calendar"></i> Data *
+                                </label>
+                                <input type="date" class="form-control" id="start_date" name="start_date"
+                                       value="{{ default_date }}" required>
+                                <div class="form-text">
+                                    Data dell'attività svolta
+                                </div>
+                            </div>
+
+                            <!-- Start Time -->
+                            <div class="col-md-6 mb-3">
+                                <label for="start_time" class="form-label">
+                                    <i class="bi bi-clock-history"></i> Ora Inizio *
+                                </label>
+                                <input type="time" class="form-control" id="start_time" name="start_time" required>
+                                <div class="form-text">
+                                    Ora di inizio dell'attività
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="bi bi-chat-text"></i> Descrizione *
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="4"
+                                      required placeholder="Descrivi l'attività svolta..."></textarea>
+                            <div class="form-text">
+                                Descrizione dettagliata dell'attività (minimo 10 caratteri)
+                            </div>
+                        </div>
+
+                        <!-- Tags -->
+                        <div class="mb-4">
+                            <label for="tags" class="form-label">
+                                <i class="bi bi-tags"></i> Tag (opzionali)
+                            </label>
+                            <input type="text" class="form-control" id="tags" name="tags"
+                                   placeholder="sviluppo, meeting, debugging (separati da virgola)">
+                            <div class="form-text">
+                                Tag per categorizzare l'attività (separali con virgole)
+                            </div>
+                        </div>
+
+                        <!-- Summary Card -->
+                        <div class="card bg-light mb-4" id="summary-card" style="display: none;">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-info-circle"></i> Riepilogo
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <strong>Progetto:</strong>
+                                        <div id="summary-project">-</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>Durata:</strong>
+                                        <div id="summary-duration">-</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>Guadagno Stimato:</strong>
+                                        <div id="summary-earnings" class="text-success">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('timesheet.index') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Annulla
+                            </a>
+
+                            <div>
+                                <button type="button" class="btn btn-outline-info me-2" onclick="previewEntry()">
+                                    <i class="bi bi-eye"></i> Anteprima
+                                </button>
+                                <button type="submit" class="btn btn-success" data-original-text="Salva Voce">
+                                    <i class="bi bi-check-circle"></i> Salva Voce
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-lightning"></i> Presets Rapidi
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-primary btn-sm w-100" onclick="setQuickDuration(0.5)">
+                                30 minuti
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-primary btn-sm w-100" onclick="setQuickDuration(1)">
+                                1 ora
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-primary btn-sm w-100" onclick="setQuickDuration(2)">
+                                2 ore
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-primary btn-sm w-100" onclick="setQuickDuration(4)">
+                                4 ore
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-secondary btn-sm w-100" onclick="setCurrentTime()">
+                                <i class="bi bi-clock"></i> Ora Attuale
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-secondary btn-sm w-100" onclick="setYesterday()">
+                                <i class="bi bi-calendar-minus"></i> Ieri
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearForm()">
+                                <i class="bi bi-arrow-clockwise"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Templates -->
+            {% if recent_entries %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-clock-history"></i> Attività Recenti (clicca per copiare)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for entry in recent_entries[:6] %}
+                        <div class="col-md-6 mb-2">
+                            <button class="btn btn-outline-info btn-sm w-100 text-start"
+                                    onclick="copyFromRecent('{{ entry.project.name }}', '{{ entry.description }}', '{{ entry.tags or '' }}', {{ entry.project.id }})">
+                                <span class="project-badge" style="background-color: {{ entry.project.color }};"></span>
+                                <strong>{{ entry.project.name }}</strong><br>
+                                <small class="text-muted">{{ entry.description[:50] }}{% if entry.description|length > 50 %}...{% endif %}</small>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let projectsData = {};
+
+    // Initialize projects data
+    document.addEventListener('DOMContentLoaded', () => {
+        const projectSelect = document.getElementById('project_id');
+        Array.from(projectSelect.options).forEach(option => {
+            if (option.value) {
+                projectsData[option.value] = {
+                    name: option.text,
+                    color: option.dataset.color,
+                    rate: parseFloat(option.dataset.rate) || 0
+                };
+            }
+        });
+
+        // Set default time to current time
+        setCurrentTime();
+    });
+
+    function updateProjectInfo() {
+        const select = document.getElementById('project_id');
+        const selectedOption = select.options[select.selectedIndex];
+
+        if (selectedOption.value) {
+            updateSummary();
+        } else {
+            hideSummary();
+        }
+    }
+
+    function calculateEarnings() {
+        updateSummary();
+    }
+
+    function updateSummary() {
+        const projectId = document.getElementById('project_id').value;
+        const duration = parseFloat(document.getElementById('duration_hours').value) || 0;
+
+        if (!projectId || !duration) {
+            hideSummary();
+            return;
+        }
+
+        const project = projectsData[projectId];
+        const earnings = duration * project.rate;
+
+        document.getElementById('summary-project').textContent = project.name;
+        document.getElementById('summary-duration').textContent = formatDuration(duration);
+        document.getElementById('summary-earnings').textContent = project.rate > 0 ? `€ ${earnings.toFixed(2)}` : 'Gratuito';
+
+        document.getElementById('summary-card').style.display = 'block';
+    }
+
+    function hideSummary() {
+        document.getElementById('summary-card').style.display = 'none';
+    }
+
+    function formatDuration(hours) {
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        return `${h}h ${m}m`;
+    }
+
+    function setQuickDuration(hours) {
+        document.getElementById('duration_hours').value = hours;
+        calculateEarnings();
+    }
+
+    function setCurrentTime() {
+        const now = new Date();
+        const timeString = now.toTimeString().substring(0, 5);
+        document.getElementById('start_time').value = timeString;
+    }
+
+    function setYesterday() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const dateString = yesterday.toISOString().substring(0, 10);
+        document.getElementById('start_date').value = dateString;
+    }
+
+    function clearForm() {
+        document.getElementById('quick-add-form').reset();
+        document.getElementById('start_date').value = '{{ default_date }}';
+        setCurrentTime();
+        hideSummary();
+    }
+
+    function copyFromRecent(projectName, description, tags, projectId) {
+        document.getElementById('project_id').value = projectId;
+        document.getElementById('description').value = description;
+        document.getElementById('tags').value = tags;
+
+        updateProjectInfo();
+    }
+
+    function previewEntry() {
+        const form = document.getElementById('quick-add-form');
+        const formData = new FormData(form);
+
+        const projectSelect = document.getElementById('project_id');
+        const projectName = projectSelect.options[projectSelect.selectedIndex].text;
+        const date = formData.get('start_date');
+        const time = formData.get('start_time');
+        const duration = formData.get('duration_hours');
+        const description = formData.get('description');
+        const tags = formData.get('tags');
+
+        if (!projectSelect.value || !date || !time || !duration || !description) {
+            alert('Compila tutti i campi obbligatori prima dell\'anteprima');
+            return;
+        }
+
+        const project = projectsData[projectSelect.value];
+        const earnings = parseFloat(duration) * project.rate;
+
+        const previewContent = `
+            <div class="alert alert-info">
+                <h6><i class="bi bi-eye"></i> Anteprima Voce</h6>
+                <p><strong>Progetto:</strong> ${projectName}</p>
+                <p><strong>Data e Ora:</strong> ${new Date(date + 'T' + time).toLocaleString('it-IT')}</p>
+                <p><strong>Durata:</strong> ${formatDuration(parseFloat(duration))}</p>
+                <p><strong>Descrizione:</strong> ${description}</p>
+                ${tags ? `<p><strong>Tag:</strong> ${tags}</p>` : ''}
+                ${earnings > 0 ? `<p><strong>Guadagno:</strong> <span class="text-success">€ ${earnings.toFixed(2)}</span></p>` : ''}
+            </div>
+        `;
+
+        // Show preview in modal or alert
+        const previewModal = document.createElement('div');
+        previewModal.innerHTML = `
+            <div class="modal fade" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Anteprima Voce</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            ${previewContent}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                            <button type="button" class="btn btn-success" onclick="document.getElementById('quick-add-form').submit()">
+                                <i class="bi bi-check-circle"></i> Conferma e Salva
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(previewModal);
+        const modal = new bootstrap.Modal(previewModal.querySelector('.modal'));
+        modal.show();
+
+        // Remove modal from DOM when hidden
+        previewModal.querySelector('.modal').addEventListener('hidden.bs.modal', () => {
+            previewModal.remove();
+        });
+    }
+
+    // Form validation
+    document.getElementById('quick-add-form').addEventListener('submit', function(e) {
+        const description = document.getElementById('description').value.trim();
+        if (description.length < 10) {
+            e.preventDefault();
+            alert('La descrizione deve essere di almeno 10 caratteri');
+            return;
+        }
+
+        const duration = parseFloat(document.getElementById('duration_hours').value);
+        if (duration < 0.25 || duration > 24) {
+            e.preventDefault();
+            alert('La durata deve essere tra 15 minuti (0.25) e 24 ore');
+            return;
+        }
+    });
+
+    // Auto-save to localStorage as draft
+    function saveDraft() {
+        const formData = {
+            project_id: document.getElementById('project_id').value,
+            description: document.getElementById('description').value,
+            tags: document.getElementById('tags').value,
+            duration_hours: document.getElementById('duration_hours').value
+        };
+        localStorage.setItem('timesheet_draft', JSON.stringify(formData));
+    }
+
+    function loadDraft() {
+        const draft = localStorage.getItem('timesheet_draft');
+        if (draft) {
+            try {
+                const data = JSON.parse(draft);
+                if (data.project_id) document.getElementById('project_id').value = data.project_id;
+                if (data.description) document.getElementById('description').value = data.description;
+                if (data.tags) document.getElementById('tags').value = data.tags;
+                if (data.duration_hours) document.getElementById('duration_hours').value = data.duration_hours;
+                updateProjectInfo();
+            } catch (e) {
+                console.log('Error loading draft:', e);
+            }
+        }
+    }
+
+    // Load draft on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDraft();
+
+        // Save draft on input
+        ['project_id', 'description', 'tags', 'duration_hours'].forEach(fieldId => {
+            document.getElementById(fieldId).addEventListener('input', saveDraft);
+        });
+    });
+
+    // Clear draft on successful submit
+    document.getElementById('quick-add-form').addEventListener('submit', () => {
+        localStorage.removeItem('timesheet_draft');
+    });
+</script>
+{% endblock %}

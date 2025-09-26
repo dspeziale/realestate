@@ -1,0 +1,323 @@
+<!-- templates/base.html - Base Template with Bootstrap -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Timesheet App{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #0dcaf0;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+        }
+
+        .timer-display {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .project-badge {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .card-stat {
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .card-stat.success {
+            border-left-color: var(--success-color);
+        }
+
+        .card-stat.warning {
+            border-left-color: var(--warning-color);
+        }
+
+        .card-stat.info {
+            border-left-color: var(--info-color);
+        }
+
+        .running-timer {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .footer {
+            margin-top: auto;
+            padding: 20px 0;
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .btn-timer {
+            min-width: 120px;
+        }
+
+        .time-entry {
+            transition: background-color 0.2s;
+        }
+
+        .time-entry:hover {
+            background-color: #f8f9fa;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-clock"></i> Timesheet
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('timesheet.index') }}">
+                            <i class="bi bi-stopwatch"></i> Timesheet
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('projects.index') }}">
+                            <i class="bi bi-folder"></i> Progetti
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reports.index') }}">
+                            <i class="bi bi-graph-up"></i> Report
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Running Timer Indicator -->
+                <div id="running-timer-indicator" class="navbar-text me-3" style="display: none;">
+                    <span class="badge bg-success running-timer">
+                        <i class="bi bi-play-fill"></i>
+                        <span id="timer-project">Progetto</span>:
+                        <span id="timer-duration">00:00</span>
+                    </span>
+                </div>
+
+                <div class="navbar-nav">
+                    <a class="nav-link" href="{{ url_for('timesheet.quick_add') }}">
+                        <i class="bi bi-plus-circle"></i> Aggiungi Voce
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container-fluid mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container text-center">
+            <span class="text-muted">© 2025 SILICONDEV SPA - Timesheet App</span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        class TimesheetApp {
+            constructor() {
+                this.runningTimer = null;
+                this.timerInterval = null;
+                this.init();
+            }
+
+            init() {
+                this.checkRunningTimer();
+                this.setupEventListeners();
+                setInterval(() => this.checkRunningTimer(), 30000);
+            }
+
+            setupEventListeners() {
+                document.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('btn-delete')) {
+                        if (!confirm('Sei sicuro di voler eliminare questo elemento?')) {
+                            e.preventDefault();
+                        }
+                    }
+                });
+
+                document.addEventListener('submit', (e) => {
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Attendere...';
+                        setTimeout(() => {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Invia';
+                        }, 3000);
+                    }
+                });
+            }
+
+            async checkRunningTimer() {
+                try {
+                    const response = await fetch('/timesheet/api/running-status');
+                    const data = await response.json();
+
+                    const indicator = document.getElementById('running-timer-indicator');
+
+                    if (data.is_running) {
+                        this.showRunningTimer(data);
+                    } else {
+                        this.hideRunningTimer();
+                    }
+                } catch (error) {
+                    console.log('Error checking timer status:', error);
+                }
+            }
+
+            showRunningTimer(data) {
+                const indicator = document.getElementById('running-timer-indicator');
+                const projectSpan = document.getElementById('timer-project');
+                const durationSpan = document.getElementById('timer-duration');
+
+                if (indicator && projectSpan && durationSpan) {
+                    projectSpan.textContent = data.project_name;
+                    durationSpan.textContent = data.duration_display;
+                    indicator.style.display = 'block';
+                }
+            }
+
+            hideRunningTimer() {
+                const indicator = document.getElementById('running-timer-indicator');
+                if (indicator) {
+                    indicator.style.display = 'none';
+                }
+            }
+
+            async startTimer(projectId, description) {
+                try {
+                    const response = await fetch('/timesheet/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ project_id: projectId, description: description })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.showAlert('success', data.message);
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        this.showAlert('danger', data.message);
+                    }
+
+                    return data;
+                } catch (error) {
+                    this.showAlert('danger', 'Errore nella comunicazione con il server');
+                    return { success: false };
+                }
+            }
+
+            async stopTimer(entryId) {
+                try {
+                    const response = await fetch(`/timesheet/stop/${entryId}`, { method: 'POST' });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.showAlert('success', data.message);
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        this.showAlert('danger', data.message);
+                    }
+
+                    return data;
+                } catch (error) {
+                    this.showAlert('danger', 'Errore nella comunicazione con il server');
+                    return { success: false };
+                }
+            }
+
+            showAlert(type, message) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                const container = document.querySelector('.container-fluid') || document.body;
+                container.insertBefore(alertDiv, container.firstChild);
+
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.timesheetApp = new TimesheetApp();
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

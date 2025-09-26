@@ -1,0 +1,266 @@
+<!-- templates/projects/form.html - Project Create/Edit Form -->
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifica' if project else 'Nuovo' }} Progetto - Timesheet App{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-{{ 'pencil-square' if project else 'plus-circle' }}"></i>
+                    {{ 'Modifica' if project else 'Nuovo' }} Progetto
+                </h1>
+                <div>
+                    <a href="{{ url_for('projects.index') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Torna ai Progetti
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-folder"></i> Informazioni Progetto
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="project-form">
+                        <div class="row">
+                            <!-- Project Name -->
+                            <div class="col-md-8 mb-3">
+                                <label for="name" class="form-label">
+                                    <i class="bi bi-tag"></i> Nome Progetto *
+                                </label>
+                                <input type="text" class="form-control" id="name" name="name"
+                                       value="{{ project.name if project else '' }}"
+                                       required placeholder="es. Sviluppo Sito Web">
+                                <div class="form-text">
+                                    Nome identificativo del progetto (deve essere univoco)
+                                </div>
+                            </div>
+
+                            <!-- Project Color -->
+                            <div class="col-md-4 mb-3">
+                                <label for="color" class="form-label">
+                                    <i class="bi bi-palette"></i> Colore
+                                </label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="color" name="color"
+                                           value="{{ project.color if project else '#007bff' }}" title="Scegli colore">
+                                    <span class="input-group-text" id="color-preview">
+                                        <span class="project-badge" style="background-color: {{ project.color if project else '#007bff' }};"></span>
+                                    </span>
+                                </div>
+                                <div class="form-text">
+                                    Colore per identificare visivamente il progetto
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="bi bi-text-paragraph"></i> Descrizione
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                                      placeholder="Descrizione dettagliata del progetto...">{{ project.description if project else '' }}</textarea>
+                            <div class="form-text">
+                                Descrizione opzionale del progetto e delle sue caratteristiche
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Hourly Rate -->
+                            <div class="col-md-6 mb-3">
+                                <label for="hourly_rate" class="form-label">
+                                    <i class="bi bi-currency-euro"></i> Tariffa Oraria
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">€</span>
+                                    <input type="number" class="form-control" id="hourly_rate" name="hourly_rate"
+                                           step="0.01" min="0" max="1000"
+                                           value="{{ project.hourly_rate if project else '0.00' }}"
+                                           placeholder="0.00">
+                                </div>
+                                <div class="form-text">
+                                    Tariffa oraria per il calcolo automatico dei guadagni (0 = gratuito)
+                                </div>
+                            </div>
+
+                            <!-- Active Status -->
+                            <div class="col-md-6 mb-3 d-flex align-items-end">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                                           {{ 'checked' if not project or project.is_active else '' }}>
+                                    <label class="form-check-label" for="is_active">
+                                        <i class="bi bi-power"></i> Progetto Attivo
+                                    </label>
+                                    <div class="form-text">
+                                        Solo i progetti attivi appaiono nella selezione per il timer
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview Card -->
+                        <div class="card bg-light mb-4" id="preview-card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-eye"></i> Anteprima
+                                </h6>
+                                <div class="d-flex align-items-center">
+                                    <span class="project-badge me-2" id="preview-badge" style="background-color: #007bff;"></span>
+                                    <div>
+                                        <strong id="preview-name">Nome Progetto</strong>
+                                        <div class="text-muted small" id="preview-rate">€0.00/ora</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('projects.index') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Annulla
+                            </a>
+
+                            <button type="submit" class="btn btn-success" data-original-text="{{ 'Aggiorna Progetto' if project else 'Crea Progetto' }}">
+                                <i class="bi bi-{{ 'check-circle' if project else 'plus-circle' }}"></i>
+                                {{ 'Aggiorna Progetto' if project else 'Crea Progetto' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Additional Info for Edit -->
+            {% if project %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i> Informazioni Aggiuntive
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <h5 class="text-primary">{{ project.entries_count }}</h5>
+                            <small class="text-muted">Voci Totali</small>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <h5 class="text-success">{{ project.total_hours }}h</h5>
+                            <small class="text-muted">Ore Totali</small>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <h5 class="text-info">€{{ "%.2f"|format(project.total_earnings) }}</h5>
+                            <small class="text-muted">Guadagni Totali</small>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <h5 class="text-warning">{{ project.created_at.strftime('%d/%m/%Y') }}</h5>
+                            <small class="text-muted">Data Creazione</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Color Presets -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-palette-fill"></i> Colori Predefiniti
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2" id="color-presets">
+                        <!-- Colors will be added by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Predefined colors
+    const predefinedColors = [
+        '#007bff', '#28a745', '#dc3545', '#ffc107', '#6f42c1',
+        '#fd7e14', '#20c997', '#6c757d', '#e83e8c', '#17a2b8'
+    ];
+
+    // Update preview in real-time
+    function updatePreview() {
+        const name = document.getElementById('name').value || 'Nome Progetto';
+        const color = document.getElementById('color').value;
+        const rate = parseFloat(document.getElementById('hourly_rate').value) || 0;
+
+        document.getElementById('preview-name').textContent = name;
+        document.getElementById('preview-rate').textContent = rate > 0 ? `€${rate.toFixed(2)}/ora` : 'Gratuito';
+        document.getElementById('preview-badge').style.backgroundColor = color;
+
+        // Update color preview
+        const colorPreview = document.querySelector('#color-preview .project-badge');
+        if (colorPreview) {
+            colorPreview.style.backgroundColor = color;
+        }
+    }
+
+    function selectPredefinedColor(color) {
+        document.getElementById('color').value = color;
+        updatePreview();
+    }
+
+    function addColorPalette() {
+        const container = document.getElementById('color-presets');
+        predefinedColors.forEach(color => {
+            const div = document.createElement('div');
+            div.className = 'col-auto';
+            div.innerHTML = `
+                <button type="button" class="btn btn-sm p-2"
+                        style="width: 40px; height: 40px; background-color: ${color}; border: 2px solid #dee2e6;"
+                        onclick="selectPredefinedColor('${color}')"
+                        title="${color}">
+                </button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        addColorPalette();
+        updatePreview();
+
+        // Add event listeners
+        ['name', 'color', 'hourly_rate'].forEach(fieldId => {
+            document.getElementById(fieldId).addEventListener('input', updatePreview);
+        });
+    });
+
+    // Form validation
+    document.getElementById('project-form').addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        if (name.length < 3) {
+            e.preventDefault();
+            alert('Il nome del progetto deve essere di almeno 3 caratteri');
+            return;
+        }
+
+        const rate = parseFloat(document.getElementById('hourly_rate').value);
+        if (rate < 0 || rate > 1000) {
+            e.preventDefault();
+            alert('La tariffa oraria deve essere tra 0 e 1000 euro');
+            return;
+        }
+    });
+</script>
+{% endblock %}

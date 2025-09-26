@@ -1,0 +1,149 @@
+<!-- templates/projects/index.html - Projects List -->
+{% extends "base.html" %}
+
+{% block title %}Progetti - Timesheet App{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-folder"></i> Gestione Progetti
+                </h1>
+                <div>
+                    <a href="{{ url_for('projects.create') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Nuovo Progetto
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-ul"></i> Elenco Progetti
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if project_stats %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Progetto</th>
+                                        <th>Descrizione</th>
+                                        <th class="text-end">Tariffa Oraria</th>
+                                        <th class="text-end">Ore Totali</th>
+                                        <th class="text-end">Voci</th>
+                                        <th class="text-end">Guadagni</th>
+                                        <th>Stato</th>
+                                        <th class="text-end">Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for stat in project_stats %}
+                                    <tr>
+                                        <td>
+                                            <span class="project-badge" style="background-color: {{ stat.project.color }};"></span>
+                                            <strong>{{ stat.project.name }}</strong>
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 300px;" title="{{ stat.project.description or '' }}">
+                                                {{ stat.project.description or '-' }}
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if stat.project.hourly_rate > 0 %}
+                                                €{{ "%.2f"|format(stat.project.hourly_rate) }}
+                                            {% else %}
+                                                <span class="text-muted">Gratuito</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="timer-display">{{ stat.total_hours }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-info">{{ stat.entries_count }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if stat.total_earnings > 0 %}
+                                                <span class="text-success">€{{ "%.2f"|format(stat.total_earnings) }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if stat.project.is_active %}
+                                                <span class="badge bg-success">Attivo</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inattivo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('projects.view', project_id=stat.project.id) }}"
+                                                   class="btn btn-outline-info btn-sm" title="Visualizza">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('projects.edit', project_id=stat.project.id) }}"
+                                                   class="btn btn-outline-secondary btn-sm" title="Modifica">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button class="btn btn-outline-warning btn-sm"
+                                                        onclick="toggleProjectStatus({{ stat.project.id }})"
+                                                        title="{{ 'Disattiva' if stat.project.is_active else 'Attiva' }}">
+                                                    <i class="bi bi-power"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-folder" style="font-size: 3rem; color: #dee2e6;"></i>
+                            <p class="text-muted mt-3 mb-4">Nessun progetto creato</p>
+                            <a href="{{ url_for('projects.create') }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Crea il tuo primo progetto
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function toggleProjectStatus(projectId) {
+        try {
+            const response = await fetch(`/projects/${projectId}/toggle-status`, {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                window.timesheetApp.showAlert('success', data.message);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                window.timesheetApp.showAlert('danger', data.message);
+            }
+        } catch (error) {
+            window.timesheetApp.showAlert('danger', 'Errore nella comunicazione con il server');
+        }
+    }
+</script>
+{% endblock %}

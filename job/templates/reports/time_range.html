@@ -1,0 +1,336 @@
+<!-- templates/reports/time_range.html - Time Range Report -->
+{% extends "base.html" %}
+
+{% block title %}Report per Periodo - Timesheet App{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-calendar-range"></i> Report per Periodo
+                </h1>
+                <div>
+                    <a href="{{ url_for('reports.export_csv', start_date=report.start_date, end_date=report.end_date) }}"
+                       class="btn btn-success">
+                        <i class="bi bi-download"></i> Esporta CSV
+                    </a>
+                    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Torna ai Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period Info -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="alert alert-info">
+                <h6 class="alert-heading mb-2">
+                    <i class="bi bi-info-circle"></i> Periodo Analizzato
+                </h6>
+                <p class="mb-0">
+                    <strong>Dal:</strong> {{ report.start_date.strftime('%d/%m/%Y') }}
+                    <strong>Al:</strong> {{ report.end_date.strftime('%d/%m/%Y') }}
+                    ({{ (report.end_date - report.start_date).days + 1 }} giorni)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card card-stat">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ report.total_entries }}</h3>
+                    <h6 class="text-muted">Voci Totali</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-stat success">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ report.total_hours }}</h3>
+                    <h6 class="text-muted">Ore Totali</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-stat info">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">€{{ "%.2f"|format(report.total_earnings) }}</h3>
+                    <h6 class="text-muted">Guadagni Totali</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-stat warning">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ "%.1f"|format(report.total_hours / ((report.end_date - report.start_date).days + 1)) }}</h3>
+                    <h6 class="text-muted">Ore/Giorno Media</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Project Breakdown -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-pie-chart"></i> Ripartizione per Progetto
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if report.project_breakdown %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Progetto</th>
+                                        <th class="text-end">Voci</th>
+                                        <th class="text-end">Ore</th>
+                                        <th class="text-end">% Tempo</th>
+                                        <th class="text-end">Guadagni</th>
+                                        <th class="text-end">Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for project_data in report.project_breakdown %}
+                                    <tr>
+                                        <td>
+                                            <span class="project-badge" style="background-color: {{ project_data.project.color }};"></span>
+                                            <strong>{{ project_data.project.name }}</strong>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-info">{{ project_data.entries_count }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="timer-display">{{ project_data.total_hours }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if report.total_hours > 0 %}
+                                                {{ "%.1f"|format((project_data.total_hours / report.total_hours) * 100) }}%
+                                            {% else %}
+                                                0%
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if project_data.total_earnings > 0 %}
+                                                <span class="text-success">€{{ "%.2f"|format(project_data.total_earnings) }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="{{ url_for('projects.view', project_id=project_data.project.id) }}"
+                                               class="btn btn-outline-info btn-sm">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">Nessun progetto nel periodo selezionato</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Breakdown -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-calendar-day"></i> Ripartizione Giornaliera
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if report.daily_breakdown %}
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            {% for day_data in report.daily_breakdown[:10] %}
+                            <div class="border-bottom p-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ day_data.date.strftime('%d/%m') }}</strong>
+                                        <small class="text-muted d-block">{{ day_data.date.strftime('%A') }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="timer-display">{{ "%.1f"|format(day_data.hours) }}h</div>
+                                        <small class="text-muted">{{ day_data.entries }} voci</small>
+                                    </div>
+                                </div>
+                                {% if day_data.earnings > 0 %}
+                                    <small class="text-success">€{{ "%.2f"|format(day_data.earnings) }}</small>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">Nessuna attività nel periodo</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Entries List -->
+    {% if report.entries %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list"></i> Voci del Periodo (prime {{ report.entries|length }})
+                    </h5>
+                    {% if report.total_entries > report.entries|length %}
+                        <small class="text-muted">Mostrando {{ report.entries|length }} di {{ report.total_entries }} voci</small>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Progetto</th>
+                                    <th>Descrizione</th>
+                                    <th class="text-end">Durata</th>
+                                    <th class="text-end">Guadagno</th>
+                                    <th class="text-end">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in report.entries %}
+                                <tr class="time-entry">
+                                    <td>
+                                        <small>
+                                            {{ entry.start_time.strftime('%d/%m/%Y') }}
+                                            <br>
+                                            {{ entry.start_time.strftime('%H:%M') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="project-badge" style="background-color: {{ entry.project.color }};"></span>
+                                        {{ entry.project.name }}
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 300px;" title="{{ entry.description }}">
+                                            {{ entry.description }}
+                                        </div>
+                                        {% if entry.tags %}
+                                            <br>
+                                            <small class="text-muted">
+                                                <i class="bi bi-tags"></i> {{ entry.tags }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="timer-display">{{ entry.duration_display }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        {% if entry.earnings > 0 %}
+                                            <span class="text-success">€{{ "%.2f"|format(entry.earnings) }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('timesheet.view_entry', entry_id=entry.id) }}"
+                                           class="btn btn-outline-info btn-sm">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- New Period Selection -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-calendar-range"></i> Seleziona Nuovo Periodo
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label for="start_date" class="form-label">Data Inizio</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date"
+                                       value="{{ report.start_date.strftime('%Y-%m-%d') }}" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="end_date" class="form-label">Data Fine</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date"
+                                       value="{{ report.end_date.strftime('%Y-%m-%d') }}" required>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-search"></i> Aggiorna Report
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="btn-group w-100">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="setThisMonth()">
+                                        Questo Mese
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="setLastMonth()">
+                                        Mese Scorso
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function setThisMonth() {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        document.getElementById('start_date').value = firstDay.toISOString().substring(0, 10);
+        document.getElementById('end_date').value = lastDay.toISOString().substring(0, 10);
+    }
+
+    function setLastMonth() {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+
+        document.getElementById('start_date').value = firstDay.toISOString().substring(0, 10);
+        document.getElementById('end_date').value = lastDay.toISOString().substring(0, 10);
+    }
+</script>
+{% endblock %}
