@@ -1,0 +1,434 @@
+<!-- templates/auth/register.html - Registration Page -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrazione - Timesheet App</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body {
+            background: var(--gradient-bg);
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .register-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .register-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 2rem;
+            border: none;
+        }
+
+        .register-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .register-header h1 {
+            color: var(--primary-color);
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .register-header p {
+            color: #6c757d;
+            margin: 0;
+        }
+
+        .form-floating {
+            margin-bottom: 1rem;
+        }
+
+        .btn-register {
+            background: var(--gradient-bg);
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: transform 0.2s;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            background: var(--gradient-bg);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .login-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .brand-logo {
+            width: 60px;
+            height: 60px;
+            background: var(--gradient-bg);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem auto;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .alert {
+            border-radius: 10px;
+            border: none;
+            margin-bottom: 1rem;
+        }
+
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #f1f3f4;
+            padding: 12px 16px;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        .password-strength {
+            margin-top: 0.5rem;
+        }
+
+        .strength-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: #f1f3f4;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            transition: all 0.3s;
+            border-radius: 2px;
+        }
+
+        .strength-weak { background: #dc3545; width: 33%; }
+        .strength-medium { background: #ffc107; width: 66%; }
+        .strength-strong { background: #28a745; width: 100%; }
+
+        .form-text {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .required-asterisk {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="register-container">
+            <div class="card register-card">
+                <!-- Header -->
+                <div class="register-header">
+                    <div class="brand-logo">
+                        <i class="bi bi-person-plus"></i>
+                    </div>
+                    <h1>Registrazione</h1>
+                    <p>Crea il tuo account Timesheet</p>
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Registration Form -->
+                <form method="POST" id="register-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="first_name"
+                                       name="first_name" placeholder="Nome">
+                                <label for="first_name">
+                                    <i class="bi bi-person me-2"></i>Nome
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="last_name"
+                                       name="last_name" placeholder="Cognome">
+                                <label for="last_name">
+                                    <i class="bi bi-person me-2"></i>Cognome
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="username"
+                               name="username" placeholder="Username" required>
+                        <label for="username">
+                            <i class="bi bi-at me-2"></i>Username <span class="required-asterisk">*</span>
+                        </label>
+                        <div class="form-text">
+                            Almeno 3 caratteri. Solo lettere, numeri e underscore.
+                        </div>
+                    </div>
+
+                    <div class="form-floating">
+                        <input type="email" class="form-control" id="email"
+                               name="email" placeholder="Email" required>
+                        <label for="email">
+                            <i class="bi bi-envelope me-2"></i>Email <span class="required-asterisk">*</span>
+                        </label>
+                    </div>
+
+                    <div class="form-floating">
+                        <input type="password" class="form-control" id="password"
+                               name="password" placeholder="Password" required>
+                        <label for="password">
+                            <i class="bi bi-lock me-2"></i>Password <span class="required-asterisk">*</span>
+                        </label>
+                        <div class="password-strength">
+                            <div class="strength-bar">
+                                <div class="strength-fill" id="strength-fill"></div>
+                            </div>
+                            <div class="form-text" id="strength-text">
+                                Almeno 6 caratteri
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-floating">
+                        <input type="password" class="form-control" id="confirm_password"
+                               name="confirm_password" placeholder="Conferma Password" required>
+                        <label for="confirm_password">
+                            <i class="bi bi-lock-fill me-2"></i>Conferma Password <span class="required-asterisk">*</span>
+                        </label>
+                        <div class="form-text" id="password-match-text"></div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="terms" required>
+                        <label class="form-check-label" for="terms">
+                            Accetto i <a href="#" class="text-primary">Termini di Servizio</a>
+                            e la <a href="#" class="text-primary">Privacy Policy</a>
+                        </label>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-register" disabled id="register-btn">
+                            <i class="bi bi-person-plus me-2"></i>Crea Account
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Login Link -->
+                <div class="login-link">
+                    <p class="mb-0">
+                        Hai già un account?
+                        <a href="{{ url_for('auth.login') }}">Accedi qui</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('register-form');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirm_password');
+            const usernameInput = document.getElementById('username');
+            const strengthFill = document.getElementById('strength-fill');
+            const strengthText = document.getElementById('strength-text');
+            const matchText = document.getElementById('password-match-text');
+            const registerBtn = document.getElementById('register-btn');
+            const termsCheckbox = document.getElementById('terms');
+
+            // Password strength checker
+            passwordInput.addEventListener('input', function() {
+                const password = this.value;
+                const strength = checkPasswordStrength(password);
+
+                strengthFill.className = 'strength-fill';
+
+                if (password.length === 0) {
+                    strengthText.textContent = 'Almeno 6 caratteri';
+                    strengthFill.style.width = '0%';
+                } else if (strength === 'weak') {
+                    strengthFill.classList.add('strength-weak');
+                    strengthText.textContent = 'Password debole';
+                } else if (strength === 'medium') {
+                    strengthFill.classList.add('strength-medium');
+                    strengthText.textContent = 'Password media';
+                } else if (strength === 'strong') {
+                    strengthFill.classList.add('strength-strong');
+                    strengthText.textContent = 'Password forte';
+                }
+
+                checkPasswordMatch();
+                checkFormValidity();
+            });
+
+            // Confirm password checker
+            confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+
+            function checkPasswordMatch() {
+                const password = passwordInput.value;
+                const confirmPassword = confirmPasswordInput.value;
+
+                if (confirmPassword.length === 0) {
+                    matchText.textContent = '';
+                    matchText.className = 'form-text';
+                } else if (password === confirmPassword) {
+                    matchText.textContent = '✓ Le password coincidono';
+                    matchText.className = 'form-text text-success';
+                } else {
+                    matchText.textContent = '✗ Le password non coincidono';
+                    matchText.className = 'form-text text-danger';
+                }
+
+                checkFormValidity();
+            }
+
+            function checkPasswordStrength(password) {
+                if (password.length < 6) return 'weak';
+
+                let score = 0;
+                if (password.length >= 8) score++;
+                if (/[a-z]/.test(password)) score++;
+                if (/[A-Z]/.test(password)) score++;
+                if (/[0-9]/.test(password)) score++;
+                if (/[^A-Za-z0-9]/.test(password)) score++;
+
+                if (score < 2) return 'weak';
+                if (score < 4) return 'medium';
+                return 'strong';
+            }
+
+            // Username validation
+            usernameInput.addEventListener('input', function() {
+                const username = this.value;
+                const isValid = /^[a-zA-Z0-9_]+$/.test(username);
+
+                if (username.length > 0 && !isValid) {
+                    this.setCustomValidity('Solo lettere, numeri e underscore');
+                } else if (username.length > 0 && username.length < 3) {
+                    this.setCustomValidity('Almeno 3 caratteri');
+                } else {
+                    this.setCustomValidity('');
+                }
+
+                checkFormValidity();
+            });
+
+            // Terms checkbox
+            termsCheckbox.addEventListener('change', checkFormValidity);
+
+            function checkFormValidity() {
+                const password = passwordInput.value;
+                const confirmPassword = confirmPasswordInput.value;
+                const username = usernameInput.value;
+                const termsAccepted = termsCheckbox.checked;
+
+                const isValid =
+                    username.length >= 3 &&
+                    password.length >= 6 &&
+                    password === confirmPassword &&
+                    termsAccepted;
+
+                registerBtn.disabled = !isValid;
+            }
+
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                const username = usernameInput.value.trim();
+                const email = document.getElementById('email').value.trim();
+                const password = passwordInput.value;
+                const confirmPassword = confirmPasswordInput.value;
+
+                if (!username || !email || !password || !confirmPassword) {
+                    e.preventDefault();
+                    alert('Tutti i campi obbligatori devono essere compilati');
+                    return;
+                }
+
+                if (username.length < 3) {
+                    e.preventDefault();
+                    alert('Il username deve essere di almeno 3 caratteri');
+                    usernameInput.focus();
+                    return;
+                }
+
+                if (password.length < 6) {
+                    e.preventDefault();
+                    alert('La password deve essere di almeno 6 caratteri');
+                    passwordInput.focus();
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    e.preventDefault();
+                    alert('Le password non coincidono');
+                    confirmPasswordInput.focus();
+                    return;
+                }
+
+                if (!termsCheckbox.checked) {
+                    e.preventDefault();
+                    alert('Devi accettare i Termini di Servizio');
+                    return;
+                }
+
+                // Disable submit button to prevent double submission
+                registerBtn.disabled = true;
+                registerBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Creazione account...';
+            });
+
+            // Initial focus
+            usernameInput.focus();
+        });
+    </script>
+</body>
+</html>
