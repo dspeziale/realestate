@@ -1,0 +1,340 @@
+<!-- templates/auth/edit_profile.html - Edit User Profile Page -->
+{% extends "base.html" %}
+
+{% block title %}Modifica Profilo - Timesheet App{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-person-gear"></i> Modifica Profilo
+                </h1>
+                <div>
+                    <a href="{{ url_for('auth.profile') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Torna al Profilo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-person-circle"></i> Informazioni Personali
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Current User Info Preview -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 text-center">
+                            {% if current_user.profile_picture %}
+                                <img src="{{ current_user.profile_picture }}" alt="Avatar" class="profile-avatar mb-3">
+                            {% else %}
+                                <div class="profile-initials mb-3">{{ current_user.initials }}</div>
+                            {% endif %}
+
+                            <!-- Avatar Upload (Placeholder) -->
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-primary btn-sm" disabled>
+                                    <i class="bi bi-camera"></i> Cambia Foto
+                                </button>
+                                <div class="form-text">Funzionalità in arrivo</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-9">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Profilo Attuale</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">Nome completo:</small>
+                                            <div><strong>{{ current_user.display_name }}</strong></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">Username:</small>
+                                            <div>@{{ current_user.username }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">Email:</small>
+                                            <div>{{ current_user.email }}</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">Ruolo:</small>
+                                            <div>
+                                                <span class="badge {% if current_user.is_admin %}bg-danger{% else %}bg-primary{% endif %}">
+                                                    {{ current_user.role.value.title() }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" id="edit-profile-form">
+                        <div class="row">
+                            <!-- First Name -->
+                            <div class="col-md-6 mb-3">
+                                <label for="first_name" class="form-label">
+                                    <i class="bi bi-person"></i> Nome
+                                </label>
+                                <input type="text" class="form-control" id="first_name" name="first_name"
+                                       value="{{ current_user.first_name or '' }}"
+                                       placeholder="Il tuo nome">
+                                <div class="form-text">
+                                    Nome che apparirà nel tuo profilo
+                                </div>
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="col-md-6 mb-3">
+                                <label for="last_name" class="form-label">
+                                    <i class="bi bi-person"></i> Cognome
+                                </label>
+                                <input type="text" class="form-control" id="last_name" name="last_name"
+                                       value="{{ current_user.last_name or '' }}"
+                                       placeholder="Il tuo cognome">
+                                <div class="form-text">
+                                    Cognome che apparirà nel tuo profilo
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label">
+                                <i class="bi bi-envelope"></i> Email *
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   value="{{ current_user.email }}" required
+                                   placeholder="La tua email">
+                            <div class="form-text">
+                                Email utilizzata per login e notifiche. Deve essere unica.
+                            </div>
+                        </div>
+
+                        <!-- Username (Read-only) -->
+                        <div class="mb-3">
+                            <label for="username" class="form-label">
+                                <i class="bi bi-at"></i> Username
+                            </label>
+                            <input type="text" class="form-control" id="username"
+                                   value="{{ current_user.username }}" readonly disabled>
+                            <div class="form-text">
+                                Il tuo username non può essere modificato. Contatta l'amministratore se necessario.
+                            </div>
+                        </div>
+
+                        <!-- Preview Section -->
+                        <div class="card bg-light mb-4" id="preview-section" style="display: none;">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-eye"></i> Anteprima Modifiche
+                                </h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="preview-initials me-3" id="preview-initials">
+                                        {{ current_user.initials }}
+                                    </div>
+                                    <div>
+                                        <strong id="preview-name">{{ current_user.display_name }}</strong><br>
+                                        <small class="text-muted" id="preview-email">{{ current_user.email }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Info (Read-only) -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-info-circle"></i> Informazioni Account
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <small class="text-muted">ID Utente:</small>
+                                        <div>#{{ current_user.id }}</div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">Provider:</small>
+                                        <div>
+                                            {% if current_user.provider == 'google' %}
+                                                <span class="badge bg-info">
+                                                    <i class="bi bi-google"></i> Google
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-person-badge"></i> Locale
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">Registrato:</small>
+                                        <div>{{ current_user.created_at.strftime('%d/%m/%Y') }}</div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">Ultimo accesso:</small>
+                                        <div>
+                                            {% if current_user.last_login %}
+                                                {{ current_user.last_login.strftime('%d/%m/%Y') }}
+                                            {% else %}
+                                                Mai
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Annulla
+                            </a>
+
+                            <div>
+                                <button type="button" class="btn btn-outline-info me-2" onclick="resetForm()">
+                                    <i class="bi bi-arrow-clockwise"></i> Ripristina
+                                </button>
+                                <button type="submit" class="btn btn-success" id="save-btn">
+                                    <i class="bi bi-check-circle"></i> Salva Modifiche
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Additional Actions -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="bi bi-shield-lock"></i> Sicurezza
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                Gestisci le impostazioni di sicurezza del tuo account.
+                            </p>
+                            <a href="{{ url_for('auth.change_password') }}" class="btn btn-warning">
+                                <i class="bi bi-key"></i> Cambia Password
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="bi bi-download"></i> Dati Personali
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                Esporta i tuoi dati del timesheet in formato CSV.
+                            </p>
+                            <a href="{{ url_for('reports.export_csv') }}" class="btn btn-info">
+                                <i class="bi bi-file-earmark-excel"></i> Esporta Dati
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OAuth Integration -->
+            {% if current_user.provider == 'local' %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-link-45deg"></i> Integrazioni Account
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Collega il tuo account con servizi esterni per un accesso più veloce.
+                    </p>
+                    <a href="{{ url_for('auth.google_login') }}" class="btn btn-outline-primary" disabled>
+                        <i class="bi bi-google"></i> Collega con Google
+                    </a>
+                    <small class="text-muted d-block mt-2">Funzionalità in sviluppo</small>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid #dee2e6;
+    object-fit: cover;
+}
+
+.profile-initials {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: white;
+    margin: 0 auto;
+}
+
+.preview-initials {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: white;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.has-changes {
+    background-color: #fff3cd !important;
+    border-color: #ffeaa7;
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/edit-profile.js') }}"></script>
+{% endblock %}

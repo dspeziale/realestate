@@ -14,7 +14,7 @@
                 </h1>
                 <div>
                     <span class="badge bg-info me-2">{{ users|length }} utenti totali</span>
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary">
+                    <a href="{{ url_for('auth.admin_create_user') }}" class="btn btn-primary">
                         <i class="bi bi-person-plus"></i> Nuovo Utente
                     </a>
                 </div>
@@ -161,7 +161,8 @@
         <div class="col-md-3">
             <div class="card card-stat">
                 <div class="card-body text-center">
-                    <h3 class="mb-0">{{ users|selectattr('is_active')|list|length }}</h3>
+                    {% set active_users = users | selectattr('is_active') | list %}
+                    <h3 class="mb-0">{{ active_users | length }}</h3>
                     <h6 class="text-muted">Utenti Attivi</h6>
                 </div>
             </div>
@@ -170,7 +171,8 @@
         <div class="col-md-3">
             <div class="card card-stat warning">
                 <div class="card-body text-center">
-                    <h3 class="mb-0">{{ users|rejectattr('is_active')|list|length }}</h3>
+                    {% set inactive_users = users | rejectattr('is_active') | list %}
+                    <h3 class="mb-0">{{ inactive_users | length }}</h3>
                     <h6 class="text-muted">Utenti Disattivati</h6>
                 </div>
             </div>
@@ -179,7 +181,8 @@
         <div class="col-md-3">
             <div class="card card-stat success">
                 <div class="card-body text-center">
-                    <h3 class="mb-0">{{ users|selectattr('role.value', 'equalto', 'admin')|list|length }}</h3>
+                    {% set admin_users = users | selectattr('role.value', 'equalto', 'admin') | list %}
+                    <h3 class="mb-0">{{ admin_users | length }}</h3>
                     <h6 class="text-muted">Amministratori</h6>
                 </div>
             </div>
@@ -188,14 +191,17 @@
         <div class="col-md-3">
             <div class="card card-stat info">
                 <div class="card-body text-center">
-                    <h3 class="mb-0">{{ users|selectattr('provider', 'equalto', 'google')|list|length }}</h3>
+                    {% set google_users = users | selectattr('provider', 'equalto', 'google') | list %}
+                    <h3 class="mb-0">{{ google_users | length }}</h3>
                     <h6 class="text-muted">Account Google</h6>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_css %}
 <style>
 .user-avatar {
     width: 40px;
@@ -248,138 +254,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Role change handlers
-        document.querySelectorAll('.role-select').forEach(select => {
-            select.addEventListener('change', async function() {
-                const userId = this.getAttribute('data-user-id');
-                const newRole = this.value;
-                const originalRole = this.getAttribute('data-original-role') || this.value;
-
-                if (!confirm(`Sei sicuro di voler cambiare il ruolo dell'utente a "${newRole}"?`)) {
-                    this.value = originalRole;
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/auth/admin/users/${userId}/role`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ role: newRole })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        this.setAttribute('data-original-role', newRole);
-                        window.timesheetApp.showAlert('success', data.message);
-                    } else {
-                        this.value = originalRole;
-                        window.timesheetApp.showAlert('danger', data.message);
-                    }
-                } catch (error) {
-                    this.value = originalRole;
-                    window.timesheetApp.showAlert('danger', 'Errore nella comunicazione con il server');
-                }
-            });
-
-            // Store original value
-            select.setAttribute('data-original-role', select.value);
-        });
-
-        // Status toggle handlers
-        document.querySelectorAll('.toggle-status-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const userId = this.getAttribute('data-user-id');
-                const statusBadge = document.querySelector(`.status-badge[data-user-id="${userId}"]`);
-                const isActive = statusBadge.classList.contains('bg-success');
-                const action = isActive ? 'disattivare' : 'attivare';
-
-                if (!confirm(`Sei sicuro di voler ${action} questo utente?`)) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/auth/admin/users/${userId}/toggle`, {
-                        method: 'POST'
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        // Update status badge
-                        if (data.is_active) {
-                            statusBadge.className = 'badge bg-success status-badge';
-                            statusBadge.innerHTML = '<i class="bi bi-check-circle"></i> Attivo';
-                            this.title = 'Disattiva';
-                        } else {
-                            statusBadge.className = 'badge bg-warning status-badge';
-                            statusBadge.innerHTML = '<i class="bi bi-pause-circle"></i> Disattivato';
-                            this.title = 'Attiva';
-                        }
-
-                        window.timesheetApp.showAlert('success', data.message);
-                    } else {
-                        window.timesheetApp.showAlert('danger', data.message);
-                    }
-                } catch (error) {
-                    window.timesheetApp.showAlert('danger', 'Errore nella comunicazione con il server');
-                }
-            });
-        });
-
-        // Delete user handlers (only for users with no data)
-        document.querySelectorAll('.delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const userId = this.getAttribute('data-user-id');
-
-                if (!confirm('Sei sicuro di voler eliminare questo utente? Questa azione non può essere annullata.')) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/auth/admin/users/${userId}/delete`, {
-                        method: 'POST'
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        // Remove row from table
-                        const row = document.querySelector(`tr[data-user-id="${userId}"]`);
-                        row.remove();
-
-                        window.timesheetApp.showAlert('success', data.message);
-                    } else {
-                        window.timesheetApp.showAlert('danger', data.message);
-                    }
-                } catch (error) {
-                    window.timesheetApp.showAlert('danger', 'Errore nella comunicazione con il server');
-                }
-            });
-        });
-
-        // Table search/filter functionality
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.className = 'form-control mb-3';
-        searchInput.placeholder = 'Cerca utenti...';
-
-        const cardBody = document.querySelector('.card-body');
-        cardBody.insertBefore(searchInput, cardBody.firstChild);
-
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#users-table tbody tr');
-
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-        });
-    });
-</script>
+<script src="{{ url_for('static', filename='js/admin-users.js') }}"></script>
 {% endblock %}

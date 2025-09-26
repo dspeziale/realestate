@@ -1,0 +1,289 @@
+<!-- templates/projects/detail.html - Project Detail View -->
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Timesheet App{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <span class="project-badge me-2" style="background-color: {{ project.color }};"></span>
+                    {{ project.name }}
+                </h1>
+                <div>
+                    <a href="{{ url_for('projects.edit', project_id=project.id) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-pencil"></i> Modifica
+                    </a>
+                    <a href="{{ url_for('projects.index') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Tutti i Progetti
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card card-stat">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ stats.total_hours }}</h3>
+                    <h6 class="text-muted">Ore Totali</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-stat success">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ stats.total_entries }}</h3>
+                    <h6 class="text-muted">Voci Totali</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-stat info">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">€{{ "%.2f"|format(stats.total_earnings) }}</h3>
+                    <h6 class="text-muted">Guadagni Totali</h6>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-stat warning">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">{{ stats.avg_session_hours }}</h3>
+                    <h6 class="text-muted">Media Ore/Sessione</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Project Info -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i> Informazioni Progetto
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Nome:</strong>
+                        <div>{{ project.name }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Descrizione:</strong>
+                        <div>{{ project.description or 'Nessuna descrizione' }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Colore:</strong>
+                        <div class="d-flex align-items-center">
+                            <span class="project-badge me-2" style="background-color: {{ project.color }};"></span>
+                            {{ project.color }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Tariffa Oraria:</strong>
+                        <div>
+                            {% if project.hourly_rate > 0 %}
+                                €{{ "%.2f"|format(project.hourly_rate) }}/ora
+                            {% else %}
+                                <span class="text-muted">Gratuito</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Stato:</strong>
+                        <div>
+                            {% if project.is_active %}
+                                <span class="badge bg-success">Attivo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inattivo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Creato:</strong>
+                        <div>{{ project.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                    </div>
+
+                    <div class="mb-0">
+                        <strong>Ultimo Aggiornamento:</strong>
+                        <div>{{ project.updated_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-warning btn-sm" onclick="toggleProjectStatus({{ project.id }})">
+                            <i class="bi bi-power"></i> {{ 'Disattiva' if project.is_active else 'Attiva' }}
+                        </button>
+                        <a href="{{ url_for('reports.project_report', project_id=project.id) }}" class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-graph-up"></i> Report Dettagliato
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Entries -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history"></i> Voci Recenti
+                    </h5>
+                    <span class="badge bg-primary">{{ recent_entries|length }} voci</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_entries %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Ora</th>
+                                        <th>Descrizione</th>
+                                        <th class="text-end">Durata</th>
+                                        <th class="text-end">Guadagno</th>
+                                        <th class="text-end">Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for entry in recent_entries %}
+                                    <tr class="time-entry">
+                                        <td>
+                                            <small>{{ entry.start_time.strftime('%d/%m/%Y') }}</small>
+                                        </td>
+                                        <td>
+                                            <small>
+                                                {{ entry.start_time.strftime('%H:%M') }}
+                                                {% if entry.end_time %}
+                                                    - {{ entry.end_time.strftime('%H:%M') }}
+                                                {% endif %}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 300px;" title="{{ entry.description }}">
+                                                {{ entry.description }}
+                                            </div>
+                                            {% if entry.tags %}
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="bi bi-tags"></i> {{ entry.tags }}
+                                                </small>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="timer-display">{{ entry.duration_display }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if entry.earnings > 0 %}
+                                                <span class="text-success">€{{ "%.2f"|format(entry.earnings) }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('timesheet.view_entry', entry_id=entry.id) }}"
+                                                   class="btn btn-outline-info btn-sm" title="Visualizza">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('timesheet.edit_entry', entry_id=entry.id) }}"
+                                                   class="btn btn-outline-secondary btn-sm" title="Modifica">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-clock" style="font-size: 3rem; color: #dee2e6;"></i>
+                            <p class="text-muted mt-3 mb-4">Nessuna voce per questo progetto</p>
+                            <a href="{{ url_for('timesheet.index') }}" class="btn btn-primary">
+                                <i class="bi bi-play-fill"></i> Inizia a tracciare il tempo
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Activity Chart (placeholder) -->
+    {% if stats.monthly_data %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-bar-chart"></i> Attività Mensile
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for month, data in stats.monthly_data.items() %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">{{ month }}</h6>
+                                    <div class="mb-1">
+                                        <strong>{{ "%.1f"|format(data.hours) }}h</strong>
+                                    </div>
+                                    <small class="text-muted">{{ data.entries }} voci</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function toggleProjectStatus(projectId) {
+        const confirmed = confirm('Sei sicuro di voler cambiare lo stato di questo progetto?');
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch(`/projects/${projectId}/toggle-status`, {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                window.timesheetApp.showAlert('success', data.message);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                window.timesheetApp.showAlert('danger', data.message);
+            }
+        } catch (error) {
+            window.timesheetApp.showAlert('danger', 'Errore nella comunicazione con il server');
+        }
+    }
+</script>
+{% endblock %}

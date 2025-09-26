@@ -6,6 +6,7 @@ import logging
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse, urljoin
+import re
 from models import db, User, UserRole
 import requests
 
@@ -329,3 +330,123 @@ def change_user_role(user_id):
         db.session.rollback()
         logger.error(f"Error changing user role: {str(e)}")
         return jsonify({'success': False, 'message': 'Errore durante l\'operazione'}), 500
+
+
+# Aggiungi questa route al file blueprints/auth.py
+
+@auth_bp.route('/admin/users/create', methods=['GET', 'POST'])
+@login_required
+def admin_create_user():
+    """Admin: Create new user"""
+    if not current_user.is_admin:
+        flash('Accesso negato. Solo gli amministratori possono creare utenti.', 'error')
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        try:
+            username = request.form.get('username', '').strip()
+            email = request.form.get('email', '').strip()
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
+            password = request.form.get('password', '').strip()
+            confirm_password = request.form.get('confirm_password', '').strip()
+            role = request.form.get('role', '').strip()
+            is_active = bool(request.form.get('is_active'))
+
+            # Validation
+            if not all([username, email, password, confirm_password, role]):
+                flash('Tutti i campi obbligatori devono essere compilati', 'error')
+                return render_template('auth/admin_create_user.html')
+
+            if len(username) < 3:
+                flash('Il username deve essere di almeno 3 caratteri', 'error')
+                return render_template('auth/admin_create_user.html')
+
+            if not re.match(r'^[a-zA-Z0-9_]+$', username):
+                flash('Username può contenere solo lettere, numeri e underscore', 'error')
+                return render_template('auth/admin_create_user.html')
+
+            if len(password) < 6:
+                flash('La password deve essere di almeno 6 caratteri', 'error')
+                return render_template('auth/admin_create_user.html')
+
+            if password != confirm_password:
+                flash('Le password non coincidono', 'error')
+                return render_template('auth/admin_create_user.html')
+
+            if role not in ['user', 'admin', 'viewer']:
+                flash('Ruolo non valido', 'error')
+                return render_template('auth/admin_create_user.html')
+
+            # Check if user already exists
+            if User.get_by_username(username):
+                flash('Username già esistente', 'error')
+                return render_template('auth/admin_create_user.html')
+
+            if User.get_by_email(email):
+                flash('Email già registrata', 'error')
+                return render_template('auth/admin_create_user.html')
+
+            # Create new user
+            user = User.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                role=UserRole(role)
+            )
+
+            user.is_active = is_active
+            db.session.commit()
+
+            flash(f'Utente "{user.username}" creato con successo!', 'success')
+            logger.info(f"New user created by admin {current_user.username}: {user.username}")
+
+            return redirect(url_for('auth.admin_users'))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error creating user: {str(e)}")
+            flash('Errore durante la creazione dell\'utente. Riprova.', 'error')
+
+    return render_template('auth/admin_create_user.html')
+
+
+@auth_bp.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    """Admin: Delete user (only if no data)"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Accesso negato'}), 403
+
+    try:
+        user = User.query.get_or_404(user_id)
+
+        if user.id == current_user.id:
+            return jsonify({'success': False, 'message': 'Non puoi eliminare il tuo stesso account'}), 400
+
+        # Check if user has data
+        if user.total_entries > 0 or user.projects_count > 0:
+            return jsonify({
+                'success': False,
+                'message': f'Non puoi eliminare {user.username}: ha {user.total_entries} voci e {user.projects_count} progetti. Disattivalo invece.'
+            }), 400
+
+        username = user.username
+        db.session.delete(user)
+        db.session.commit()
+
+        logger.info(f"User {username} deleted by admin {current_user.username}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Utente "{username}" eliminato con successo'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting user: {str(e)}")
+        return jsonify({'success': False, 'message': 'Errore durante l\'eliminazione'}), 500
+
+
