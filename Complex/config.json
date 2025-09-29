@@ -44,7 +44,7 @@
       "sql_file": "DWH-IA-STD.sql",
       "destination_table": "IA_STD",
       "destination_schema": "DWH",
-      "enabled": false
+      "enabled": true
     },
     {
       "name": "Login NON Standard DWH",
@@ -53,7 +53,7 @@
       "sql_file": "DWH-IA-NONSTD.sql",
       "destination_table": "IA_NOSTD",
       "destination_schema": "DWH",
-      "enabled": false
+      "enabled": true
     },
     {
       "name": "Login Standard DWH",
@@ -62,7 +62,7 @@
       "sql_file": "DWH-SO-STD.sql",
       "destination_table": "SO_STD",
       "destination_schema": "DWH",
-      "enabled": false
+      "enabled": true
     },
     {
       "name": "Login Standard DWH",
@@ -71,7 +71,7 @@
       "sql_file": "DWH-SO-NOSTD.sql",
       "destination_table": "SO_NOSTD",
       "destination_schema": "DWH",
-      "enabled": false
+      "enabled": true
     },
     {
       "name": "Login Standard DWH",
@@ -80,7 +80,7 @@
       "sql_file": "DWH-DB-STD.sql",
       "destination_table": "DB_STD",
       "destination_schema": "DWH",
-      "enabled": false
+      "enabled": true
     },
     {
       "name": "Login Standard DWH",
@@ -89,7 +89,7 @@
       "sql_file": "DWH-DB-NOSTD.sql",
       "destination_table": "DB_NOSTD",
       "destination_schema": "DWH",
-      "enabled": false
+      "enabled": true
     },
     {
       "name": "Login IAM COMPLETO",
@@ -98,7 +98,7 @@
       "sql_file": "IAM-PM-IA.sql",
       "destination_table": "IA_Perimetro",
       "destination_schema": "IAM",
-      "enabled": false
+      "enabled": true
     },
     {
       "name": "Login IAM COMPLETO",
@@ -116,7 +116,7 @@
       "sql_file": "IAM-PM-SO.sql",
       "destination_table": "SO_Perimetro",
       "destination_schema": "IAM",
-      "enabled": false
+      "enabled": true
     }
   ],
   "execution": {
