@@ -7,7 +7,7 @@ import csv
 import io
 from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, request, jsonify, make_response, flash, redirect, url_for
-from models import db, TimeEntry, Project, TimesheetStats
+from job.models import db, TimeEntry, Project, TimesheetStats
 from sqlalchemy import func, extract, desc
 
 logger = logging.getLogger(__name__)

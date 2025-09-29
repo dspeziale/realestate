@@ -1,0 +1,46 @@
+2025-09-29 11:22:00,743 - Complex.database_manager - INFO - TEST: Connessione oracle_iam...
+2025-09-29 11:22:00,744 - Complex.database_manager - INFO - CONNESSIONE Oracle [oracle_iam]: 10.22.112.70:1551
+2025-09-29 11:22:00,744 - Complex.database_manager - INFO - Service Name: iam.griffon.local
+2025-09-29 11:22:00,744 - Complex.database_manager - INFO - TENTATIVO: Username/Password Thick Mode...
+2025-09-29 11:22:03,596 - Complex.database_manager - INFO - OK: Connesso con Username/Password (Thick Mode)
+2025-09-29 11:22:03,660 - Complex.database_manager - INFO - OK: Test connessione [oracle_iam]
+2025-09-29 11:22:06,461 - Complex.database_manager - INFO - CHIUSA: Connessione Oracle [oracle_iam] chiusa
+2025-09-29 11:22:06,462 - Complex.database_manager - INFO - TEST: Connessione oracle_dwh...
+2025-09-29 11:22:06,462 - Complex.database_manager - INFO - CONNESSIONE Oracle [oracle_dwh]: 10.50.41.9:1521
+2025-09-29 11:22:06,462 - Complex.database_manager - INFO - Service Name: dwniam
+2025-09-29 11:22:06,462 - Complex.database_manager - INFO - TENTATIVO: Username/Password Thick Mode...
+2025-09-29 11:22:08,976 - Complex.database_manager - INFO - OK: Connesso con Username/Password (Thick Mode)
+2025-09-29 11:22:09,031 - Complex.database_manager - INFO - OK: Test connessione [oracle_dwh]
+2025-09-29 11:22:10,459 - Complex.database_manager - INFO - CHIUSA: Connessione Oracle [oracle_dwh] chiusa
+2025-09-29 11:22:10,459 - Complex.database_manager - INFO - TEST: Connessione mssql_sviluppo_dest...
+2025-09-29 11:22:10,460 - Complex.database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-29 11:22:10,460 - Complex.database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-29 11:22:12,458 - Complex.database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-29 11:22:12,514 - Complex.database_manager - INFO - OK: Test connessione [mssql_sviluppo_dest]
+2025-09-29 11:22:12,616 - Complex.database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-29 11:22:12,616 - Complex.database_manager - INFO - TEST: Connessione mssql_report...
+2025-09-29 11:22:12,616 - Complex.database_manager - INFO - CONNESSIONE SQL Server [mssql_report]: GRFWWW010VEN01.griffon.local
+2025-09-29 11:22:12,616 - Complex.database_manager - INFO - Usando autenticazione Windows per [mssql_report]
+2025-09-29 11:22:13,197 - Complex.database_manager - INFO - OK: Connesso a SQL Server [mssql_report]
+2025-09-29 11:22:13,249 - Complex.database_manager - INFO - OK: Test connessione [mssql_report]
+2025-09-29 11:22:13,371 - Complex.database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_report] chiusa
+2025-09-29 11:22:13,382 - enhanced_multi_query_processor - INFO - AVVIO: Pipeline multi-database avanzata
+2025-09-29 11:22:13,382 - enhanced_multi_query_processor - INFO - QUERY: [Login Standard DWH] risolto da file queries\DWH-IA-STD.sql
+2025-09-29 11:22:13,382 - enhanced_multi_query_processor - INFO - QUERY: Esecuzione Login Standard DWH da [oracle_dwh]
+2025-09-29 11:22:13,382 - Complex.database_manager - INFO - CONNESSIONE Oracle [oracle_dwh]: 10.50.41.9:1521
+2025-09-29 11:22:13,383 - Complex.database_manager - INFO - Service Name: dwniam
+2025-09-29 11:22:13,383 - Complex.database_manager - INFO - TENTATIVO: Username/Password Thick Mode...
+2025-09-29 11:22:15,968 - Complex.database_manager - INFO - OK: Connesso con Username/Password (Thick Mode)
+2025-09-29 11:22:17,924 - enhanced_multi_query_processor - INFO - OK: Query Login Standard DWH completata: 1021 righe -> [DWH].[IA_STD]
+2025-09-29 11:22:19,494 - Complex.database_manager - INFO - CHIUSA: Connessione Oracle [oracle_dwh] chiusa
+2025-09-29 11:22:19,495 - Complex.database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-29 11:22:19,495 - Complex.database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-29 11:22:19,546 - Complex.database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-29 11:22:19,547 - Complex.database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-29 11:22:19,547 - Complex.database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-29 11:22:19,894 - Complex.database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-29 11:22:20,002 - Complex.database_manager - INFO - SCHEMA: Schema [DWH] verificato/creato in [mssql_sviluppo_dest]
+2025-09-29 11:22:20,056 - Complex.database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-29 11:22:20,159 - enhanced_multi_query_processor - INFO - DROP: Tabella [DWH].[IA_STD] eliminata in [mssql_sviluppo_dest]
+2025-09-29 11:22:20,266 - enhanced_multi_query_processor - INFO - CREATE: Tabella [DWH].[IA_STD] creata in [mssql_sviluppo_dest]
+2025-09-29 11:23:12,941 - Complex.database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa

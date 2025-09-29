@@ -1,0 +1,130 @@
+{
+  "databases": {
+    "oracle_iam": {
+      "type": "oracle",
+      "host": "10.22.112.70",
+      "port": 1551,
+      "service_name": "iam.griffon.local",
+      "auth_type": "windows",
+      "username": "X1090405",
+      "password": "Fhdf!K42retwH"
+    },
+    "oracle_dwh": {
+      "type": "oracle",
+      "host": "10.50.41.9",
+      "port": 1521,
+      "service_name": "dwniam",
+      "auth_type": "windows",
+      "username": "X1090405",
+      "password": "Fhdf!K42retwH"
+    },
+    "mssql_sviluppo_dest": {
+      "type": "mssql",
+      "server": "GRFWWW010VEN01.griffon.local",
+      "port": 1433,
+      "database": "SVILUPPO",
+      "auth_type": "windows",
+      "driver": "ODBC Driver 17 for SQL Server",
+      "default_schema": "Test"
+    },
+    "mssql_report": {
+      "type": "mssql",
+      "server": "GRFWWW010VEN01.griffon.local",
+      "port": 1433,
+      "database": "REPORT_ULTIMA_SISTEMI",
+      "auth_type": "windows",
+      "driver": "ODBC Driver 17 for SQL Server"
+    }
+  },
+  "queries": [
+    {
+      "name": "Login Standard DWH",
+      "source_database": "oracle_dwh",
+      "destination_database": "mssql_sviluppo_dest",
+      "sql_file": "DWH-IA-STD.sql",
+      "destination_table": "IA_STD",
+      "destination_schema": "DWH",
+      "enabled": false
+    },
+    {
+      "name": "Login NON Standard DWH",
+      "source_database": "oracle_dwh",
+      "destination_database": "mssql_sviluppo_dest",
+      "sql_file": "DWH-IA-NONSTD.sql",
+      "destination_table": "IA_NOSTD",
+      "destination_schema": "DWH",
+      "enabled": false
+    },
+    {
+      "name": "Login Standard DWH",
+      "source_database": "oracle_dwh",
+      "destination_database": "mssql_sviluppo_dest",
+      "sql_file": "DWH-SO-STD.sql",
+      "destination_table": "SO_STD",
+      "destination_schema": "DWH",
+      "enabled": false
+    },
+    {
+      "name": "Login Standard DWH",
+      "source_database": "oracle_dwh",
+      "destination_database": "mssql_sviluppo_dest",
+      "sql_file": "DWH-SO-NOSTD.sql",
+      "destination_table": "SO_NOSTD",
+      "destination_schema": "DWH",
+      "enabled": false
+    },
+    {
+      "name": "Login Standard DWH",
+      "source_database": "oracle_dwh",
+      "destination_database": "mssql_sviluppo_dest",
+      "sql_file": "DWH-DB-STD.sql",
+      "destination_table": "DB_STD",
+      "destination_schema": "DWH",
+      "enabled": false
+    },
+    {
+      "name": "Login Standard DWH",
+      "source_database": "oracle_dwh",
+      "destination_database": "mssql_sviluppo_dest",
+      "sql_file": "DWH-DB-NOSTD.sql",
+      "destination_table": "DB_NOSTD",
+      "destination_schema": "DWH",
+      "enabled": false
+    },
+    {
+      "name": "Login IAM COMPLETO",
+      "source_database": "mssql_report",
+      "destination_database": "mssql_sviluppo_dest",
+      "sql_file": "IAM-PM-IA.sql",
+      "destination_table": "IA_Perimetro",
+      "destination_schema": "IAM",
+      "enabled": false
+    },
+    {
+      "name": "Login IAM COMPLETO",
+      "source_database": "mssql_report",
+      "destination_database": "mssql_sviluppo_dest",
+      "sql_file": "IAM-PM-DB.sql",
+      "destination_table": "DB_Perimetro",
+      "destination_schema": "IAM",
+      "enabled": true
+    },
+    {
+      "name": "Login IAM COMPLETO",
+      "source_database": "mssql_report",
+      "destination_database": "mssql_sviluppo_dest",
+      "sql_file": "IAM-PM-SO.sql",
+      "destination_table": "SO_Perimetro",
+      "destination_schema": "IAM",
+      "enabled": false
+    }
+  ],
+  "execution": {
+    "batch_size": 1000,
+    "timeout_seconds": 300,
+    "drop_existing_tables": true,
+    "log_level": "INFO",
+    "log_directory": "logs",
+    "query_directory": "queries"
+  }
+}

@@ -1,0 +1,101 @@
+2025-09-25 14:17:00,417 - database_manager - INFO - TEST: Connessione oracle_iam...
+2025-09-25 14:17:00,417 - database_manager - INFO - CONNESSIONE Oracle [oracle_iam]: 10.22.112.70:1551
+2025-09-25 14:17:00,417 - database_manager - INFO - Service Name: iam.griffon.local
+2025-09-25 14:17:00,417 - database_manager - INFO - TENTATIVO: Username/Password Thick Mode...
+2025-09-25 14:17:02,434 - database_manager - INFO - OK: Connesso con Username/Password (Thick Mode)
+2025-09-25 14:17:02,483 - database_manager - INFO - OK: Test connessione [oracle_iam]
+2025-09-25 14:17:04,011 - database_manager - INFO - CHIUSA: Connessione Oracle [oracle_iam] chiusa
+2025-09-25 14:17:04,012 - database_manager - INFO - TEST: Connessione oracle_dwh...
+2025-09-25 14:17:04,012 - database_manager - INFO - CONNESSIONE Oracle [oracle_dwh]: 10.50.41.9:1521
+2025-09-25 14:17:04,012 - database_manager - INFO - Service Name: dwniam
+2025-09-25 14:17:04,012 - database_manager - INFO - TENTATIVO: Username/Password Thick Mode...
+2025-09-25 14:17:06,407 - database_manager - INFO - OK: Connesso con Username/Password (Thick Mode)
+2025-09-25 14:17:06,460 - database_manager - INFO - OK: Test connessione [oracle_dwh]
+2025-09-25 14:17:07,949 - database_manager - INFO - CHIUSA: Connessione Oracle [oracle_dwh] chiusa
+2025-09-25 14:17:07,949 - database_manager - INFO - TEST: Connessione mssql_sviluppo_dest...
+2025-09-25 14:17:07,949 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:17:07,949 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-25 14:17:08,567 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-25 14:17:08,613 - database_manager - INFO - OK: Test connessione [mssql_sviluppo_dest]
+2025-09-25 14:17:08,708 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-25 14:17:08,708 - database_manager - INFO - TEST: Connessione mssql_report...
+2025-09-25 14:17:08,708 - database_manager - INFO - CONNESSIONE SQL Server [mssql_report]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:17:08,709 - database_manager - INFO - Usando autenticazione Windows per [mssql_report]
+2025-09-25 14:17:09,216 - database_manager - INFO - OK: Connesso a SQL Server [mssql_report]
+2025-09-25 14:17:09,263 - database_manager - INFO - OK: Test connessione [mssql_report]
+2025-09-25 14:17:09,359 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_report] chiusa
+2025-09-25 14:17:09,360 - enhanced_multi_query_processor - INFO - AVVIO: Pipeline multi-database avanzata
+2025-09-25 14:17:09,361 - enhanced_multi_query_processor - INFO - QUERY: [Login Standard DWH] risolto da file queries\DWH-STD.sql
+2025-09-25 14:17:09,361 - enhanced_multi_query_processor - INFO - QUERY: Esecuzione Login Standard DWH da [oracle_dwh]
+2025-09-25 14:17:09,361 - database_manager - INFO - CONNESSIONE Oracle [oracle_dwh]: 10.50.41.9:1521
+2025-09-25 14:17:09,361 - database_manager - INFO - Service Name: dwniam
+2025-09-25 14:17:09,361 - database_manager - INFO - TENTATIVO: Username/Password Thick Mode...
+2025-09-25 14:17:11,523 - database_manager - INFO - OK: Connesso con Username/Password (Thick Mode)
+2025-09-25 14:17:13,449 - enhanced_multi_query_processor - INFO - OK: Query Login Standard DWH completata: 1022 righe -> [DWH].[LoginSTD]
+2025-09-25 14:17:14,691 - database_manager - INFO - CHIUSA: Connessione Oracle [oracle_dwh] chiusa
+2025-09-25 14:17:14,691 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:17:14,691 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-25 14:17:14,748 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-25 14:17:14,748 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:17:14,748 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-25 14:17:15,066 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-25 14:17:15,166 - database_manager - INFO - SCHEMA: Schema [DWH] verificato/creato in [mssql_sviluppo_dest]
+2025-09-25 14:17:15,212 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-25 14:17:15,310 - enhanced_multi_query_processor - INFO - DROP: Tabella [DWH].[LoginSTD] eliminata in [mssql_sviluppo_dest]
+2025-09-25 14:17:15,406 - enhanced_multi_query_processor - INFO - CREATE: Tabella [DWH].[LoginSTD] creata in [mssql_sviluppo_dest]
+2025-09-25 14:18:03,810 - enhanced_multi_query_processor - INFO - PROGRESS: 1000/1022 righe inserite in [DWH].[LoginSTD]
+2025-09-25 14:18:04,900 - enhanced_multi_query_processor - INFO - OK: 1022 righe inserite in [DWH].[LoginSTD]
+2025-09-25 14:18:04,993 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-25 14:18:04,994 - enhanced_multi_query_processor - INFO - QUERY: [Login NON Standard DWH] risolto da file queries\DWH-NONSTD.sql
+2025-09-25 14:18:04,994 - enhanced_multi_query_processor - INFO - QUERY: Esecuzione Login NON Standard DWH da [oracle_dwh]
+2025-09-25 14:18:04,994 - database_manager - INFO - CONNESSIONE Oracle [oracle_dwh]: 10.50.41.9:1521
+2025-09-25 14:18:04,995 - database_manager - INFO - Service Name: dwniam
+2025-09-25 14:18:04,995 - database_manager - INFO - TENTATIVO: Username/Password Thick Mode...
+2025-09-25 14:18:07,469 - database_manager - INFO - OK: Connesso con Username/Password (Thick Mode)
+2025-09-25 14:18:09,030 - enhanced_multi_query_processor - INFO - OK: Query Login NON Standard DWH completata: 340 righe -> [DWH].[LoginNOSTD]
+2025-09-25 14:18:10,262 - database_manager - INFO - CHIUSA: Connessione Oracle [oracle_dwh] chiusa
+2025-09-25 14:18:10,262 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:18:10,262 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-25 14:18:10,308 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-25 14:18:10,308 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:18:10,308 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-25 14:18:10,355 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-25 14:18:10,450 - database_manager - INFO - SCHEMA: Schema [DWH] verificato/creato in [mssql_sviluppo_dest]
+2025-09-25 14:18:10,496 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-25 14:18:10,591 - enhanced_multi_query_processor - INFO - DROP: Tabella [DWH].[LoginNOSTD] eliminata in [mssql_sviluppo_dest]
+2025-09-25 14:18:10,690 - enhanced_multi_query_processor - INFO - CREATE: Tabella [DWH].[LoginNOSTD] creata in [mssql_sviluppo_dest]
+2025-09-25 14:18:28,157 - enhanced_multi_query_processor - INFO - OK: 340 righe inserite in [DWH].[LoginNOSTD]
+2025-09-25 14:18:28,252 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-25 14:18:28,253 - enhanced_multi_query_processor - INFO - QUERY: [Login IAM COMPLETO] risolto da file queries\IAM-STD.sql
+2025-09-25 14:18:28,253 - enhanced_multi_query_processor - INFO - QUERY: Esecuzione Login IAM COMPLETO da [mssql_report]
+2025-09-25 14:18:28,253 - database_manager - INFO - CONNESSIONE SQL Server [mssql_report]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:18:28,253 - database_manager - INFO - Usando autenticazione Windows per [mssql_report]
+2025-09-25 14:18:28,587 - database_manager - INFO - OK: Connesso a SQL Server [mssql_report]
+2025-09-25 14:18:29,028 - enhanced_multi_query_processor - INFO - OK: Query Login IAM COMPLETO completata: 1038 righe -> [IAM].[Login]
+2025-09-25 14:18:29,121 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_report] chiusa
+2025-09-25 14:18:29,121 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:18:29,121 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-25 14:18:29,168 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-25 14:18:29,169 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:18:29,169 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-25 14:18:29,215 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-25 14:18:29,309 - database_manager - INFO - SCHEMA: Schema [IAM] verificato/creato in [mssql_sviluppo_dest]
+2025-09-25 14:18:29,356 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-25 14:18:29,451 - enhanced_multi_query_processor - INFO - DROP: Tabella [IAM].[Login] eliminata in [mssql_sviluppo_dest]
+2025-09-25 14:18:29,553 - enhanced_multi_query_processor - INFO - CREATE: Tabella [IAM].[Login] creata in [mssql_sviluppo_dest]
+2025-09-25 14:19:19,382 - enhanced_multi_query_processor - INFO - PROGRESS: 1000/1038 righe inserite in [IAM].[Login]
+2025-09-25 14:19:21,266 - enhanced_multi_query_processor - INFO - OK: 1038 righe inserite in [IAM].[Login]
+2025-09-25 14:19:21,373 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-25 14:19:21,374 - enhanced_multi_query_processor - INFO - OK: Pipeline multi-database avanzata completata
+2025-09-25 14:19:21,374 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:19:21,375 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-25 14:19:21,421 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-25 14:19:21,632 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-25 14:19:21,632 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:19:21,632 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-25 14:19:21,678 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-25 14:19:21,888 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-25 14:19:21,888 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-25 14:19:21,888 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-25 14:19:21,935 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-25 14:19:22,147 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa

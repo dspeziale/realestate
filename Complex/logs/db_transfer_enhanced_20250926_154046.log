@@ -1,0 +1,39 @@
+2025-09-26 15:40:46,457 - database_manager - INFO - TEST: Connessione oracle_iam...
+2025-09-26 15:40:46,457 - database_manager - INFO - CONNESSIONE Oracle [oracle_iam]: 10.22.112.70:1551
+2025-09-26 15:40:46,457 - database_manager - INFO - Service Name: iam.griffon.local
+2025-09-26 15:40:46,457 - database_manager - INFO - TENTATIVO: Username/Password Thick Mode...
+2025-09-26 15:40:48,501 - database_manager - INFO - OK: Connesso con Username/Password (Thick Mode)
+2025-09-26 15:40:48,530 - database_manager - INFO - OK: Test connessione [oracle_iam]
+2025-09-26 15:40:49,920 - database_manager - INFO - CHIUSA: Connessione Oracle [oracle_iam] chiusa
+2025-09-26 15:40:49,920 - database_manager - INFO - TEST: Connessione oracle_dwh...
+2025-09-26 15:40:49,920 - database_manager - INFO - CONNESSIONE Oracle [oracle_dwh]: 10.50.41.9:1521
+2025-09-26 15:40:49,920 - database_manager - INFO - Service Name: dwniam
+2025-09-26 15:40:49,920 - database_manager - INFO - TENTATIVO: Username/Password Thick Mode...
+2025-09-26 15:40:51,697 - database_manager - INFO - OK: Connesso con Username/Password (Thick Mode)
+2025-09-26 15:40:51,723 - database_manager - INFO - OK: Test connessione [oracle_dwh]
+2025-09-26 15:40:53,098 - database_manager - INFO - CHIUSA: Connessione Oracle [oracle_dwh] chiusa
+2025-09-26 15:40:53,098 - database_manager - INFO - TEST: Connessione mssql_sviluppo_dest...
+2025-09-26 15:40:53,098 - database_manager - INFO - CONNESSIONE SQL Server [mssql_sviluppo_dest]: GRFWWW010VEN01.griffon.local
+2025-09-26 15:40:53,098 - database_manager - INFO - Usando autenticazione Windows per [mssql_sviluppo_dest]
+2025-09-26 15:40:53,515 - database_manager - INFO - OK: Connesso a SQL Server [mssql_sviluppo_dest]
+2025-09-26 15:40:53,540 - database_manager - INFO - OK: Test connessione [mssql_sviluppo_dest]
+2025-09-26 15:40:53,592 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_sviluppo_dest] chiusa
+2025-09-26 15:40:53,592 - database_manager - INFO - TEST: Connessione mssql_report...
+2025-09-26 15:40:53,592 - database_manager - INFO - CONNESSIONE SQL Server [mssql_report]: GRFWWW010VEN01.griffon.local
+2025-09-26 15:40:53,592 - database_manager - INFO - Usando autenticazione Windows per [mssql_report]
+2025-09-26 15:40:53,908 - database_manager - INFO - OK: Connesso a SQL Server [mssql_report]
+2025-09-26 15:40:53,944 - database_manager - INFO - OK: Test connessione [mssql_report]
+2025-09-26 15:40:53,997 - database_manager - INFO - CHIUSA: Connessione SQL Server [mssql_report] chiusa
+2025-09-26 15:40:53,998 - database_manager - INFO - TEST: Connessione mssql_locale...
+2025-09-26 15:40:53,998 - database_manager - INFO - CONNESSIONE SQL Server [mssql_locale]: SL-3863\REPLICA
+2025-09-26 15:40:53,998 - database_manager - INFO - Usando autenticazione SQL Server per [mssql_locale]
+2025-09-26 15:41:09,827 - database_manager - ERROR - ERRORE: connessione SQL Server [mssql_locale]: ('08001', "[08001] [Microsoft][ODBC Driver 17 for SQL Server]Provider TCP: Impossibile stabilire la connessione. Rifiuto persistente del computer di destinazione.\r\n (10061) (SQLDriverConnect); [08001] [Microsoft][ODBC Driver 17 for SQL Server]Timeout di accesso scaduto (0); [08001] [Microsoft][ODBC Driver 17 for SQL Server]Si è verificato un errore specifico dell'istanza o relativo alla rete durante il tentativo di stabilire una connessione a SQL Server. Server non trovato o non accessibile. Verificare che il nome dell'istanza sia corretto e che il server sia configurato in modo da consentire connessioni remote. Per ulteriori informazioni, vedere la documentazione online di SQL Server. (10061)")
+2025-09-26 15:41:09,827 - database_manager - ERROR - ERRORE: Test connessione [mssql_locale]: ('08001', "[08001] [Microsoft][ODBC Driver 17 for SQL Server]Provider TCP: Impossibile stabilire la connessione. Rifiuto persistente del computer di destinazione.\r\n (10061) (SQLDriverConnect); [08001] [Microsoft][ODBC Driver 17 for SQL Server]Timeout di accesso scaduto (0); [08001] [Microsoft][ODBC Driver 17 for SQL Server]Si è verificato un errore specifico dell'istanza o relativo alla rete durante il tentativo di stabilire una connessione a SQL Server. Server non trovato o non accessibile. Verificare che il nome dell'istanza sia corretto e che il server sia configurato in modo da consentire connessioni remote. Per ulteriori informazioni, vedere la documentazione online di SQL Server. (10061)")
+2025-09-26 15:41:21,009 - enhanced_multi_query_processor - INFO - AVVIO: Pipeline multi-database avanzata
+2025-09-26 15:41:21,009 - enhanced_multi_query_processor - INFO - QUERY: [Login Standard DWH] risolto da file queries\DWH-STD.sql
+2025-09-26 15:41:21,010 - enhanced_multi_query_processor - INFO - QUERY: Esecuzione Login Standard DWH da [oracle_dwh]
+2025-09-26 15:41:21,010 - database_manager - INFO - CONNESSIONE Oracle [oracle_dwh]: 10.50.41.9:1521
+2025-09-26 15:41:21,010 - database_manager - INFO - Service Name: dwniam
+2025-09-26 15:41:21,010 - database_manager - INFO - TENTATIVO: Username/Password Thick Mode...
+2025-09-26 15:41:23,141 - database_manager - INFO - OK: Connesso con Username/Password (Thick Mode)
+2025-09-26 15:41:28,276 - database_manager - INFO - CHIUSA: Connessione Oracle [oracle_dwh] chiusa
