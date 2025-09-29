@@ -1,4 +1,4 @@
-<!-- templates/reports/project_detail.html - Detailed Project Report -->
+<!-- job/templates/reports/project_detail.html - Detailed Project Report -->
 {% extends "base.html" %}
 
 {% block title %}Report {{ report.project.name }} - Timesheet App{% endblock %}
@@ -43,7 +43,7 @@
                     <div class="col-md-3">
                         <strong>Tariffa:</strong>
                         {% if report.project.hourly_rate > 0 %}
-                            €{{ "%.2f"|format(report.project.hourly_rate) }}/ora
+                            €{{ "%.2f" % report.project.hourly_rate }}/ora
                         {% else %}
                             Gratuito
                         {% endif %}
@@ -57,14 +57,10 @@
                         {% endif %}
                     </div>
                     <div class="col-md-3">
-                        <strong>Creato:</strong> {{ report.project.created_at.strftime('%d/%m/%Y') }}
+                        <strong>Descrizione:</strong>
+                        {{ report.project.description or 'N/A' }}
                     </div>
                 </div>
-                {% if report.project.description %}
-                <div class="mt-2">
-                    <strong>Descrizione:</strong> {{ report.project.description }}
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -72,61 +68,62 @@
     <!-- Summary Stats -->
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card card-stat">
-                <div class="card-body text-center">
-                    <h3 class="mb-0">{{ report.total_entries }}</h3>
-                    <h6 class="text-muted">Voci Totali</h6>
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">Ore Totali</h6>
+                    <h3 class="mb-0">{{ "%.1f" % report.total_hours }}</h3>
+                    <small>in {{ report.total_entries }} voci</small>
                 </div>
             </div>
         </div>
-
         <div class="col-md-3">
-            <div class="card card-stat success">
-                <div class="card-body text-center">
-                    <h3 class="mb-0">{{ report.total_hours }}</h3>
-                    <h6 class="text-muted">Ore Totali</h6>
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">Guadagno Totale</h6>
+                    <h3 class="mb-0">€{{ "%.2f" % report.total_earnings }}</h3>
+                    <small>a €{{ "%.2f" % report.project.hourly_rate }}/ora</small>
                 </div>
             </div>
         </div>
-
         <div class="col-md-3">
-            <div class="card card-stat info">
-                <div class="card-body text-center">
-                    <h3 class="mb-0">€{{ "%.2f"|format(report.total_earnings) }}</h3>
-                    <h6 class="text-muted">Guadagni Totali</h6>
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">Durata Media Sessione</h6>
+                    <h3 class="mb-0">{{ "%.1f" % report.avg_session_hours }}h</h3>
+                    <small>per sessione</small>
                 </div>
             </div>
         </div>
-
         <div class="col-md-3">
-            <div class="card card-stat warning">
-                <div class="card-body text-center">
-                    <h3 class="mb-0">{{ report.avg_session_hours }}h</h3>
-                    <h6 class="text-muted">Sessione Media</h6>
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h6 class="text-dark">Ora Più Produttiva</h6>
+                    <h3 class="mb-0">{{ report.peak_hour }}</h3>
+                    <small>dell'ultima settimana</small>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <!-- Monthly Breakdown -->
-        <div class="col-lg-6 mb-4">
+    <!-- Monthly Breakdown -->
+    <div class="row mb-4">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="bi bi-calendar-month"></i> Andamento Mensile
+                        <i class="bi bi-calendar-month"></i> Breakdown Mensile
                     </h5>
                 </div>
                 <div class="card-body">
                     {% if report.monthly_breakdown %}
                         <div class="table-responsive">
-                            <table class="table table-hover table-sm">
-                                <thead class="table-light">
+                            <table class="table table-hover">
+                                <thead>
                                     <tr>
                                         <th>Mese</th>
-                                        <th class="text-end">Ore</th>
                                         <th class="text-end">Voci</th>
-                                        <th class="text-end">Guadagni</th>
+                                        <th class="text-end">Ore</th>
+                                        <th class="text-end">Guadagno</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -134,14 +131,14 @@
                                     <tr>
                                         <td><strong>{{ month_data.month }}</strong></td>
                                         <td class="text-end">
-                                            <span class="timer-display">{{ "%.1f"|format(month_data.hours) }}</span>
-                                        </td>
-                                        <td class="text-end">
                                             <span class="badge bg-info">{{ month_data.entries }}</span>
                                         </td>
                                         <td class="text-end">
+                                            <span class="timer-display">{{ "%.1f" % month_data.hours }}</span>
+                                        </td>
+                                        <td class="text-end">
                                             {% if month_data.earnings > 0 %}
-                                                <span class="text-success">€{{ "%.2f"|format(month_data.earnings) }}</span>
+                                                <span class="text-success">€{{ "%.2f" % month_data.earnings }}</span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
@@ -152,76 +149,8 @@
                             </table>
                         </div>
                     {% else %}
-                        <div class="text-center py-3">
+                        <div class="text-center py-4">
                             <p class="text-muted">Nessun dato mensile disponibile</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Weekday Breakdown -->
-        <div class="col-lg-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-calendar-week"></i> Distribuzione Settimanale
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if report.weekday_breakdown %}
-                        {% set max_hours = [0] %}
-                        {% for day_data in report.weekday_breakdown %}
-                            {% if day_data.hours > max_hours[0] %}
-                                {% if max_hours.append(day_data.hours) %}{% endif %}
-                                {% if max_hours.pop(0) %}{% endif %}
-                            {% endif %}
-                        {% endfor %}
-
-                        {% for day_data in report.weekday_breakdown %}
-                            {% if day_data.hours > 0 %}
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <div style="min-width: 80px;">
-                                    <strong>{{ day_data.day }}</strong>
-                                </div>
-                                <div class="flex-grow-1 mx-3">
-                                    <div class="progress">
-                                        <div class="progress-bar bg-primary" role="progressbar"
-                                             style="width: {% if max_hours[0] > 0 %}{{ (day_data.hours / max_hours[0]) * 100 }}{% else %}0{% endif %}%">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="text-end" style="min-width: 100px;">
-                                    <span class="timer-display">{{ "%.1f"|format(day_data.hours) }}h</span>
-                                    <small class="text-muted">({{ day_data.entries }})</small>
-                                </div>
-                            </div>
-                            {% endif %}
-                        {% endfor %}
-
-                        {% if max_hours[0] > 0 %}
-                        <div class="alert alert-light mt-3">
-                            <small>
-                                <i class="bi bi-info-circle"></i>
-                                <strong>Giorno più produttivo:</strong>
-                                {% set best_day = None %}
-                                {% set best_hours = [0] %}
-                                {% for day_data in report.weekday_breakdown %}
-                                    {% if day_data.hours > best_hours[0] %}
-                                        {% set best_day = day_data %}
-                                        {% if best_hours.append(day_data.hours) %}{% endif %}
-                                        {% if best_hours.pop(0) %}{% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                                {% if best_day %}
-                                    {{ best_day.day }} con {{ "%.1f"|format(best_day.hours) }} ore
-                                {% endif %}
-                            </small>
-                        </div>
-                        {% endif %}
-                    {% else %}
-                        <div class="text-center py-3">
-                            <p class="text-muted">Nessun dato settimanale disponibile</p>
                         </div>
                     {% endif %}
                 </div>
@@ -229,135 +158,54 @@
         </div>
     </div>
 
-    <!-- Productivity Insights -->
-    <div class="row">
-        <div class="col-lg-8 mb-4">
+    <!-- Weekday Breakdown -->
+    <div class="row mb-4">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="bi bi-lightbulb"></i> Insights Produttività
+                        <i class="bi bi-calendar-week"></i> Breakdown per Giorno della Settimana
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="fw-bold text-primary">
-                                <i class="bi bi-clock"></i> Tempi di Lavoro
-                            </h6>
-                            <ul class="list-unstyled">
-                                <li class="mb-2">
-                                    <strong>Ora più produttiva:</strong>
-                                    <span class="text-muted">{{ report.peak_hour }}</span>
-                                </li>
-                                <li class="mb-2">
-                                    <strong>Sessione media:</strong>
-                                    <span class="text-muted">{{ report.avg_session_hours }} ore</span>
-                                </li>
-                                <li class="mb-2">
-                                    <strong>Ore al mese (media):</strong>
-                                    <span class="text-muted">
-                                        {% if report.monthly_breakdown %}
-                                            {{ "%.1f"|format(report.total_hours / (report.monthly_breakdown|length)) }}h
-                                        {% else %}
-                                            0h
-                                        {% endif %}
-                                    </span>
-                                </li>
-                            </ul>
+                    {% if report.weekday_breakdown %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Giorno</th>
+                                        <th class="text-end">Voci</th>
+                                        <th class="text-end">Ore Totali</th>
+                                        <th class="text-end">% del Totale</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for day_data in report.weekday_breakdown %}
+                                    <tr>
+                                        <td><strong>{{ day_data.day }}</strong></td>
+                                        <td class="text-end">
+                                            <span class="badge bg-info">{{ day_data.entries }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="timer-display">{{ "%.1f" % day_data.hours }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if report.total_hours > 0 %}
+                                                {{ "%.1f" % ((day_data.hours / report.total_hours) * 100) }}%
+                                            {% else %}
+                                                0%
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
-
-                        <div class="col-md-6">
-                            <h6 class="fw-bold text-success">
-                                <i class="bi bi-currency-euro"></i> Performance Economica
-                            </h6>
-                            <ul class="list-unstyled">
-                                <li class="mb-2">
-                                    <strong>Ricavo per ora:</strong>
-                                    <span class="text-success">€{{ "%.2f"|format(report.project.hourly_rate) }}</span>
-                                </li>
-                                <li class="mb-2">
-                                    <strong>Ricavo per sessione:</strong>
-                                    <span class="text-success">
-                                        €{{ "%.2f"|format(report.avg_session_hours * report.project.hourly_rate) }}
-                                    </span>
-                                </li>
-                                <li class="mb-2">
-                                    <strong>Ricavo mensile (medio):</strong>
-                                    <span class="text-success">
-                                        {% if report.monthly_breakdown %}
-                                            €{{ "%.2f"|format(report.total_earnings / (report.monthly_breakdown|length)) }}
-                                        {% else %}
-                                            €0.00
-                                        {% endif %}
-                                    </span>
-                                </li>
-                            </ul>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">Nessun dato settimanale disponibile</p>
                         </div>
-                    </div>
-
-                    {% if report.project.hourly_rate > 0 %}
-                    <div class="alert alert-info mt-3">
-                        <h6 class="alert-heading">
-                            <i class="bi bi-calculator"></i> Proiezioni
-                        </h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <strong>Se lavorassi 8h/giorno:</strong><br>
-                                <span class="text-primary">€{{ "%.0f"|format(8 * report.project.hourly_rate) }}/giorno</span>
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Se lavorassi 40h/settimana:</strong><br>
-                                <span class="text-primary">€{{ "%.0f"|format(40 * report.project.hourly_rate) }}/settimana</span>
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Se lavorassi 160h/mese:</strong><br>
-                                <span class="text-primary">€{{ "%.0f"|format(160 * report.project.hourly_rate) }}/mese</span>
-                            </div>
-                        </div>
-                    </div>
                     {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="col-lg-4 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-lightning"></i> Azioni Rapide
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        {% if report.project.is_active %}
-                        <a href="{{ url_for('timesheet.index') }}?project={{ report.project.id }}" class="btn btn-success">
-                            <i class="bi bi-play-fill"></i> Avvia Timer per Questo Progetto
-                        </a>
-                        {% endif %}
-
-                        <a href="{{ url_for('timesheet.quick_add') }}?project={{ report.project.id }}" class="btn btn-primary">
-                            <i class="bi bi-plus-circle"></i> Aggiungi Voce Manuale
-                        </a>
-
-                        <a href="{{ url_for('projects.edit', project_id=report.project.id) }}" class="btn btn-outline-secondary">
-                            <i class="bi bi-pencil"></i> Modifica Progetto
-                        </a>
-
-                        <a href="{{ url_for('reports.export_csv', project_id=report.project.id) }}" class="btn btn-outline-success">
-                            <i class="bi bi-download"></i> Esporta Dati CSV
-                        </a>
-
-                        <hr>
-
-                        <a href="{{ url_for('reports.time_range_report') }}?project={{ report.project.id }}" class="btn btn-outline-info btn-sm">
-                            <i class="bi bi-calendar-range"></i> Report per Periodo
-                        </a>
-
-                        <a href="{{ url_for('projects.view', project_id=report.project.id) }}" class="btn btn-outline-info btn-sm">
-                            <i class="bi bi-folder"></i> Dettagli Progetto
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>
@@ -367,22 +215,20 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="bi bi-clock-history"></i> Voci Recenti del Progetto
+                        <i class="bi bi-clock-history"></i> Voci Recenti (ultime 20)
                     </h5>
-                    <span class="badge bg-primary">{{ report.recent_entries|length }} voci mostrate</span>
                 </div>
                 <div class="card-body p-0">
                     {% if report.recent_entries %}
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
-                                <thead class="table-light">
+                                <thead>
                                     <tr>
                                         <th>Data</th>
                                         <th>Ora</th>
                                         <th>Descrizione</th>
-                                        <th>Tag</th>
                                         <th class="text-end">Durata</th>
                                         <th class="text-end">Guadagno</th>
                                         <th class="text-end">Azioni</th>
@@ -390,7 +236,7 @@
                                 </thead>
                                 <tbody>
                                     {% for entry in report.recent_entries %}
-                                    <tr class="time-entry">
+                                    <tr>
                                         <td>
                                             <small>{{ entry.start_time.strftime('%d/%m/%Y') }}</small>
                                         </td>
@@ -403,15 +249,13 @@
                                             </small>
                                         </td>
                                         <td>
-                                            <div class="text-truncate" style="max-width: 300px;" title="{{ entry.description }}">
+                                            <div class="text-truncate" style="max-width: 400px;">
                                                 {{ entry.description }}
                                             </div>
-                                        </td>
-                                        <td>
                                             {% if entry.tags %}
                                                 <small class="text-muted">
-                                                    {% for tag in entry.tags_list %}
-                                                        <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                                                    {% for tag in entry.tags.split(',') %}
+                                                        <span class="badge bg-secondary bg-opacity-50 text-dark me-1">{{ tag }}</span>
                                                     {% endfor %}
                                                 </small>
                                             {% else %}
@@ -423,7 +267,7 @@
                                         </td>
                                         <td class="text-end">
                                             {% if entry.earnings > 0 %}
-                                                <span class="text-success">€{{ "%.2f"|format(entry.earnings) }}</span>
+                                                <span class="text-success">€{{ "%.2f" % entry.earnings }}</span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
@@ -450,21 +294,14 @@
                         <div class="card-footer text-center">
                             <small class="text-muted">
                                 Mostrando {{ report.recent_entries|length }} di {{ report.total_entries }} voci totali.
-                                <a href="{{ url_for('reports.export_csv', project_id=report.project.id) }}" class="text-primary">
-                                    Esporta tutte le voci
-                                </a>
+                                Vai al <a href="{{ url_for('projects.view', project_id=report.project.id) }}">dettaglio progetto</a> per vedere tutte le voci.
                             </small>
                         </div>
                         {% endif %}
                     {% else %}
                         <div class="text-center py-5">
-                            <i class="bi bi-clock" style="font-size: 3rem; color: #dee2e6;"></i>
-                            <p class="text-muted mt-3 mb-4">Nessuna voce per questo progetto</p>
-                            {% if report.project.is_active %}
-                            <a href="{{ url_for('timesheet.index') }}" class="btn btn-primary">
-                                <i class="bi bi-play-fill"></i> Inizia a tracciare il tempo
-                            </a>
-                            {% endif %}
+                            <i class="bi bi-inbox" style="font-size: 3rem; color: #dee2e6;"></i>
+                            <p class="text-muted mt-3">Nessuna voce per questo progetto</p>
                         </div>
                     {% endif %}
                 </div>
@@ -473,17 +310,3 @@
     </div>
 </div>
 {% endblock %}
-
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Add any project-specific interactive features here
-        console.log('Project detail report loaded');
-
-        // Could add features like:
-        // - Export specific date ranges
-        // - Filter entries by tags
-        // - Quick time tracking for this project
-    });
-</script>
-{% endblock %>
