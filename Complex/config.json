@@ -122,30 +122,188 @@
   "excel_reports": [
     {
       "name": "IA_STD",
-      "description": "Report mensile degli accessi con parametri",
+      "description": "Report Login Standard Interfaccia Applicativa DWH vs IAM",
       "enabled": true,
+      "properties": {
+        "title": "Report IA_STD - Analisi Login Standard Interfaccia Applicativa",
+        "subject": "Confronto sistemi DWH e IAM per login IA",
+        "author": "Daniele Speziale",
+        "company": "TIM SPA - SEC.CS.CDO",
+        "category": "Report Operativo",
+        "keywords": "IA, login standard, DWH, IAM, interfaccia applicativa, sistemi",
+        "comments": "Report automatico che confronta i sistemi intercettati dal DWH per login standard di interfaccia applicativa con quelli presenti su IAM. Include analisi di presenza/assenza su entrambe le piattaforme.",
+        "manager": "Cinzia Pontoni"
+      },
       "sheets": [
         {
           "name": "DWH",
           "database": "mssql_sviluppo_dest",
           "sql_file": "RPT-IA_STD_DWH.sql",
-           "description": "SISTEMI INTERCETTATI DAL DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA PRESENTI O MENO SU IAM"
+          "description": "SISTEMI INTERCETTATI DAL DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA PRESENTI O MENO SU IAM"
         },
         {
           "name": "IAM",
           "database": "mssql_sviluppo_dest",
           "sql_file": "RPT-IA_STD_IAM.sql",
-           "description": "SISTEMI INTERCETTATI DA IAM PRESENTI O MENO SU DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA"
+          "description": "SISTEMI INTERCETTATI DA IAM PRESENTI O MENO SU DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA"
+        }
+      ]
+    },
+    {
+      "name": "IA_NOSTD",
+      "description": "Report Login Standard Interfaccia Applicativa DWH vs IAM",
+      "enabled": true,
+      "properties": {
+        "title": "Report IA_NOSTD - Analisi Login Standard Interfaccia Applicativa",
+        "subject": "Confronto sistemi DWH e IAM per login IA",
+        "author": "Daniele Speziale",
+        "company": "TIM SPA - SEC.CS.CDO",
+        "category": "Report Operativo",
+        "keywords": "IA, login standard, DWH, IAM, interfaccia applicativa, sistemi",
+        "comments": "Report automatico che confronta i sistemi intercettati dal DWH per login standard di interfaccia applicativa con quelli presenti su IAM. Include analisi di presenza/assenza su entrambe le piattaforme.",
+        "manager": "Cinzia Pontoni"
+      },
+      "sheets": [
+        {
+          "name": "DWH",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-IA_NOSTD_DWH.sql",
+          "description": "SISTEMI INTERCETTATI DAL DWH PER LOGIN NON STANDARD DI INTERFACCIA APPLICATIVA PRESENTI O MENO SU IAM"
+        },
+        {
+          "name": "IAM",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-IA_NOSTD_IAM.sql",
+          "description": "SISTEMI INTERCETTATI DA IAM PRESENTI O MENO SU DWH PER LOGIN NON STANDARD DI INTERFACCIA APPLICATIVA"
+        }
+      ]
+    },
+
+    {
+      "name": "DB_STD",
+      "description": "Report Login Standard Interfaccia Applicativa DWH vs IAM",
+      "enabled": true,
+      "properties": {
+        "title": "Report IA_STD - Analisi Login Standard Interfaccia Applicativa",
+        "subject": "Confronto sistemi DWH e IAM per login IA",
+        "author": "Daniele Speziale",
+        "company": "TIM SPA - SEC.CS.CDO",
+        "category": "Report Operativo",
+        "keywords": "IA, login standard, DWH, IAM, interfaccia applicativa, sistemi",
+        "comments": "Report automatico che confronta i sistemi intercettati dal DWH per login standard di interfaccia applicativa con quelli presenti su IAM. Include analisi di presenza/assenza su entrambe le piattaforme.",
+        "manager": "Cinzia Pontoni"
+      },
+      "sheets": [
+        {
+          "name": "DWH",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-IA_STD_DWH.sql",
+          "description": "SISTEMI INTERCETTATI DAL DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA PRESENTI O MENO SU IAM"
+        },
+        {
+          "name": "IAM",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-IA_STD_IAM.sql",
+          "description": "SISTEMI INTERCETTATI DA IAM PRESENTI O MENO SU DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA"
+        }
+      ]
+    },
+    {
+      "name": "DB_NOSTD",
+      "description": "Report Login Standard Interfaccia Applicativa DWH vs IAM",
+      "enabled": true,
+      "properties": {
+        "title": "Report IA_STD - Analisi Login Standard Interfaccia Applicativa",
+        "subject": "Confronto sistemi DWH e IAM per login IA",
+        "author": "Daniele Speziale",
+        "company": "TIM SPA - SEC.CS.CDO",
+        "category": "Report Operativo",
+        "keywords": "IA, login standard, DWH, IAM, interfaccia applicativa, sistemi",
+        "comments": "Report automatico che confronta i sistemi intercettati dal DWH per login standard di interfaccia applicativa con quelli presenti su IAM. Include analisi di presenza/assenza su entrambe le piattaforme.",
+        "manager": "Cinzia Pontoni"
+      },
+      "sheets": [
+        {
+          "name": "DWH",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-IA_NOSTD_DWH.sql",
+          "description": "SISTEMI INTERCETTATI DAL DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA PRESENTI O MENO SU IAM"
+        },
+        {
+          "name": "IAM",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-IA_NOSTD_IAM.sql",
+          "description": "SISTEMI INTERCETTATI DA IAM PRESENTI O MENO SU DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA"
+        }
+      ]
+    },
+
+    {
+      "name": "SO_STD",
+      "description": "Report Login Standard Interfaccia Applicativa DWH vs IAM",
+      "enabled": true,
+      "properties": {
+        "title": "Report IA_STD - Analisi Login Standard Interfaccia Applicativa",
+        "subject": "Confronto sistemi DWH e IAM per login IA",
+        "author": "Daniele Speziale",
+        "company": "TIM SPA - SEC.CS.CDO",
+        "category": "Report Operativo",
+        "keywords": "IA, login standard, DWH, IAM, interfaccia applicativa, sistemi",
+        "comments": "Report automatico che confronta i sistemi intercettati dal DWH per login standard di interfaccia applicativa con quelli presenti su IAM. Include analisi di presenza/assenza su entrambe le piattaforme.",
+        "manager": "Cinzia Pontoni"
+      },
+      "sheets": [
+        {
+          "name": "DWH",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-SO_STD_DWH.sql",
+          "description": "SISTEMI INTERCETTATI DAL DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA PRESENTI O MENO SU IAM"
+        },
+        {
+          "name": "IAM",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-SO_STD_IAM.sql",
+          "description": "SISTEMI INTERCETTATI DA IAM PRESENTI O MENO SU DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA"
+        }
+      ]
+    },
+    {
+      "name": "SO_NOSTD",
+      "description": "Report Login Standard Interfaccia Applicativa DWH vs IAM",
+      "enabled": true,
+      "properties": {
+        "title": "Report IA_STD - Analisi Login Standard Interfaccia Applicativa",
+        "subject": "Confronto sistemi DWH e IAM per login IA",
+        "author": "Daniele Speziale",
+        "company": "TIM SPA - SEC.CS.CDO",
+        "category": "Report Operativo",
+        "keywords": "IA, login standard, DWH, IAM, interfaccia applicativa, sistemi",
+        "comments": "Report automatico che confronta i sistemi intercettati dal DWH per login standard di interfaccia applicativa con quelli presenti su IAM. Include analisi di presenza/assenza su entrambe le piattaforme.",
+        "manager": "Cinzia Pontoni"
+      },
+      "sheets": [
+        {
+          "name": "DWH",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-SO_NOSTD_DWH.sql",
+          "description": "SISTEMI INTERCETTATI DAL DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA PRESENTI O MENO SU IAM"
+        },
+        {
+          "name": "IAM",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-SO_NOSTD_IAM.sql",
+          "description": "SISTEMI INTERCETTATI DA IAM PRESENTI O MENO SU DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA"
         }
       ]
     }
   ],
   "execution": {
-    "batch_size": 1000,
+    "batch_size": 5000,
     "timeout_seconds": 300,
     "drop_existing_tables": true,
     "log_level": "INFO",
     "log_directory": "logs",
-    "query_directory": "queries"
+    "query_directory": "queries",
+    "excel_output_directory": "reports"
   }
 }

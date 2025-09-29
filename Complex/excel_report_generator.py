@@ -161,6 +161,42 @@ class ExcelReportGenerator:
         # Freeze panes (blocca header)
         worksheet.freeze_panes = worksheet['A2']
 
+    def set_document_properties(self, workbook: Workbook, report_config: Dict[str, Any]):
+        """Imposta le proprietà del documento Excel"""
+        properties = report_config.get('properties', {})
+
+        if properties:
+            # Proprietà standard Excel
+            if 'title' in properties:
+                workbook.properties.title = properties['title']
+
+            if 'subject' in properties:
+                workbook.properties.subject = properties['subject']
+
+            if 'author' in properties:
+                workbook.properties.creator = properties['author']
+
+            if 'company' in properties:
+                workbook.properties.company = properties['company']
+
+            if 'category' in properties:
+                workbook.properties.category = properties['category']
+
+            if 'keywords' in properties:
+                workbook.properties.keywords = properties['keywords']
+
+            if 'comments' in properties:
+                workbook.properties.description = properties['comments']
+
+            if 'manager' in properties:
+                workbook.properties.manager = properties['manager']
+
+            # Timestamp automatico
+            workbook.properties.created = datetime.now()
+            workbook.properties.modified = datetime.now()
+
+            self.logger.info(f"EXCEL: Proprietà documento impostate per report [{report_config.get('name')}]")
+
     def generate_report(self, report_config: Dict[str, Any]) -> str:
         """Genera un singolo report Excel con più fogli"""
         report_name = report_config.get('name', 'report')
@@ -174,6 +210,9 @@ class ExcelReportGenerator:
         # Crea workbook
         wb = Workbook()
         wb.remove(wb.active)  # Rimuove foglio di default
+
+        # Imposta proprietà documento
+        self.set_document_properties(wb, report_config)
 
         results = {
             'report_name': report_name,
@@ -223,7 +262,8 @@ class ExcelReportGenerator:
         # Salva file Excel
         if results['sheets_created']:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{report_name}_{timestamp}.xlsx"
+            #filename = f"{report_name}_{timestamp}.xlsx"
+            filename = f"{report_name}.xlsx"
             filepath = self.output_directory / filename
 
             wb.save(filepath)

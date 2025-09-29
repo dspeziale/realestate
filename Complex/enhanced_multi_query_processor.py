@@ -28,7 +28,7 @@ class EnhancedMultiQueryProcessor:
         self.config = config
         self.db_manager = DatabaseManager(config)
         self.logger = logging.getLogger(__name__)
-        self.batch_size = min(config['execution']['batch_size'], 500)
+        self.batch_size = min(config['execution']['batch_size'], 5000)
         self.drop_existing = config['execution']['drop_existing_tables']
 
         # Filtra solo le query abilitate (enabled: true)
