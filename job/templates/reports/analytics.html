@@ -54,11 +54,13 @@
         <div class="col-md-3">
             <div class="card card-stat success">
                 <div class="card-body text-center">
-                    {% set total_hours = 0 %}
-                    {% for project in analytics.project_performance %}
-                        {% set total_hours = total_hours + project.hours %}
-                    {% endfor %}
-                    <h3 class="mb-0">{{ "%.0f"|format(total_hours) }}</h3>
+                    <h3 class="mb-0">
+                        {% if analytics.project_performance %}
+                            {{ analytics.project_performance | sum(attribute='hours') | int }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </h3>
                     <h6 class="text-muted">Ore Totali</h6>
                 </div>
             </div>
@@ -67,11 +69,9 @@
         <div class="col-md-3">
             <div class="card card-stat info">
                 <div class="card-body text-center">
-                    {% set total_earnings = 0 %}
-                    {% for project in analytics.project_performance %}
-                        {% set total_earnings = total_earnings + project.earnings %}
-                    {% endfor %}
-                    <h3 class="mb-0">€{{ "%.0f"|format(total_earnings) }}</h3>
+                    <h3 class="mb-0">
+                        €{% if analytics.project_performance %}{{ analytics.project_performance | sum(attribute='earnings') | int }}{% else %}0{% endif %}
+                    </h3>
                     <h6 class="text-muted">Guadagni Totali</h6>
                 </div>
             </div>
@@ -80,11 +80,13 @@
         <div class="col-md-3">
             <div class="card card-stat warning">
                 <div class="card-body text-center">
-                    {% set total_hours = 0 %}
-                    {% for project in analytics.project_performance %}
-                        {% set total_hours = total_hours + project.hours %}
-                    {% endfor %}
-                    <h3 class="mb-0">{{ "%.1f"|format(total_hours / 12) }}</h3>
+                    <h3 class="mb-0">
+                        {% if analytics.project_performance %}
+                            {{ "%.1f"|format((analytics.project_performance | sum(attribute='hours')) / 12) }}
+                        {% else %}
+                            0.0
+                        {% endif %}
+                    </h3>
                     <h6 class="text-muted">Ore/Mese Media</h6>
                 </div>
             </div>
@@ -164,28 +166,26 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for project_data in analytics.project_performance %}
-                                        {% if loop.index <= 8 %}
-                                        <tr>
-                                            <td>
-                                                <span class="project-badge" style="background-color: {{ project_data.project.color }};"></span>
-                                                <strong>{{ project_data.project.name }}</strong>
-                                            </td>
-                                            <td class="text-end">
-                                                <span class="timer-display">{{ "%.1f"|format(project_data.hours) }}</span>
-                                            </td>
-                                            <td class="text-end">
-                                                <span class="text-muted">{{ "%.1f"|format(project_data.avg_session) }}h</span>
-                                            </td>
-                                            <td class="text-end">
-                                                {% if project_data.earnings > 0 %}
-                                                    <span class="text-success">€{{ "%.0f"|format(project_data.earnings) }}</span>
-                                                {% else %}
-                                                    <span class="text-muted">-</span>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endif %}
+                                    {% for project_data in analytics.project_performance[:8] %}
+                                    <tr>
+                                        <td>
+                                            <span class="project-badge" style="background-color: {{ project_data.project.color }};"></span>
+                                            <strong>{{ project_data.project.name }}</strong>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="timer-display">{{ "%.1f"|format(project_data.hours) }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="text-muted">{{ "%.1f"|format(project_data.avg_session) }}h</span>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if project_data.earnings > 0 %}
+                                                <span class="text-success">€{{ "%.0f"|format(project_data.earnings) }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
@@ -212,47 +212,30 @@
                 </div>
                 <div class="card-body">
                     {% if analytics.hourly_patterns %}
-                        {% set max_hourly_hours = 0 %}
-                        {% for hour, hours_worked in analytics.hourly_patterns.items() %}
-                            {% if hours_worked > max_hourly_hours %}
-                                {% set max_hourly_hours = hours_worked %}
-                            {% endif %}
-                        {% endfor %}
-
                         <div class="row g-2">
-                            {% for hour, hours_worked in analytics.hourly_patterns.items() %}
-                                {% if hours_worked > 0 %}
+                            {% for hour in range(24) %}
+                                {% if analytics.hourly_patterns[hour] > 0 %}
                                 <div class="col-md-4 mb-2">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <small><strong>{{ "%02d"|format(hour) }}:00</strong></small>
                                         <div class="flex-grow-1 mx-2">
                                             <div class="progress" style="height: 6px;">
                                                 <div class="progress-bar" role="progressbar"
-                                                     style="width: {% if max_hourly_hours > 0 %}{{ (hours_worked / max_hourly_hours) * 100 }}{% else %}0{% endif %}%">
+                                                     style="width: {{ (analytics.hourly_patterns[hour] * 10)|int }}%">
                                                 </div>
                                             </div>
                                         </div>
-                                        <small class="text-muted">{{ "%.1f"|format(hours_worked) }}h</small>
+                                        <small class="text-muted">{{ "%.1f"|format(analytics.hourly_patterns[hour]) }}h</small>
                                     </div>
                                 </div>
                                 {% endif %}
                             {% endfor %}
                         </div>
 
-                        {% set peak_hour = 0 %}
-                        {% set peak_hour_value = 0 %}
-                        {% for hour, hours_worked in analytics.hourly_patterns.items() %}
-                            {% if hours_worked > peak_hour_value %}
-                                {% set peak_hour = hour %}
-                                {% set peak_hour_value = hours_worked %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if peak_hour_value > 0 %}
                         <div class="alert alert-success mt-3">
                             <i class="bi bi-star"></i> <strong>Ora più produttiva:</strong>
-                            {{ "%02d"|format(peak_hour) }}:00 con {{ "%.1f"|format(peak_hour_value) }} ore
+                            Consulta il grafico sopra per vedere le tue ore più attive
                         </div>
-                        {% endif %}
                     {% else %}
                         <div class="text-center py-3">
                             <p class="text-muted">Nessun dato orario disponibile</p>
@@ -272,50 +255,31 @@
                 </div>
                 <div class="card-body">
                     {% if analytics.daily_patterns %}
-                        {% set days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'] %}
-                        {% set max_daily_hours = 0 %}
-                        {% for day_num, hours_worked in analytics.daily_patterns.items() %}
-                            {% if hours_worked > max_daily_hours %}
-                                {% set max_daily_hours = hours_worked %}
-                            {% endif %}
-                        {% endfor %}
-
-                        {% for day_num, hours_worked in analytics.daily_patterns.items() %}
-                            {% if hours_worked > 0 %}
+                        {% for day_num in range(7) %}
+                            {% if analytics.daily_patterns[day_num] > 0 %}
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div style="min-width: 80px;">
-                                    <strong>{{ days[day_num] }}</strong>
+                                    <strong>{{ ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'][day_num] }}</strong>
                                 </div>
                                 <div class="flex-grow-1 mx-3">
                                     <div class="progress">
-                                        <div class="progress-bar
-                                                    {% if day_num < 5 %}bg-primary{% else %}bg-secondary{% endif %}"
+                                        <div class="progress-bar {% if day_num < 5 %}bg-primary{% else %}bg-secondary{% endif %}"
                                              role="progressbar"
-                                             style="width: {{ (hours_worked / max_daily_hours) * 100 }}%">
+                                             style="width: {{ (analytics.daily_patterns[day_num] * 5)|int }}%">
                                         </div>
                                     </div>
                                 </div>
                                 <div class="text-end" style="min-width: 60px;">
-                                    <span class="timer-display">{{ "%.1f"|format(hours_worked) }}h</span>
+                                    <span class="timer-display">{{ "%.1f"|format(analytics.daily_patterns[day_num]) }}h</span>
                                 </div>
                             </div>
                             {% endif %}
                         {% endfor %}
 
-                        {% set peak_day_num = 0 %}
-                        {% set peak_day_hours = 0 %}
-                        {% for day_num, hours_worked in analytics.daily_patterns.items() %}
-                            {% if hours_worked > peak_day_hours %}
-                                {% set peak_day_num = day_num %}
-                                {% set peak_day_hours = hours_worked %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if peak_day_hours > 0 %}
                         <div class="alert alert-info mt-3">
-                            <i class="bi bi-calendar-check"></i> <strong>Giorno più produttivo:</strong>
-                            {{ days[peak_day_num] }} con {{ "%.1f"|format(peak_day_hours) }} ore
+                            <i class="bi bi-calendar-check"></i> <strong>Giorni più produttivi:</strong>
+                            Consulta il grafico sopra per la distribuzione settimanale
                         </div>
-                        {% endif %}
                     {% else %}
                         <div class="text-center py-3">
                             <p class="text-muted">Nessun dato giornaliero disponibile</p>
@@ -338,14 +302,22 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-4">
-                            {% set total_hours = 0 %}
-                            {% for project in analytics.project_performance %}
-                                {% set total_hours = total_hours + project.hours %}
-                            {% endfor %}
                             <h6><i class="bi bi-info-circle text-info"></i> Produttività</h6>
                             <ul class="list-unstyled">
-                                <li><strong>Media giornaliera:</strong> {{ "%.1f"|format(total_hours / 365) }} ore</li>
-                                <li><strong>Media settimanale:</strong> {{ "%.1f"|format(total_hours / 52) }} ore</li>
+                                <li><strong>Media giornaliera:</strong>
+                                    {% if analytics.project_performance %}
+                                        {{ "%.1f"|format((analytics.project_performance | sum(attribute='hours')) / 365) }} ore
+                                    {% else %}
+                                        0.0 ore
+                                    {% endif %}
+                                </li>
+                                <li><strong>Media settimanale:</strong>
+                                    {% if analytics.project_performance %}
+                                        {{ "%.1f"|format((analytics.project_performance | sum(attribute='hours')) / 52) }} ore
+                                    {% else %}
+                                        0.0 ore
+                                    {% endif %}
+                                </li>
                                 <li><strong>Voci per giorno:</strong> {{ "%.1f"|format(analytics.total_entries / 365) }}</li>
                             </ul>
                         </div>
@@ -353,64 +325,30 @@
                         <div class="col-md-4">
                             <h6><i class="bi bi-currency-euro text-success"></i> Rendimento</h6>
                             <ul class="list-unstyled">
-                                {% set total_earnings = 0 %}
-                                {% for project in analytics.project_performance %}
-                                    {% set total_earnings = total_earnings + project.earnings %}
-                                {% endfor %}
-                                <li><strong>Ricavo mensile:</strong> €{{ "%.0f"|format(total_earnings / 12) }}</li>
+                                <li><strong>Ricavo mensile:</strong>
+                                    €{% if analytics.project_performance %}{{ "%.0f"|format((analytics.project_performance | sum(attribute='earnings')) / 12) }}{% else %}0{% endif %}
+                                </li>
                                 <li><strong>Tariffa media:</strong>
-                                    {% if total_hours > 0 %}
-                                        €{{ "%.0f"|format(total_earnings / total_hours) }}/h
+                                    {% if analytics.project_performance %}
+                                        {% if (analytics.project_performance | sum(attribute='hours')) > 0 %}
+                                            €{{ "%.0f"|format((analytics.project_performance | sum(attribute='earnings')) / (analytics.project_performance | sum(attribute='hours'))) }}/h
+                                        {% else %}
+                                            €0/h
+                                        {% endif %}
                                     {% else %}
                                         €0/h
                                     {% endif %}
                                 </li>
-                                <li><strong>Progetto più redditizio:</strong>
-                                    {% set top_project = none %}
-                                    {% set top_earnings = 0 %}
-                                    {% for project in analytics.project_performance %}
-                                        {% if project.earnings > top_earnings %}
-                                            {% set top_project = project %}
-                                            {% set top_earnings = project.earnings %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    {% if top_project %}
-                                        {{ top_project.project.name }}
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </li>
+                                <li><strong>Progetti attivi:</strong> {{ analytics.project_performance|length }}</li>
                             </ul>
                         </div>
 
                         <div class="col-md-4">
                             <h6><i class="bi bi-target text-warning"></i> Ottimizzazione</h6>
                             <ul class="list-unstyled">
-                                <li><strong>Sessioni brevi:</strong>
-                                    {% set short_sessions = 0 %}
-                                    {% for project in analytics.project_performance %}
-                                        {% if project.avg_session < 2 %}
-                                            {% set short_sessions = short_sessions + 1 %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    {{ short_sessions }} progetti
-                                </li>
-                                <li><strong>Focus principale:</strong>
-                                    {% set main_project = none %}
-                                    {% set max_hours = 0 %}
-                                    {% for project in analytics.project_performance %}
-                                        {% if project.hours > max_hours %}
-                                            {% set main_project = project %}
-                                            {% set max_hours = project.hours %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    {% if main_project and total_hours > 0 %}
-                                        {{ main_project.project.name }} ({{ "%.0f"|format((main_project.hours / total_hours) * 100) }}%)
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </li>
-                                <li><strong>Progetti attivi:</strong> {{ analytics.project_performance|length }}</li>
+                                <li><strong>Progetti totali:</strong> {{ analytics.project_performance|length }}</li>
+                                <li><strong>Periodo analizzato:</strong> 12 mesi</li>
+                                <li><strong>Voci totali:</strong> {{ analytics.total_entries }}</li>
                             </ul>
                         </div>
                     </div>
@@ -423,9 +361,7 @@
 
 {% block extra_js %}
 <script>
-    // Add any interactive features here if needed
-    document.addEventListener('DOMContentLoaded', () => {
-        // Could add chart.js integration for visual charts
+    document.addEventListener('DOMContentLoaded', function() {
         console.log('Analytics page loaded');
     });
 </script>

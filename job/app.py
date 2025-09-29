@@ -161,4 +161,4 @@ if __name__ == '__main__':
         logger.info("Starting Timesheet Application with User Management...")
         logger.info("Default admin credentials: admin / admin123")
         logger.info("Visit /auth/register to create new users")
-        app.run(debug=True, host='0.0.0.0', port=59080)
+        app.run(debug=True, host='0.0.0.0', port=5000)

@@ -7,8 +7,7 @@ import csv
 import io
 from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, request, jsonify, make_response, flash, redirect, url_for
-from database import db
-from models import TimeEntry, Project, TimesheetStats
+from models import db, TimeEntry, Project, TimesheetStats
 from sqlalchemy import func, extract, desc
 
 logger = logging.getLogger(__name__)
@@ -41,7 +40,9 @@ def index():
             'month': {
                 'hours': round(month_hours, 2),
                 'earnings': round(month_earnings, 2),
-                'entries': len(month_entries)
+                'entries': len(month_entries),
+                'start_date': first_day,
+                'end_date': today
             },
             'top_projects': project_stats[:5]  # Top 5 projects
         }
@@ -189,9 +190,13 @@ def project_report(project_id):
         monthly_list = sorted(monthly_data.values(), key=lambda x: x['month'], reverse=True)
 
         # Group by day of week
-        weekday_data = {
-            i: {'day': ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'][i], 'hours': 0,
-                'entries': 0} for i in range(7)}
+        weekday_data = []
+        for i in range(7):
+            weekday_data.append({
+                'day': ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'][i],
+                'hours': 0,
+                'entries': 0
+            })
 
         for entry in entries:
             weekday = entry.start_time.weekday()
@@ -209,7 +214,8 @@ def project_report(project_id):
             if entry.duration_minutes:
                 hourly_data[hour] += entry.duration_minutes / 60
 
-        peak_hour = max(hourly_data.items(), key=lambda x: x[1])
+        peak_hour_tuple = max(hourly_data.items(), key=lambda x: x[1])
+        peak_hour = f"{peak_hour_tuple[0]:02d}:00" if peak_hour_tuple[1] > 0 else "N/A"
 
         report_data = {
             'project': project,
@@ -217,9 +223,9 @@ def project_report(project_id):
             'total_hours': total_hours,
             'total_earnings': total_earnings,
             'avg_session_hours': avg_session,
-            'peak_hour': f"{peak_hour[0]:02d}:00" if peak_hour[1] > 0 else "N/A",
+            'peak_hour': peak_hour,
             'monthly_breakdown': monthly_list,
-            'weekday_breakdown': list(weekday_data.values()),
+            'weekday_breakdown': weekday_data,
             'recent_entries': entries[:20]
         }
 

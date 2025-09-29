@@ -5,8 +5,7 @@
 import logging
 from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
-from database import db
-from models import TimeEntry, Project, TimesheetStats
+from models import db, TimeEntry, Project, TimesheetStats
 from sqlalchemy import func, desc
 
 logger = logging.getLogger(__name__)

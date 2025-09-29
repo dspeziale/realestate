@@ -4,8 +4,7 @@
 
 import logging
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
-from database import db
-from models import Project, TimeEntry
+from models import db, Project, TimeEntry
 from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
