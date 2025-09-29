@@ -2,7 +2,7 @@
 # GENERATE_EXCEL_REPORTS.py - Script per generare report Excel
 # Copyright 2025 TIM SPA
 # Author Daniele Speziale
-# Filename: Complex/generate_excel_reports.py
+# Filename: Complex/Core/generate_excel_reports.py
 # Created 29/09/25
 # Description: Script standalone per generare report Excel multi-foglio
 #
@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
-from Complex.excel_report_generator import ExcelReportGenerator
+from Complex.Core.excel_report_generator import ExcelReportGenerator
 
 
 def setup_logging(config: Dict[str, Any]):
@@ -45,7 +45,6 @@ def setup_logging(config: Dict[str, Any]):
     print(f"LOGS: File di log creato in {log_filepath}")
     return log_filepath
 
-
 def load_config() -> Dict[str, Any]:
     """Carica la configurazione dal file config.json"""
     config_path = Path('config.json')
@@ -55,7 +54,6 @@ def load_config() -> Dict[str, Any]:
 
     with open(config_path, 'r', encoding='utf-8') as f:
         return json.load(f)
-
 
 def validate_excel_config(config: Dict[str, Any]):
     """Valida la configurazione per report Excel"""
@@ -178,7 +176,7 @@ def main():
 
         # Test connessioni database
         print("\nTEST: Verifica connessioni database...")
-        from Complex.database_manager import DatabaseManager
+        from Complex.Core.database_manager import DatabaseManager
 
         db_manager = DatabaseManager(config)
 

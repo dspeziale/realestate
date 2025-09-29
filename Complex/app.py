@@ -4,7 +4,7 @@
 # Author Daniele Speziale
 # Filename app.py
 # Created 24/09/25
-# Update  25/09/25
+# Update  29/09/25
 # Enhanced by: Query Multiiriga, Template, File esterni
 #
 import json
@@ -15,8 +15,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
 
-from Complex.database_manager import DatabaseManager
-from enhanced_multi_query_processor import EnhancedMultiQueryProcessor
+from Complex.Core.database_manager import DatabaseManager
+from Complex.Core.enhanced_multi_query_processor import EnhancedMultiQueryProcessor
 
 def setup_logging(config: Dict[str, Any]):
     """Configura il sistema di logging con directory separata"""

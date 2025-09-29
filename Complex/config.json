@@ -56,7 +56,7 @@
       "enabled": true
     },
     {
-      "name": "Login Standard DWH",
+      "name": "Login Standard SO",
       "source_database": "oracle_dwh",
       "destination_database": "mssql_sviluppo_dest",
       "sql_file": "DWH-SO-STD.sql",
@@ -65,7 +65,7 @@
       "enabled": true
     },
     {
-      "name": "Login Standard DWH",
+      "name": "Login NON Standard SO",
       "source_database": "oracle_dwh",
       "destination_database": "mssql_sviluppo_dest",
       "sql_file": "DWH-SO-NOSTD.sql",
@@ -74,7 +74,7 @@
       "enabled": true
     },
     {
-      "name": "Login Standard DWH",
+      "name": "Login Standard DB",
       "source_database": "oracle_dwh",
       "destination_database": "mssql_sviluppo_dest",
       "sql_file": "DWH-DB-STD.sql",
@@ -83,7 +83,7 @@
       "enabled": true
     },
     {
-      "name": "Login Standard DWH",
+      "name": "Login NON Standard DB",
       "source_database": "oracle_dwh",
       "destination_database": "mssql_sviluppo_dest",
       "sql_file": "DWH-DB-NOSTD.sql",
@@ -92,7 +92,7 @@
       "enabled": true
     },
     {
-      "name": "Login IAM COMPLETO",
+      "name": "Perimetro IA",
       "source_database": "mssql_report",
       "destination_database": "mssql_sviluppo_dest",
       "sql_file": "IAM-PM-IA.sql",
@@ -101,7 +101,7 @@
       "enabled": true
     },
     {
-      "name": "Login IAM COMPLETO",
+      "name": "Perimotro DB",
       "source_database": "mssql_report",
       "destination_database": "mssql_sviluppo_dest",
       "sql_file": "IAM-PM-DB.sql",

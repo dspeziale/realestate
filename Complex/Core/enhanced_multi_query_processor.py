@@ -11,11 +11,11 @@ import logging
 import pandas as pd
 import warnings
 import re
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
-from Complex.database_manager import DatabaseManager
+from Complex.Core.database_manager import DatabaseManager
 
 # Sopprime warning pandas
 warnings.filterwarnings('ignore', message='.*pandas only supports SQLAlchemy.*')
@@ -32,7 +32,7 @@ class EnhancedMultiQueryProcessor:
         self.drop_existing = config['execution']['drop_existing_tables']
 
         # Filtra solo le query abilitate (enabled: true)
-        all_queries = config.get('queries', [])
+        all_queries = config.get('../queries', [])
         self.queries = [q for q in all_queries if q.get('enabled', True)]
 
         # Log statistiche queries
@@ -40,7 +40,7 @@ class EnhancedMultiQueryProcessor:
         self.logger.info(f"SETUP: {len(self.queries)} query abilitate, {disabled_count} disabilitate")
 
         # Directory per file SQL esterni
-        self.query_directory = Path(config.get('execution', {}).get('query_directory', 'queries'))
+        self.query_directory = Path(config.get('execution', {}).get('query_directory', '../queries'))
 
         # Crea directory queries se non esiste
         if not self.query_directory.exists():

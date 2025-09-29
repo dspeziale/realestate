@@ -30,7 +30,7 @@ class DatabaseManager:
 
     def setup_logging_directory(self):
         """Crea directory logs se non esiste"""
-        log_dir = self.config.get('execution', {}).get('log_directory', 'logs')
+        log_dir = self.config.get('execution', {}).get('log_directory', '../logs')
         if not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
             self.logger.info(f"SETUP: Directory logs creata: {log_dir}")

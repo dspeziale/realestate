@@ -14,7 +14,7 @@ from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils.dataframe import dataframe_to_rows
-from Complex.database_manager import DatabaseManager
+from Complex.Core.database_manager import DatabaseManager
 
 
 class ExcelReportGenerator:
@@ -26,11 +26,11 @@ class ExcelReportGenerator:
         self.logger = logging.getLogger(__name__)
 
         # Directory output
-        self.output_directory = Path(config.get('execution', {}).get('excel_output_directory', 'reports'))
+        self.output_directory = Path(config.get('execution', {}).get('excel_output_directory', '../reports'))
         self.output_directory.mkdir(parents=True, exist_ok=True)
 
         # Directory query SQL
-        self.query_directory = Path(config.get('execution', {}).get('query_directory', 'queries'))
+        self.query_directory = Path(config.get('execution', {}).get('query_directory', '../queries'))
 
     def execute_query(self, database_name: str, sql: str) -> pd.DataFrame:
         """Esegue una query e restituisce un DataFrame"""
