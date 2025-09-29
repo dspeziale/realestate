@@ -101,7 +101,7 @@
       "enabled": true
     },
     {
-      "name": "Perimotro DB",
+      "name": "Perimetro DB",
       "source_database": "mssql_report",
       "destination_database": "mssql_sviluppo_dest",
       "sql_file": "IAM-PM-DB.sql",
@@ -110,7 +110,7 @@
       "enabled": true
     },
     {
-      "name": "Login IAM COMPLETO",
+      "name": "Perimetro SO",
       "source_database": "mssql_report",
       "destination_database": "mssql_sviluppo_dest",
       "sql_file": "IAM-PM-SO.sql",
