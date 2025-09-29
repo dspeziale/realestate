@@ -51,8 +51,8 @@ class EnhancedMultiQueryProcessor:
         self._results_lock = Lock()
         self._log_lock = Lock()
 
-        # Numero di worker per multitasking (default: 4)
-        self.max_workers = config.get('execution', {}).get('max_workers', 4)
+        # Numero di worker per multitasking (default: 12)
+        self.max_workers = config.get('execution', {}).get('max_workers', 12)
 
     def _thread_safe_log(self, level: str, message: str):
         """Log thread-safe per multitasking"""
