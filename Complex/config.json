@@ -119,6 +119,27 @@
       "enabled": true
     }
   ],
+  "excel_reports": [
+    {
+      "name": "IA_STD",
+      "description": "Report mensile degli accessi con parametri",
+      "enabled": true,
+      "sheets": [
+        {
+          "name": "DWH",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-IA_STD_DWH.sql",
+           "description": "SISTEMI INTERCETTATI DAL DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA PRESENTI O MENO SU IAM"
+        },
+        {
+          "name": "IAM",
+          "database": "mssql_sviluppo_dest",
+          "sql_file": "RPT-IA_STD_IAM.sql",
+           "description": "SISTEMI INTERCETTATI DA IAM PRESENTI O MENO SU DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA"
+        }
+      ]
+    }
+  ],
   "execution": {
     "batch_size": 1000,
     "timeout_seconds": 300,

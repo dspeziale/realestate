@@ -1,14 +1,24 @@
-# database_manager.py - Gestore Database Multi-Source/Multi-Destination (Senza Windows Auth Thick Mode)
+#
+# DATABASE_MANAGER.py - Gestore Database Multi-Source/Multi-Destination
+# Copyright 2025 TIM SPA
+# Author Daniele Speziale
+# Filename: Complex/database_manager.py
+# Created 24/09/25
+# Update  29/09/25
+# Enhanced by: Supporto SQLite per report Excel
+#
 import oracledb
 import pyodbc
+import sqlite3
 import logging
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any
 from contextlib import contextmanager
+from pathlib import Path
 
 
 class DatabaseManager:
-    """Gestore per multiple connessioni database"""
+    """Gestore per multiple connessioni database (Oracle, SQL Server, SQLite)"""
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -20,7 +30,7 @@ class DatabaseManager:
 
     def setup_logging_directory(self):
         """Crea directory logs se non esiste"""
-        log_dir = self.config.get('execution', {}).get('log_directory', '../logs')
+        log_dir = self.config.get('execution', {}).get('log_directory', 'logs')
         if not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
             self.logger.info(f"SETUP: Directory logs creata: {log_dir}")
@@ -33,7 +43,7 @@ class DatabaseManager:
 
     @contextmanager
     def get_oracle_connection(self, db_name: str):
-        """Connessione Oracle con nome database specifico (senza Windows Auth Thick Mode)"""
+        """Connessione Oracle con nome database specifico"""
         conn = None
         try:
             oracle_config = self.get_database_config(db_name)
@@ -47,7 +57,7 @@ class DatabaseManager:
             self.logger.info(f"CONNESSIONE Oracle [{db_name}]: {oracle_config['host']}:{oracle_config['port']}")
             self.logger.info(f"Service Name: {service_name}")
 
-            # METODO 1: Username/Password Thick Mode (salta Windows Auth)
+            # METODO 1: Username/Password Thick Mode
             if oracle_config.get('username') and oracle_config.get('password'):
                 try:
                     self.logger.info("TENTATIVO: Username/Password Thick Mode...")
@@ -159,6 +169,42 @@ Errore tecnico: {e}
                 conn.close()
                 self.logger.info(f"CHIUSA: Connessione SQL Server [{db_name}] chiusa")
 
+    @contextmanager
+    def get_sqlite_connection(self, db_name: str):
+        """Connessione SQLite con gestione automatica"""
+        conn = None
+        try:
+            db_config = self.get_database_config(db_name)
+
+            if db_config.get('type') != 'sqlite':
+                raise ValueError(f"Database {db_name} non è di tipo SQLite")
+
+            db_path = db_config.get('database')
+
+            if not db_path:
+                raise ValueError(f"Path database non specificato per {db_name}")
+
+            self.logger.info(f"CONNESSIONE SQLite [{db_name}]: {db_path}")
+
+            # Crea directory se non esiste
+            db_file = Path(db_path)
+            db_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Connessione SQLite
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row  # Abilita accesso per nome colonna
+
+            self.logger.info(f"OK: Connesso a SQLite [{db_name}]")
+            yield conn
+
+        except Exception as e:
+            self.logger.error(f"ERRORE: Connessione SQLite [{db_name}] fallita: {e}")
+            raise
+        finally:
+            if conn:
+                conn.close()
+                self.logger.info(f"CHIUSA: Connessione SQLite [{db_name}] chiusa")
+
     def get_connection(self, db_name: str):
         """Ottiene connessione appropriata basata sul tipo database"""
         db_config = self.get_database_config(db_name)
@@ -168,8 +214,58 @@ Errore tecnico: {e}
             return self.get_oracle_connection(db_name)
         elif db_type == 'mssql':
             return self.get_mssql_connection(db_name)
+        elif db_type == 'sqlite':
+            return self.get_sqlite_connection(db_name)
         else:
             raise ValueError(f"Tipo database '{db_type}' non supportato per '{db_name}'")
+
+    def test_oracle_connection(self, db_name: str) -> bool:
+        """Testa connessione Oracle"""
+        try:
+            with self.get_oracle_connection(db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1 FROM DUAL")
+                cursor.fetchone()
+                cursor.close()
+
+            self.logger.info(f"OK: Test connessione Oracle [{db_name}]")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"ERRORE: Test Oracle [{db_name}] fallito: {e}")
+            return False
+
+    def test_mssql_connection(self, db_name: str) -> bool:
+        """Testa connessione SQL Server"""
+        try:
+            with self.get_mssql_connection(db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+                cursor.close()
+
+            self.logger.info(f"OK: Test connessione SQL Server [{db_name}]")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"ERRORE: Test SQL Server [{db_name}] fallito: {e}")
+            return False
+
+    def test_sqlite_connection(self, db_name: str) -> bool:
+        """Testa connessione SQLite"""
+        try:
+            with self.get_sqlite_connection(db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+                cursor.close()
+
+            self.logger.info(f"OK: Test connessione SQLite [{db_name}]")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"ERRORE: Test SQLite [{db_name}] fallito: {e}")
+            return False
 
     def test_connection(self, db_name: str) -> bool:
         """Testa una singola connessione database"""
@@ -177,19 +273,15 @@ Errore tecnico: {e}
             db_config = self.get_database_config(db_name)
             db_type = db_config.get('type')
 
-            with self.get_connection(db_name) as conn:
-                cursor = conn.cursor()
-
-                if db_type == 'oracle':
-                    cursor.execute("SELECT 1 FROM DUAL")
-                elif db_type == 'mssql':
-                    cursor.execute("SELECT 1")
-
-                result = cursor.fetchone()
-                cursor.close()
-
-                self.logger.info(f"OK: Test connessione [{db_name}]")
-                return True
+            if db_type == 'oracle':
+                return self.test_oracle_connection(db_name)
+            elif db_type == 'mssql':
+                return self.test_mssql_connection(db_name)
+            elif db_type == 'sqlite':
+                return self.test_sqlite_connection(db_name)
+            else:
+                self.logger.error(f"Tipo database '{db_type}' non supportato per test")
+                return False
 
         except Exception as e:
             self.logger.error(f"ERRORE: Test connessione [{db_name}]: {e}")
