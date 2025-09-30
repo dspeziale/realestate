@@ -2,7 +2,7 @@
 # GENERATE_EXCEL_REPORTS.py - Script per generare report Excel
 # Copyright 2025 TIM SPA
 # Author Daniele Speziale
-# Filename: Complex/Core/generate_excel_reports.py
+# Filename: Complex/generate_excel_reports.py
 # Created 29/09/25
 # Description: Script standalone per generare report Excel multi-foglio
 #

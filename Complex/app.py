@@ -16,8 +16,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any
 
-from Complex.Core.database_manager import DatabaseManager
-from Complex.Core.enhanced_multi_query_processor import EnhancedMultiQueryProcessor
+from Complex.database_manager import DatabaseManager
+from enhanced_multi_query_processor import EnhancedMultiQueryProcessor
 
 
 def cleanup_old_logs(log_directory: str, max_age_days: int = 3):
@@ -179,7 +179,7 @@ def validate_enhanced_config(config: Dict[str, Any]) -> bool:
     return True
 
 
-def te_all_connections(config: Dict[str, Any]) -> bool:
+def test_all_connections(config: Dict[str, Any]) -> bool:
     """Testa tutte le connessioni database configurate"""
     db_manager = DatabaseManager(config)
     all_success = True
@@ -425,13 +425,13 @@ def main():
         log_filepath = setup_logging(config)
 
         # Creazione query di esempio per reports
-        #create_sample_report_queries(directories['queries_reports'])
+        create_sample_report_queries(directories['queries_reports'])
 
         print(f"INIT: Configurazione caricata ({len(config['databases'])} database, {len(config['queries'])} query)")
 
         # Test connessioni
         print("\nTEST: Verifica connessioni...")
-        connections_ok = te_all_connections(config)
+        connections_ok = test_all_connections(config)
 
         if not connections_ok:
             response = input("\nALCUNE CONNESSIONI FALLITE. Continuare comunque? (y/N): ")
