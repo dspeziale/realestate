@@ -178,7 +178,6 @@
         }
       ]
     },
-
     {
       "name": "DB_STD",
       "description": "Report Login Standard Interfaccia Applicativa DWH vs IAM",
@@ -197,13 +196,13 @@
         {
           "name": "DWH",
           "database": "mssql_sviluppo_dest",
-          "sql_file": "RPT-IA_STD_DWH.sql",
+          "sql_file": "RPT-DB_STD_DWH.sql",
           "description": "SISTEMI INTERCETTATI DAL DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA PRESENTI O MENO SU IAM"
         },
         {
           "name": "IAM",
           "database": "mssql_sviluppo_dest",
-          "sql_file": "RPT-IA_STD_IAM.sql",
+          "sql_file": "RPT-DB_STD_IAM.sql",
           "description": "SISTEMI INTERCETTATI DA IAM PRESENTI O MENO SU DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA"
         }
       ]
@@ -220,24 +219,23 @@
         "category": "Report Operativo",
         "keywords": "IA, login standard, DWH, IAM, interfaccia applicativa, sistemi",
         "comments": "Report automatico che confronta i sistemi intercettati dal DWH per login standard di interfaccia applicativa con quelli presenti su IAM. Include analisi di presenza/assenza su entrambe le piattaforme.",
-        "manager": "Cinzia Pontoni"
+        "manager": "Pontoni Cinzia"
       },
       "sheets": [
         {
           "name": "DWH",
           "database": "mssql_sviluppo_dest",
-          "sql_file": "RPT-IA_NOSTD_DWH.sql",
-          "description": "SISTEMI INTERCETTATI DAL DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA PRESENTI O MENO SU IAM"
+          "sql_file": "RPT-DB_NOSTD_DWH.sql",
+          "description": "SISTEMI "
         },
         {
           "name": "IAM",
           "database": "mssql_sviluppo_dest",
-          "sql_file": "RPT-IA_NOSTD_IAM.sql",
-          "description": "SISTEMI INTERCETTATI DA IAM PRESENTI O MENO SU DWH PER LOGIN STANDARD DI INTERFACCIA APPLICATIVA"
+          "sql_file": "RPT-DB_NOSTD_IAM.sql",
+          "description": "SISTEMI "
         }
       ]
     },
-
     {
       "name": "SO_STD",
       "description": "Report Login Standard Interfaccia Applicativa DWH vs IAM",

@@ -14,7 +14,6 @@ from datetime import datetime
 from typing import Dict, Any
 from Complex.Core.excel_report_generator import ExcelReportGenerator
 
-
 def setup_logging(config: Dict[str, Any]):
     """Configura il sistema di logging"""
     log_level = config['execution'].get('log_level', 'INFO')
