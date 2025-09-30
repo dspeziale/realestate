@@ -1,11 +1,11 @@
 #
-# ENHANCED_MULTI_QUERY_PROCESSOR.py - MULTITASKING EDITION
+# ENHANCED_MULTI_QUERY_PROCESSOR.py - MULTITASKING EDITION - CORRETTO
 # Copyright 2025 TIM SPA
 # Author Daniele Speziale
 # Filename: Complex/enhanced_multi_query_processor.py
 # Created 25/09/25
-# Update  29/09/25
-# Enhanced by: Multitasking con ThreadPoolExecutor + filtro enabled queries
+# Update  30/09/25
+# Enhanced by: Multitasking con ThreadPoolExecutor + filtro enabled queries + FIX percorsi
 #
 import logging
 import pandas as pd
@@ -31,16 +31,16 @@ class EnhancedMultiQueryProcessor:
         self.batch_size = min(config['execution']['batch_size'], 5000)
         self.drop_existing = config['execution']['drop_existing_tables']
 
-        # Filtra solo le query abilitate (enabled: true)
-        all_queries = config.get('../queries', [])
+        # FIX CRITICO: Carica queries dalla configurazione correttamente
+        all_queries = config.get('queries', [])  # NON '../queries'!
         self.queries = [q for q in all_queries if q.get('enabled', True)]
 
         # Log statistiche queries
         disabled_count = len(all_queries) - len(self.queries)
         self.logger.info(f"SETUP: {len(self.queries)} query abilitate, {disabled_count} disabilitate")
 
-        # Directory per file SQL esterni
-        self.query_directory = Path(config.get('execution', {}).get('query_directory', '../queries'))
+        # FIX CRITICO: Directory per file SQL esterni - percorso corretto
+        self.query_directory = Path(config.get('execution', {}).get('query_directory', 'queries'))  # NON '../queries'!
 
         # Crea directory queries se non esiste
         if not self.query_directory.exists():
@@ -74,31 +74,42 @@ class EnhancedMultiQueryProcessor:
                 sql = ' '.join(line.strip() for line in query_config['sql'])
                 self._thread_safe_log('info',
                                       f"QUERY: [{query_name}] risolto da array multiriga ({len(query_config['sql'])} righe)")
-                return sql
+                return self._validate_and_clean_sql(sql)
 
             # METODO 2: SQL come stringa inline
             elif 'sql' in query_config and isinstance(query_config['sql'], str):
                 sql = query_config['sql'].strip()
                 self._thread_safe_log('info', f"QUERY: [{query_name}] risolto da stringa inline ({len(sql)} caratteri)")
-                return sql
+                return self._validate_and_clean_sql(sql)
 
             # METODO 3: SQL da file esterno
             elif 'sql_file' in query_config:
                 sql_file_path = self.query_directory / query_config['sql_file']
 
+                # DEBUG: Verifica percorso file
+                self._thread_safe_log('info', f"DEBUG: Cercando file SQL: {sql_file_path.absolute()}")
+
                 if not sql_file_path.exists():
-                    raise FileNotFoundError(f"File SQL non trovato: {sql_file_path}")
+                    # Lista file nella directory per debug
+                    available_files = list(self.query_directory.glob('*.sql'))
+                    self._thread_safe_log('error',
+                                          f"DEBUG: File disponibili in {self.query_directory}: {[f.name for f in available_files]}")
+                    raise FileNotFoundError(f"File SQL non trovato: {sql_file_path.absolute()}")
 
                 with open(sql_file_path, 'r', encoding='utf-8') as f:
                     sql = f.read().strip()
 
                 self._thread_safe_log('info', f"QUERY: [{query_name}] risolto da file {query_config['sql_file']}")
-                return sql
+                return self._validate_and_clean_sql(sql)
 
             # METODO 4: SQL Template con parametri
             elif 'sql_template' in query_config:
                 template = query_config['sql_template']
                 parameters = query_config.get('parameters', {})
+
+                # Normalizza template se è un array
+                if isinstance(template, list):
+                    template = ' '.join(line.strip() for line in template)
 
                 # Sostituisce parametri nel template
                 sql = template
@@ -113,7 +124,7 @@ class EnhancedMultiQueryProcessor:
 
                 self._thread_safe_log('info',
                                       f"QUERY: [{query_name}] risolto da template con {len(parameters)} parametri")
-                return sql.strip()
+                return self._validate_and_clean_sql(sql.strip())
 
             else:
                 raise ValueError(f"Nessuna sorgente SQL valida trovata per query '{query_name}'")
@@ -121,6 +132,30 @@ class EnhancedMultiQueryProcessor:
         except Exception as e:
             self._thread_safe_log('error', f"ERRORE risoluzione SQL [{query_name}]: {e}")
             raise
+
+    def _validate_and_clean_sql(self, sql: str) -> str:
+        """Valida e pulisce la query SQL"""
+        # Rimuove commenti SQL
+        sql = re.sub(r'--.*$', '', sql, flags=re.MULTILINE)
+        sql = re.sub(r'/\*.*?\*/', '', sql, flags=re.DOTALL)
+
+        # Normalizza spazi bianchi
+        sql = re.sub(r'\s+', ' ', sql).strip()
+
+        # Validazioni di sicurezza base
+        dangerous_keywords = ['DROP', 'DELETE', 'TRUNCATE', 'ALTER', 'CREATE', 'INSERT', 'UPDATE']
+        sql_upper = sql.upper()
+
+        # Permette solo SELECT e WITH (per CTE)
+        if not (sql_upper.startswith('SELECT') or sql_upper.startswith('WITH')):
+            found_dangerous = [kw for kw in dangerous_keywords if kw in sql_upper]
+            if found_dangerous:
+                raise ValueError(f"Query potenzialmente pericolosa rilevata. Keywords trovate: {found_dangerous}")
+
+        if len(sql) < 10:
+            raise ValueError("Query troppo breve, potrebbe essere incompleta")
+
+        return sql
 
     def execute_query(self, query_config: Dict[str, Any]) -> Tuple[pd.DataFrame, str, str]:
         """Esegue una singola query e restituisce DataFrame + info destinazione"""
@@ -138,9 +173,18 @@ class EnhancedMultiQueryProcessor:
             # Log esecuzione
             self._thread_safe_log('info', f"QUERY: Esecuzione {query_name} da [{source_db}]")
 
-            # Esegue query sulla sorgente usando context manager
-            with self.db_manager.get_connection(source_db) as conn:
-                df = pd.read_sql(sql, conn)
+            # Ottiene tipo di database sorgente per esecuzione corretta
+            source_config = self.db_manager.get_database_config(source_db)
+            source_type = source_config.get('type')
+
+            if source_type == 'oracle':
+                df = self._execute_oracle_query_direct(source_db, sql)
+            elif source_type == 'mssql':
+                # Esegue query sulla sorgente usando context manager
+                with self.db_manager.get_connection(source_db) as conn:
+                    df = pd.read_sql(sql, conn)
+            else:
+                raise ValueError(f"Tipo database '{source_type}' non supportato per query {query_name}")
 
             full_table_name = f"[{dest_schema}].[{dest_table}]"
             self._thread_safe_log('info', f"OK: Query {query_name} completata: {len(df)} righe -> {full_table_name}")
@@ -150,6 +194,35 @@ class EnhancedMultiQueryProcessor:
         except Exception as e:
             self._thread_safe_log('error', f"ERRORE query {query_name}: {e}")
             raise
+
+    def _execute_oracle_query_direct(self, source_db: str, sql: str) -> pd.DataFrame:
+        """Esegue query Oracle con metodo diretto compatibile"""
+        with self.db_manager.get_oracle_connection(source_db) as conn:
+            cursor = conn.cursor()
+
+            # Esegue la query
+            cursor.execute(sql)
+
+            # Recupera nomi colonne
+            columns = [col[0] for col in cursor.description]
+
+            # Recupera tutti i dati
+            all_data = []
+            row_count = 0
+            while True:
+                rows = cursor.fetchmany(self.batch_size)
+                if not rows:
+                    break
+                all_data.extend(rows)
+                row_count += len(rows)
+
+                if row_count % 5000 == 0:
+                    self._thread_safe_log('info', f"PROGRESS: {row_count} righe recuperate da [{source_db}]...")
+
+            cursor.close()
+
+            # Crea DataFrame
+            return pd.DataFrame(all_data, columns=columns)
 
     def write_to_destination(self, df: pd.DataFrame, dest_db: str,
                              full_table_name: str, query_name: str) -> Dict[str, Any]:
@@ -245,6 +318,13 @@ class EnhancedMultiQueryProcessor:
                 'errors': []
             }
 
+        # DEBUG: Verifica file SQL per tutte le query
+        for query_config in self.queries:
+            sql_file = query_config.get('sql_file')
+            if sql_file:
+                file_path = self.query_directory / sql_file
+                self.logger.info(f"DEBUG: Cercando file {file_path.absolute()} - Esiste: {file_path.exists()}")
+
         # Genera file di esempio se la directory è vuota
         if not any(self.query_directory.glob('*.sql')):
             self.generate_sample_query_files()
@@ -312,24 +392,39 @@ class EnhancedMultiQueryProcessor:
 
     def _create_table_from_dataframe(self, cursor, conn, df: pd.DataFrame,
                                      schema_name: str, table_name: str):
-        """Crea tabella SQL Server da DataFrame pandas"""
+        """Crea tabella SQL Server da DataFrame pandas con tipi migliorati"""
         columns_sql = []
 
         for col_name, dtype in df.dtypes.items():
-            sql_type = self._map_pandas_dtype_to_sql(dtype)
-            safe_col_name = col_name.replace('[', '').replace(']', '')
+            # Inferisce tipo SQL migliorato basato sui dati
+            non_null_data = df[col_name].dropna()
+            sql_type = self._infer_sql_type_advanced(non_null_data, dtype)
+
+            safe_col_name = str(col_name).replace('[', '').replace(']', '')
             columns_sql.append(f"[{safe_col_name}] {sql_type}")
 
         create_sql = f"CREATE TABLE [{schema_name}].[{table_name}] ({', '.join(columns_sql)})"
         cursor.execute(create_sql)
         conn.commit()
 
-    def _map_pandas_dtype_to_sql(self, dtype) -> str:
-        """Mappa dtype pandas a tipo SQL Server"""
+    def _infer_sql_type_advanced(self, col_data: pd.Series, dtype) -> str:
+        """Inferisce tipo SQL con logica avanzata basata sui dati reali"""
+        if len(col_data) == 0:
+            return "NVARCHAR(MAX)"
+
         dtype_str = str(dtype)
 
+        # Tipi numerici
         if dtype_str.startswith('int'):
-            return 'BIGINT'
+            max_val = abs(col_data).max() if len(col_data) > 0 else 0
+            if max_val <= 127:
+                return 'TINYINT'
+            elif max_val <= 32767:
+                return 'SMALLINT'
+            elif max_val <= 2147483647:
+                return 'INT'
+            else:
+                return 'BIGINT'
         elif dtype_str.startswith('float'):
             return 'FLOAT'
         elif dtype_str == 'bool':
@@ -337,7 +432,16 @@ class EnhancedMultiQueryProcessor:
         elif dtype_str.startswith('datetime'):
             return 'DATETIME2'
         elif dtype_str == 'object':
-            return 'NVARCHAR(MAX)'
+            # Analizza lunghezza massima per determinare VARCHAR appropriato
+            max_len = col_data.astype(str).str.len().max()
+            if max_len <= 50:
+                return 'NVARCHAR(100)'
+            elif max_len <= 255:
+                return 'NVARCHAR(500)'
+            elif max_len <= 4000:
+                return f'NVARCHAR({min(max_len * 2, 4000)})'
+            else:
+                return 'NVARCHAR(MAX)'
         else:
             return 'NVARCHAR(MAX)'
 
@@ -416,13 +520,13 @@ class EnhancedMultiQueryProcessor:
 
                 # Info colonne
                 cursor.execute(f"""
-                    SELECT COLUMN_NAME, DATA_TYPE 
+                    SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
                     FROM INFORMATION_SCHEMA.COLUMNS 
                     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
                     ORDER BY ORDINAL_POSITION
                 """, (schema_name, table_name))
 
-                columns = [{'name': row[0], 'type': row[1]} for row in cursor.fetchall()]
+                columns = [{'name': row[0], 'type': row[1], 'max_length': row[2]} for row in cursor.fetchall()]
                 cursor.close()
 
             return {
@@ -440,32 +544,72 @@ class EnhancedMultiQueryProcessor:
         """Genera file SQL di esempio nella directory queries"""
         sample_queries = {
             'esempio_analisi_sox.sql': """
--- Esempio: Analisi sistemi SOX complessa
+-- Esempio: Analisi sistemi SOX complessa con CTE
+WITH sistemi_critici AS (
+    SELECT 
+        s.sistema_id,
+        s.nome_sistema,
+        s.classificazione_sox,
+        s.data_ultima_validazione,
+        COUNT(c.controllo_id) as numero_controlli
+    FROM sistemi s
+    LEFT JOIN controlli c ON s.sistema_id = c.sistema_id
+    WHERE s.classificazione_sox IN ('CRITICO', 'ALTO')
+      AND s.stato = 'ATTIVO'
+    GROUP BY s.sistema_id, s.nome_sistema, s.classificazione_sox, s.data_ultima_validazione
+)
 SELECT 
-    s.sistema_id,
-    s.nome_sistema,
-    s.classificazione_sox,
-    COUNT(c.controllo_id) as numero_controlli
-FROM sistemi s
-LEFT JOIN controlli c ON s.sistema_id = c.sistema_id
-WHERE s.classificazione_sox = 'CRITICO'
-GROUP BY s.sistema_id, s.nome_sistema, s.classificazione_sox
-ORDER BY numero_controlli DESC
+    sistema_id,
+    nome_sistema,
+    classificazione_sox,
+    data_ultima_validazione,
+    numero_controlli,
+    CASE 
+        WHEN numero_controlli = 0 THEN 'NESSUN_CONTROLLO'
+        WHEN numero_controlli > 10 THEN 'ALTO_CONTROLLO'
+        ELSE 'MEDIO_CONTROLLO'
+    END as livello_controllo
+FROM sistemi_critici
+ORDER BY numero_controlli DESC, classificazione_sox
 """,
             'esempio_referenti_progetti.sql': """
--- Esempio: Referenti con progetti attivi
+-- Esempio: Referenti con progetti attivi e metriche
 SELECT 
-    r.id,
-    r.nome,
-    r.cognome,
+    r.id as referente_id,
+    r.nome + ' ' + r.cognome as nome_completo,
     r.email,
-    COUNT(p.id) as progetti_attivi
+    r.telefono,
+    r.data_creazione,
+    COUNT(p.id) as progetti_totali,
+    COUNT(CASE WHEN p.stato = 'ATTIVO' THEN 1 END) as progetti_attivi,
+    MAX(p.data_ultima_modifica) as ultimo_aggiornamento,
+    CASE 
+        WHEN COUNT(p.id) = 0 THEN 'INATTIVO'
+        WHEN COUNT(CASE WHEN p.stato = 'ATTIVO' THEN 1 END) > 3 THEN 'MOLTO_ATTIVO'
+        WHEN COUNT(CASE WHEN p.stato = 'ATTIVO' THEN 1 END) > 0 THEN 'ATTIVO'
+        ELSE 'DORMIENTE'
+    END as livello_attivita
 FROM referenti r
 LEFT JOIN progetti p ON r.id = p.referente_id
 WHERE r.stato = 'ATTIVO'
-GROUP BY r.id, r.nome, r.cognome, r.email
-HAVING COUNT(p.id) > 0
-ORDER BY progetti_attivi DESC
+  AND r.data_creazione >= DATEADD(month, -24, GETDATE())
+GROUP BY r.id, r.nome, r.cognome, r.email, r.telefono, r.data_creazione
+HAVING COUNT(p.id) >= 0
+ORDER BY progetti_attivi DESC, ultimo_aggiornamento DESC
+""",
+            'esempio_template_parametrico.sql': """
+-- Esempio: Template con parametri {data_inizio} e {stato_filtro}
+SELECT 
+    sistema_id,
+    nome_sistema,
+    stato,
+    data_creazione,
+    ultimo_aggiornamento
+FROM sistemi_monitoraggio
+WHERE data_creazione >= '{data_inizio}'
+  AND stato = '{stato_filtro}'
+  AND attivo = 1
+ORDER BY data_creazione DESC
 """
         }
 

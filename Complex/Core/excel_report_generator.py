@@ -26,11 +26,11 @@ class ExcelReportGenerator:
         self.logger = logging.getLogger(__name__)
 
         # Directory output
-        self.output_directory = Path(config.get('execution', {}).get('excel_output_directory', '../reports'))
+        self.output_directory = Path(config.get('execution', {}).get('excel_output_directory', '../Reports'))
         self.output_directory.mkdir(parents=True, exist_ok=True)
 
         # Directory query SQL
-        self.query_directory = Path(config.get('execution', {}).get('query_directory', '../queries'))
+        self.query_directory = Path(config.get('execution', {}).get('query_directory', '../Queries'))
 
     def execute_query(self, database_name: str, sql: str) -> pd.DataFrame:
         """Esegue una query e restituisce un DataFrame"""
