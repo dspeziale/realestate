@@ -1,24 +1,14 @@
-#
-# DATABASE_MANAGER.py - Gestore Database Multi-Source/Multi-Destination
-# Copyright 2025 TIM SPA
-# Author Daniele Speziale
-# Filename: Complex/database_manager.py
-# Created 24/09/25
-# Update  29/09/25
-# Enhanced by: Supporto SQLite per report Excel
-#
+# database_manager.py - Gestore Database Multi-Source/Multi-Destination (Enhanced con schema support)
 import oracledb
 import pyodbc
-import sqlite3
 import logging
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List
 from contextlib import contextmanager
-from pathlib import Path
 
 
 class DatabaseManager:
-    """Gestore per multiple connessioni database (Oracle, SQL Server, SQLite)"""
+    """Gestore per multiple connessioni database"""
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -43,7 +33,7 @@ class DatabaseManager:
 
     @contextmanager
     def get_oracle_connection(self, db_name: str):
-        """Connessione Oracle con nome database specifico"""
+        """Connessione Oracle con nome database specifico (senza Windows Auth Thick Mode)"""
         conn = None
         try:
             oracle_config = self.get_database_config(db_name)
@@ -57,7 +47,7 @@ class DatabaseManager:
             self.logger.info(f"CONNESSIONE Oracle [{db_name}]: {oracle_config['host']}:{oracle_config['port']}")
             self.logger.info(f"Service Name: {service_name}")
 
-            # METODO 1: Username/Password Thick Mode
+            # METODO 1: Username/Password Thick Mode (salta Windows Auth)
             if oracle_config.get('username') and oracle_config.get('password'):
                 try:
                     self.logger.info("TENTATIVO: Username/Password Thick Mode...")
@@ -74,48 +64,27 @@ class DatabaseManager:
                     yield conn
                     return
                 except Exception as e:
-                    self.logger.warning(f"WARNING: Username/Password Thick Mode fallita: {e}")
+                    self.logger.error(f"ERRORE: Username/Password Thick Mode: {e}")
+                    raise
 
-            # METODO 2: Thin Mode con Username/Password
-            if oracle_config.get('username') and oracle_config.get('password'):
+            # METODO 2: Windows Authentication (se configurato)
+            elif oracle_config.get('auth_type') == 'windows':
                 try:
-                    self.logger.info("TENTATIVO: Username/Password Thin Mode...")
-                    conn = oracledb.connect(
-                        user=oracle_config['username'],
-                        password=oracle_config['password'],
-                        host=oracle_config['host'],
-                        port=oracle_config['port'],
-                        service_name=service_name
-                    )
-                    self.logger.info("OK: Connesso con Username/Password (Thin Mode)")
+                    self.logger.info("TENTATIVO: Windows Authentication...")
+                    conn = oracledb.connect(dsn=dsn)
+                    self.logger.info("OK: Connesso con Windows Authentication")
                     yield conn
                     return
                 except Exception as e:
-                    self.logger.error(f"ERRORE: Username/Password Thin Mode fallita: {e}")
+                    self.logger.error(f"ERRORE: Windows Authentication: {e}")
+                    raise
 
-            # METODO 3: Ultimo tentativo generico
-            try:
-                self.logger.info("TENTATIVO: Ultimo tentativo Thin Mode...")
-                conn = oracledb.connect(dsn=dsn)
-                self.logger.info("OK: Connesso in Thin Mode generico")
-                yield conn
-                return
-            except Exception as e:
-                error_msg = f"""
-ERRORE CONNESSIONE ORACLE [{db_name}]:
+            else:
+                raise ValueError(f"Nessun metodo di autenticazione valido per Oracle [{db_name}]")
 
-SOLUZIONI POSSIBILI:
-   1. Verifica username e password nel config.json
-   2. Installa Oracle Instant Client se necessario
-   3. Controlla connettività di rete:
-      - Host: {oracle_config['host']}
-      - Port: {oracle_config['port']}
-      - Service Name: {service_name}
-
-Errore tecnico: {e}
-"""
-                raise Exception(error_msg)
-
+        except Exception as e:
+            self.logger.error(f"ERRORE: connessione Oracle [{db_name}]: {e}")
+            raise
         finally:
             if conn:
                 try:
@@ -126,7 +95,7 @@ Errore tecnico: {e}
 
     @contextmanager
     def get_mssql_connection(self, db_name: str):
-        """Connessione SQL Server con nome database specifico"""
+        """Connessione SQL Server con configurazione avanzata"""
         conn = None
         try:
             mssql_config = self.get_database_config(db_name)
@@ -134,30 +103,42 @@ Errore tecnico: {e}
             if mssql_config.get('type') != 'mssql':
                 raise ValueError(f"Database '{db_name}' non è di tipo SQL Server")
 
-            self.logger.info(f"CONNESSIONE SQL Server [{db_name}]: {mssql_config['server']}")
+            server = mssql_config['server']
+            database = mssql_config['database']
+            driver = mssql_config.get('driver', 'ODBC Driver 17 for SQL Server')
 
-            # Connection string basato sul tipo di autenticazione
+            self.logger.info(f"CONNESSIONE SQL Server [{db_name}]: {server}")
+
+            # Costruisci connection string
             if mssql_config.get('auth_type') == 'windows':
-                # Autenticazione Windows
-                conn_str = (
-                    f"DRIVER={{{mssql_config['driver']}}};"
-                    f"SERVER={mssql_config['server']},{mssql_config['port']};"
-                    f"DATABASE={mssql_config['database']};"
-                    f"Trusted_Connection=yes;"
-                )
                 self.logger.info(f"Usando autenticazione Windows per [{db_name}]")
+                conn_str = f"""
+                    DRIVER={{{driver}}};
+                    SERVER={server};
+                    DATABASE={database};
+                    Trusted_Connection=yes;
+                    TrustServerCertificate=yes;
+                """
             else:
-                # Autenticazione SQL Server
-                conn_str = (
-                    f"DRIVER={{{mssql_config['driver']}}};"
-                    f"SERVER={mssql_config['server']},{mssql_config['port']};"
-                    f"DATABASE={mssql_config['database']};"
-                    f"UID={mssql_config['username']};"
-                    f"PWD={mssql_config['password']};"
-                )
-                self.logger.info(f"Usando autenticazione SQL Server per [{db_name}]")
+                username = mssql_config.get('username')
+                password = mssql_config.get('password')
+                if not username or not password:
+                    raise ValueError(f"Username/Password richiesti per SQL Server [{db_name}]")
 
-            conn = pyodbc.connect(conn_str)
+                self.logger.info(f"Usando autenticazione SQL per [{db_name}] (user: {username})")
+                conn_str = f"""
+                    DRIVER={{{driver}}};
+                    SERVER={server};
+                    DATABASE={database};
+                    UID={username};
+                    PWD={password};
+                    TrustServerCertificate=yes;
+                """
+
+            # Pulisci connection string (rimuove spazi e newline)
+            conn_str = ' '.join(conn_str.split())
+
+            conn = pyodbc.connect(conn_str, timeout=30)
             self.logger.info(f"OK: Connesso a SQL Server [{db_name}]")
             yield conn
 
@@ -166,106 +147,26 @@ Errore tecnico: {e}
             raise
         finally:
             if conn:
-                conn.close()
-                self.logger.info(f"CHIUSA: Connessione SQL Server [{db_name}] chiusa")
+                try:
+                    conn.close()
+                    self.logger.info(f"CHIUSA: Connessione SQL Server [{db_name}] chiusa")
+                except:
+                    pass
 
     @contextmanager
-    def get_sqlite_connection(self, db_name: str):
-        """Connessione SQLite con gestione automatica"""
-        conn = None
-        try:
-            db_config = self.get_database_config(db_name)
-
-            if db_config.get('type') != 'sqlite':
-                raise ValueError(f"Database {db_name} non è di tipo SQLite")
-
-            db_path = db_config.get('database')
-
-            if not db_path:
-                raise ValueError(f"Path database non specificato per {db_name}")
-
-            self.logger.info(f"CONNESSIONE SQLite [{db_name}]: {db_path}")
-
-            # Crea directory se non esiste
-            db_file = Path(db_path)
-            db_file.parent.mkdir(parents=True, exist_ok=True)
-
-            # Connessione SQLite
-            conn = sqlite3.connect(db_path)
-            conn.row_factory = sqlite3.Row  # Abilita accesso per nome colonna
-
-            self.logger.info(f"OK: Connesso a SQLite [{db_name}]")
-            yield conn
-
-        except Exception as e:
-            self.logger.error(f"ERRORE: Connessione SQLite [{db_name}] fallita: {e}")
-            raise
-        finally:
-            if conn:
-                conn.close()
-                self.logger.info(f"CHIUSA: Connessione SQLite [{db_name}] chiusa")
-
     def get_connection(self, db_name: str):
-        """Ottiene connessione appropriata basata sul tipo database"""
+        """Connessione generica che determina automaticamente il tipo"""
         db_config = self.get_database_config(db_name)
         db_type = db_config.get('type')
 
         if db_type == 'oracle':
-            return self.get_oracle_connection(db_name)
+            with self.get_oracle_connection(db_name) as conn:
+                yield conn
         elif db_type == 'mssql':
-            return self.get_mssql_connection(db_name)
-        elif db_type == 'sqlite':
-            return self.get_sqlite_connection(db_name)
+            with self.get_mssql_connection(db_name) as conn:
+                yield conn
         else:
             raise ValueError(f"Tipo database '{db_type}' non supportato per '{db_name}'")
-
-    def test_oracle_connection(self, db_name: str) -> bool:
-        """Testa connessione Oracle"""
-        try:
-            with self.get_oracle_connection(db_name) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT 1 FROM DUAL")
-                cursor.fetchone()
-                cursor.close()
-
-            self.logger.info(f"OK: Test connessione Oracle [{db_name}]")
-            return True
-
-        except Exception as e:
-            self.logger.error(f"ERRORE: Test Oracle [{db_name}] fallito: {e}")
-            return False
-
-    def test_mssql_connection(self, db_name: str) -> bool:
-        """Testa connessione SQL Server"""
-        try:
-            with self.get_mssql_connection(db_name) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT 1")
-                cursor.fetchone()
-                cursor.close()
-
-            self.logger.info(f"OK: Test connessione SQL Server [{db_name}]")
-            return True
-
-        except Exception as e:
-            self.logger.error(f"ERRORE: Test SQL Server [{db_name}] fallito: {e}")
-            return False
-
-    def test_sqlite_connection(self, db_name: str) -> bool:
-        """Testa connessione SQLite"""
-        try:
-            with self.get_sqlite_connection(db_name) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT 1")
-                cursor.fetchone()
-                cursor.close()
-
-            self.logger.info(f"OK: Test connessione SQLite [{db_name}]")
-            return True
-
-        except Exception as e:
-            self.logger.error(f"ERRORE: Test SQLite [{db_name}] fallito: {e}")
-            return False
 
     def test_connection(self, db_name: str) -> bool:
         """Testa una singola connessione database"""
@@ -274,13 +175,25 @@ Errore tecnico: {e}
             db_type = db_config.get('type')
 
             if db_type == 'oracle':
-                return self.test_oracle_connection(db_name)
+                with self.get_oracle_connection(db_name) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT 1 FROM DUAL")
+                    cursor.fetchone()
+                    cursor.close()
+                    self.logger.info(f"OK: Test connessione Oracle [{db_name}]")
+                    return True
+
             elif db_type == 'mssql':
-                return self.test_mssql_connection(db_name)
-            elif db_type == 'sqlite':
-                return self.test_sqlite_connection(db_name)
+                with self.get_mssql_connection(db_name) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT 1")
+                    cursor.fetchone()
+                    cursor.close()
+                    self.logger.info(f"OK: Test connessione SQL Server [{db_name}]")
+                    return True
+
             else:
-                self.logger.error(f"Tipo database '{db_type}' non supportato per test")
+                self.logger.error(f"ERRORE: Tipo database '{db_type}' non supportato")
                 return False
 
         except Exception as e:
@@ -311,24 +224,40 @@ Errore tecnico: {e}
         db_config = self.get_database_config(db_name)
         return db_config.get('default_schema', 'dbo')
 
-    def ensure_schema_exists(self, db_name: str, schema_name: str):
-        """Crea schema se non esiste (solo SQL Server)"""
+    def create_schema_if_not_exists(self, db_name: str, schema_name: str):
+        """Crea schema se non esiste (metodo richiesto dal nuovo processor)"""
         db_config = self.get_database_config(db_name)
 
         if db_config.get('type') != 'mssql':
+            self.logger.debug(f"SKIP: Creazione schema non necessaria per tipo {db_config.get('type')}")
             return  # Solo per SQL Server
 
         try:
-            with self.get_connection(db_name) as conn:
+            with self.get_mssql_connection(db_name) as conn:
                 cursor = conn.cursor()
-                cursor.execute(f"""
-                    IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '{schema_name}')
-                    BEGIN
-                        EXEC('CREATE SCHEMA [{schema_name}]')
-                    END
-                """)
-                conn.commit()
+
+                # Controlla se schema esiste
+                cursor.execute("""
+                    SELECT COUNT(*) 
+                    FROM sys.schemas 
+                    WHERE name = ?
+                """, schema_name)
+
+                exists = cursor.fetchone()[0] > 0
+
+                if not exists:
+                    # Crea schema
+                    cursor.execute(f"CREATE SCHEMA [{schema_name}]")
+                    conn.commit()
+                    self.logger.info(f"SCHEMA: Schema [{schema_name}] creato in [{db_name}]")
+                else:
+                    self.logger.debug(f"SCHEMA: Schema [{schema_name}] già esiste in [{db_name}]")
+
                 cursor.close()
-                self.logger.info(f"SCHEMA: Schema [{schema_name}] verificato/creato in [{db_name}]")
+
         except Exception as e:
-            self.logger.warning(f"WARNING: Errore creazione schema {schema_name} in [{db_name}]: {e}")
+            self.logger.warning(f"WARNING: Errore creazione schema [{schema_name}] in [{db_name}]: {e}")
+
+    def ensure_schema_exists(self, db_name: str, schema_name: str):
+        """Alias per compatibilità con codice esistente"""
+        self.create_schema_if_not_exists(db_name, schema_name)

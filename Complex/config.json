@@ -296,12 +296,19 @@
     }
   ],
   "execution": {
-    "batch_size": 5000,
+    "batch_size": 1000,
     "timeout_seconds": 300,
     "drop_existing_tables": true,
     "log_level": "INFO",
     "log_directory": "logs",
     "query_directory": "queries",
-    "excel_output_directory": "reports"
+    "reports_directory": "reports",
+    "reports_query_directory": "reports/queries",
+    "log_cleanup_days": 3,
+    "enable_auto_cleanup": true,
+    "max_workers": 8,
+    "max_concurrent_queries": 6,
+    "query_timeout_seconds": 300,
+    "enable_multitasking": true
   }
 }
