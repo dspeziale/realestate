@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Aste Immobiliari{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-grid-3x3-gap"></i> Dashboard Aste</h2>
+    <a href="{{ url_for('carica') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nuova Asta
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-clipboard-data" style="font-size: 3rem; color: #667eea;"></i>
+                <h3 class="mt-3">{{ aste|length }}</h3>
+                <p class="text-muted mb-0">Aste Totali</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar-event" style="font-size: 3rem; color: #f093fb;"></i>
+                <h3 class="mt-3">
+                    {% set oggi = aste|selectattr('data_asta')|list|length %}
+                    {{ oggi }}
+                </h3>
+                <p class="text-muted mb-0">Con Data Asta</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-geo-alt" style="font-size: 3rem; color: #4facfe;"></i>
+                <h3 class="mt-3">
+                    {% set citta = aste|map(attribute='citta')|unique|list|length %}
+                    {{ citta }}
+                </h3>
+                <p class="text-muted mb-0">Città</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if aste %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista Aste</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Titolo</th>
+                            <th>Città</th>
+                            <th>Indirizzo</th>
+                            <th>Data Asta</th>
+                            <th>Locali</th>
+                            <th>Lotto</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asta in aste %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ asta.id }}</span></td>
+                            <td><strong>{{ asta.titolo or 'N/A' }}</strong></td>
+                            <td>
+                                {% if asta.citta and asta.citta != 'N/A' %}
+                                    <i class="bi bi-geo-alt-fill text-primary"></i>
+                                    {{ asta.citta[:50] }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>{{ (asta.indirizzo or 'N/A')[:40] }}...</td>
+                            <td>
+                                {% if asta.data_asta %}
+                                    <span class="badge bg-info">{{ asta.data_asta }}</span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asta.numero_locali %}
+                                    <i class="bi bi-door-open"></i> {{ asta.numero_locali }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asta.lotto %}
+                                    <span class="badge bg-warning text-dark">{{ asta.lotto }}</span>
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('dettaglio', id=asta.id) }}" class="btn btn-sm btn-outline-primary" title="Dettagli">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteModal{{ asta.id }}"
+                                        title="Elimina">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Modal Conferma Eliminazione -->
+                        <div class="modal fade" id="deleteModal{{ asta.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Conferma Eliminazione</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Sei sicuro di voler eliminare l'asta <strong>{{ asta.titolo }}</strong>?
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                                        <form method="POST" action="{{ url_for('elimina', id=asta.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger">Elimina</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+            <h4 class="mt-3">Nessuna asta presente</h4>
+            <p class="text-muted">Inizia caricando la tua prima asta</p>
+            <a href="{{ url_for('carica') }}" class="btn btn-primary mt-3">
+                <i class="bi bi-plus-circle"></i> Carica Prima Asta
+            </a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
