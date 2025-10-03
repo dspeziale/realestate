@@ -17,6 +17,128 @@ def get_db():
     return conn
 
 
+@app.route('/modifica/<int:id>', methods=['GET', 'POST'])
+def modifica(id):
+    """Pagina per modificare un'asta esistente"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        try:
+            # Aggiorna i dati nel database
+            cursor.execute('''
+                UPDATE aste SET
+                    titolo = ?, tipo_immobile = ?, tipo_vendita = ?, url = ?,
+                    indirizzo = ?, indirizzo_completo = ?, zona = ?, citta = ?, cap = ?,
+                    prezzo_asta = ?, numero_locali = ?, numero_bagni = ?, piano = ?,
+                    descrizione_breve = ?, descrizione_completa = ?,
+                    data_asta = ?, lotto = ?,
+                    foglio = ?, particella = ?, categoria = ?, rendita = ?,
+                    telefono = ?
+                WHERE id = ?
+            ''', (
+                request.form.get('titolo'),
+                request.form.get('tipo_immobile'),
+                request.form.get('tipo_vendita'),
+                request.form.get('url'),
+                request.form.get('indirizzo'),
+                request.form.get('indirizzo_completo'),
+                request.form.get('zona'),
+                request.form.get('citta'),
+                request.form.get('cap'),
+                request.form.get('prezzo_asta'),
+                int(request.form.get('numero_locali')) if request.form.get('numero_locali') else None,
+                int(request.form.get('numero_bagni')) if request.form.get('numero_bagni') else None,
+                request.form.get('piano'),
+                request.form.get('descrizione_breve'),
+                request.form.get('descrizione_completa'),
+                request.form.get('data_asta'),
+                request.form.get('lotto'),
+                request.form.get('foglio'),
+                request.form.get('particella'),
+                request.form.get('categoria'),
+                request.form.get('rendita'),
+                request.form.get('telefono'),
+                id
+            ))
+            conn.commit()
+            flash('Asta modificata con successo!', 'success')
+            return redirect(url_for('dettaglio', id=id))
+
+        except Exception as e:
+            flash(f'Errore nella modifica: {str(e)}', 'error')
+        finally:
+            conn.close()
+
+    # GET - Mostra il form precompilato
+    cursor.execute('SELECT * FROM aste WHERE id = ?', (id,))
+    asta = cursor.fetchone()
+    conn.close()
+
+    if asta:
+        return render_template('modifica.html', asta=asta)
+    else:
+        flash('Asta non trovata', 'error')
+        return redirect(url_for('index'))
+
+@app.route('/inserisci', methods=['GET', 'POST'])
+def inserisci():
+    """Pagina per inserire manualmente una nuova asta"""
+    if request.method == 'POST':
+        try:
+            # Costruisci l'oggetto dati dalla form
+            data = {
+                'info_generali': {
+                    'titolo': request.form.get('titolo'),
+                    'tipo_immobile': request.form.get('tipo_immobile'),
+                    'tipo_vendita': request.form.get('tipo_vendita'),
+                    'url': request.form.get('url'),
+                    'data_inserimento': datetime.now().isoformat()
+                },
+                'localizzazione': {
+                    'indirizzo': request.form.get('indirizzo'),
+                    'indirizzo_completo': request.form.get('indirizzo_completo'),
+                    'zona': request.form.get('zona'),
+                    'citta': request.form.get('citta'),
+                    'cap': request.form.get('cap')
+                },
+                'prezzi': {
+                    'prezzo_asta': request.form.get('prezzo_asta')
+                },
+                'caratteristiche': {
+                    'numero_locali': int(request.form.get('numero_locali')) if request.form.get(
+                        'numero_locali') else None,
+                    'numero_bagni': int(request.form.get('numero_bagni')) if request.form.get('numero_bagni') else None,
+                    'piano': request.form.get('piano')
+                },
+                'descrizione': {
+                    'breve': request.form.get('descrizione_breve'),
+                    'completa': request.form.get('descrizione_completa')
+                },
+                'informazioni_asta': {
+                    'data_asta': request.form.get('data_asta'),
+                    'lotto': request.form.get('lotto')
+                },
+                'dati_catastali': {
+                    'foglio': request.form.get('foglio'),
+                    'particella': request.form.get('particella'),
+                    'categoria': request.form.get('categoria'),
+                    'rendita': request.form.get('rendita')
+                },
+                'contatti': {
+                    'telefono': request.form.get('telefono')
+                }
+            }
+
+            inserisci_asta(data)
+            flash('Asta inserita con successo!', 'success')
+            return redirect(url_for('index'))
+
+        except Exception as e:
+            flash(f'Errore nell\'inserimento: {str(e)}', 'error')
+
+    return render_template('inserisci.html')
+
 def init_db():
     """Inizializza il database"""
     conn = get_db()
