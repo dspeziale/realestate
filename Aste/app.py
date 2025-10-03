@@ -283,6 +283,9 @@ def inserisci():
 
         except Exception as e:
             flash(f'Errore nell\'inserimento: {str(e)}', 'error')
+            print(f"❌ ERRORE INSERIMENTO: {e}")
+            import traceback
+            traceback.print_exc()
 
     return render_template('inserisci.html')
 
@@ -290,32 +293,77 @@ def inserisci():
 @app.route('/modifica/<int:id>', methods=['GET', 'POST'])
 def modifica(id):
     """Pagina per modificare un'asta esistente"""
-    conn = get_db()
-    cursor = conn.cursor()
-
     if request.method == 'POST':
+        conn = None
         try:
+            print(f"\n{'=' * 60}")
+            print(f"DEBUG MODIFICA ASTA ID: {id}")
+            print(f"{'=' * 60}")
+
+            # Validazione titolo obbligatorio
             titolo = sanitize_input(request.form.get('titolo'))
             if not titolo:
                 flash('Il titolo è obbligatorio', 'error')
                 return redirect(url_for('modifica', id=id))
 
-            # Validazione numeri
-            numero_locali = request.form.get('numero_locali')
-            numero_bagni = request.form.get('numero_bagni')
+            print(f"Titolo: {titolo}")
+            print(f"Città: {request.form.get('citta')}")
+            print(f"Prezzo: {request.form.get('prezzo_asta')}")
 
-            numero_locali = int(numero_locali) if numero_locali else None
-            numero_bagni = int(numero_bagni) if numero_bagni else None
+            # Validazione e conversione numeri
+            numero_locali = request.form.get('numero_locali', '').strip()
+            numero_bagni = request.form.get('numero_bagni', '').strip()
+
+            try:
+                numero_locali = int(numero_locali) if numero_locali else None
+            except ValueError:
+                flash('Numero locali non valido', 'error')
+                return redirect(url_for('modifica', id=id))
+
+            try:
+                numero_bagni = int(numero_bagni) if numero_bagni else None
+            except ValueError:
+                flash('Numero bagni non valido', 'error')
+                return redirect(url_for('modifica', id=id))
+
+            print(f"Numero locali: {numero_locali}")
+            print(f"Numero bagni: {numero_bagni}")
+
+            # Connessione al database
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Verifica che l'asta esista
+            cursor.execute('SELECT id FROM aste WHERE id = ?', (id,))
+            if not cursor.fetchone():
+                flash('Asta non trovata', 'error')
+                conn.close()
+                return redirect(url_for('index'))
 
             # Aggiorna i dati nel database
             cursor.execute('''
                 UPDATE aste SET
-                    titolo = ?, tipo_immobile = ?, tipo_vendita = ?, url = ?,
-                    indirizzo = ?, indirizzo_completo = ?, zona = ?, citta = ?, cap = ?,
-                    prezzo_asta = ?, numero_locali = ?, numero_bagni = ?, piano = ?,
-                    descrizione_breve = ?, descrizione_completa = ?,
-                    data_asta = ?, lotto = ?,
-                    foglio = ?, particella = ?, categoria = ?, rendita = ?,
+                    titolo = ?,
+                    tipo_immobile = ?,
+                    tipo_vendita = ?,
+                    url = ?,
+                    indirizzo = ?,
+                    indirizzo_completo = ?,
+                    zona = ?,
+                    citta = ?,
+                    cap = ?,
+                    prezzo_asta = ?,
+                    numero_locali = ?,
+                    numero_bagni = ?,
+                    piano = ?,
+                    descrizione_breve = ?,
+                    descrizione_completa = ?,
+                    data_asta = ?,
+                    lotto = ?,
+                    foglio = ?,
+                    particella = ?,
+                    categoria = ?,
+                    rendita = ?,
                     telefono = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
@@ -344,16 +392,43 @@ def modifica(id):
                 sanitize_input(request.form.get('telefono')),
                 id
             ))
+
+            rows_affected = cursor.rowcount
             conn.commit()
-            flash('✓ Asta modificata con successo!', 'success')
+
+            print(f"✅ Righe modificate: {rows_affected}")
+            print(f"{'=' * 60}\n")
+
+            if rows_affected > 0:
+                flash('✓ Asta modificata con successo!', 'success')
+            else:
+                flash('⚠ Nessuna modifica effettuata', 'warning')
+
+            conn.close()
             return redirect(url_for('dettaglio', id=id))
 
+        except sqlite3.Error as e:
+            if conn:
+                conn.rollback()
+                conn.close()
+            flash(f'Errore database: {str(e)}', 'error')
+            print(f"❌ ERRORE DATABASE: {e}")
+            import traceback
+            traceback.print_exc()
+            return redirect(url_for('modifica', id=id))
+
         except Exception as e:
+            if conn:
+                conn.close()
             flash(f'Errore nella modifica: {str(e)}', 'error')
-        finally:
-            conn.close()
+            print(f"❌ ERRORE MODIFICA: {e}")
+            import traceback
+            traceback.print_exc()
+            return redirect(url_for('modifica', id=id))
 
     # GET - Mostra il form precompilato
+    conn = get_db()
+    cursor = conn.cursor()
     cursor.execute('SELECT * FROM aste WHERE id = ?', (id,))
     asta = cursor.fetchone()
     conn.close()
@@ -516,8 +591,11 @@ def inserisci_asta(data):
         ))
 
         conn.commit()
+        print(f"✅ Asta inserita con successo! ID: {cursor.lastrowid}")
+
     except sqlite3.Error as e:
         conn.rollback()
+        print(f"❌ ERRORE DATABASE: {e}")
         raise Exception(f"Errore database: {str(e)}")
     finally:
         conn.close()
@@ -543,6 +621,14 @@ if __name__ == '__main__':
 
     # Inizializza database
     init_db()
+
+    print(f"\n{'=' * 60}")
+    print("🚀 AVVIO APPLICAZIONE FLASK")
+    print(f"{'=' * 60}")
+    print(f"📁 Database: {DATABASE}")
+    print(f"🌐 Server: http://localhost:5000")
+    print(f"📊 Debug: ON")
+    print(f"{'=' * 60}\n")
 
     # Avvia app
     app.run(debug=True, port=5000)

@@ -47,7 +47,7 @@
         <div class="col-md-6 col-lg-4 mb-4">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-gradient">
-                    <h6 class="mb-0 text-truncate" style="color: red;">{{ asta.titolo or 'N/A' }}</h6>
+                    <h6 class="mb-0 text-truncate" style="color: white;">{{ asta.titolo or 'N/A' }}</h6>
                 </div>
                 <div class="card-body">
                     <div class="mb-2">
@@ -58,8 +58,8 @@
                     </div>
 
                     {% set indirizzo_pulito = '' %}
-                    {% if asta.indirizzo and asta.indirizzo_completo != 'N/A' %}
-                        {% if 'gaDatalayer' in asta.indirizzo_completo or 'dataLayer' in asta.indirizzo_completo or 'var ' in asta.indirizzo_completo %}
+                    {% if asta.indirizzo %}
+                        {% if asta.indirizzo_completo and ('gaDatalayer' in asta.indirizzo_completo or 'dataLayer' in asta.indirizzo_completo or 'var ' in asta.indirizzo_completo) %}
                             {# Indirizzo contiene codice JavaScript, non mostrarlo #}
                             {% set indirizzo_pulito = '' %}
                         {% else %}
