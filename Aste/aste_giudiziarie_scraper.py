@@ -27,6 +27,69 @@ class AsteGiudiziarieItScraper:
         self.email = os.getenv('ASTE_EMAIL')
         self.password = os.getenv('ASTE_PASSWORD')
 
+        # Inizializza database
+        self.setup_database()
+
+    def setup_database(self):
+        """Crea il database SQLite con la tabella aste"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS aste (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                titolo TEXT,
+                tipo_immobile TEXT,
+                tipo_vendita TEXT DEFAULT 'Asta',
+                url TEXT UNIQUE,
+                data_inserimento TEXT NOT NULL,
+                indirizzo TEXT,
+                indirizzo_completo TEXT,
+                zona TEXT,
+                citta TEXT,
+                cap TEXT,
+                prezzo_asta TEXT,
+                superficie TEXT,
+                numero_locali INTEGER,
+                numero_bagni INTEGER,
+                piano TEXT,
+                stato TEXT,
+                descrizione_breve TEXT,
+                descrizione_completa TEXT,
+                data_asta TEXT,
+                ora_asta TEXT,
+                tipo_asta TEXT,
+                rilancio_minimo TEXT,
+                lotto TEXT,
+                foglio TEXT,
+                particella TEXT,
+                subalterno TEXT,
+                categoria TEXT,
+                rendita TEXT,
+                tribunale TEXT,
+                rge TEXT,
+                giudice TEXT,
+                custode TEXT,
+                delegato TEXT,
+                telefono TEXT,
+                email TEXT,
+                json_completo TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Crea indici per migliorare le performance
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_citta ON aste(citta)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_tipo_immobile ON aste(tipo_immobile)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_data_asta ON aste(data_asta)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_url ON aste(url)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_created_at ON aste(created_at DESC)')
+
+        conn.commit()
+        conn.close()
+        print(f"✅ Database '{self.db_name}' inizializzato\n")
+
     def init_selenium(self):
         """Inizializza Selenium WebDriver"""
         try:
@@ -297,7 +360,6 @@ class AsteGiudiziarieItScraper:
             print(f"🔍 RICERCA IMMOBILI A {city.upper()}")
             print("-" * 60)
 
-            # Attendi che la pagina sia stabile
             time.sleep(3)
 
             # STEP 1: Cerca il campo indirizzo
@@ -324,7 +386,6 @@ class AsteGiudiziarieItScraper:
                     elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
                     for elem in elements:
                         if elem.is_displayed():
-                            # Verifica che sia un campo sensato
                             placeholder = elem.get_attribute('placeholder') or ''
                             name = elem.get_attribute('name') or ''
                             if any(keyword in (placeholder + name).lower() for keyword in
@@ -352,14 +413,14 @@ class AsteGiudiziarieItScraper:
                 self.driver.save_screenshot('debug_6_search_page.png')
                 with open('debug_6_search_page.html', 'w', encoding='utf-8') as f:
                     f.write(self.driver.page_source)
-                return None
+                return None, []
 
             # STEP 2: Inserisci la città
             print(f"\n⌨️  Inserisco '{city}' nel campo...")
             indirizzo_field.clear()
             time.sleep(0.5)
             indirizzo_field.send_keys(city)
-            time.sleep(2)  # Attendi suggerimenti autocomplete
+            time.sleep(2)
 
             self.driver.save_screenshot('debug_7_city_typed.png')
             print("📸 Screenshot: debug_7_city_typed.png")
@@ -428,28 +489,23 @@ class AsteGiudiziarieItScraper:
             print(f"\n🔗 Cerco link con '/vendita-' nell'HTML...")
             soup = BeautifulSoup(self.driver.page_source, 'html.parser')
 
-            # Trova tutti i link che contengono '/vendita-'
             vendita_links = soup.find_all('a', href=re.compile(r'/vendita-', re.I))
 
             print(f"✅ Trovati {len(vendita_links)} link '/vendita-'")
 
-            # Estrai gli URL univoci e filtra solo quelli validi
             unique_urls = set()
             for link in vendita_links:
                 href = link.get('href', '')
                 if href and '/vendita-' in href:
-                    # Costruisci URL completo
                     if not href.startswith('http'):
                         href = self.base_url + href
 
-                    # FILTRA: accetta SOLO se inizia con https://www.astegiudiziarie.it/vendita-
                     if href.startswith('https://www.astegiudiziarie.it/vendita-'):
                         unique_urls.add(href)
 
             print(f"✅ {len(unique_urls)} URL unici validi trovati")
             print(f"   (filtrati solo: https://www.astegiudiziarie.it/vendita-*)\n")
 
-            # Mostra i primi 5 per debug
             if unique_urls:
                 print("📋 Primi 5 URL trovati:")
                 for idx, url in enumerate(list(unique_urls)[:5], 1):
@@ -477,66 +533,246 @@ class AsteGiudiziarieItScraper:
             return {'exists': True, 'id': result[0], 'titolo': result[1], 'data_inserimento': result[2]}
         return {'exists': False}
 
-    def parse_immobile_list(self, element):
-        """Estrae i dati dalla lista annunci"""
-        immobile = {}
+    def extract_section_data(self, soup, section_title):
+        """Estrae i dati da una sezione specifica (Dati del lotto, Dati dei beni, ecc.)"""
+        data = {}
 
-        try:
-            link = element.find('a', href=True)
-            if link and 'href' in link.attrs:
-                href = link['href']
-                if not href.startswith('http'):
-                    href = self.base_url + href
-                immobile['url'] = href
+        # Cerca l'intestazione della sezione
+        section_headers = soup.find_all(['h2', 'h3', 'h4', 'div', 'span'],
+                                        string=re.compile(section_title, re.I))
 
-            title_elem = element.find(['h2', 'h3', 'h4', 'h5'])
+        for header in section_headers:
+            # Trova il contenitore della sezione
+            section_container = header.find_parent(['div', 'section', 'article'])
+
+            if section_container:
+                # Cerca tutti i campi chiave-valore
+                # Pattern 1: <dt>Chiave</dt><dd>Valore</dd>
+                dts = section_container.find_all('dt')
+                for dt in dts:
+                    dd = dt.find_next_sibling('dd')
+                    if dd:
+                        key = dt.get_text(strip=True).replace(':', '')
+                        value = dd.get_text(strip=True)
+                        if key and value:
+                            data[key] = value
+
+                # Pattern 2: <label>Chiave:</label> <span>Valore</span>
+                labels = section_container.find_all('label')
+                for label in labels:
+                    key = label.get_text(strip=True).replace(':', '')
+                    value_elem = label.find_next_sibling(['span', 'div', 'p'])
+                    if value_elem:
+                        value = value_elem.get_text(strip=True)
+                        if key and value:
+                            data[key] = value
+
+                # Pattern 3: <div class="field"><strong>Chiave:</strong> Valore</div>
+                fields = section_container.find_all(['div', 'p'], class_=re.compile('field|item|row', re.I))
+                for field in fields:
+                    strong = field.find('strong')
+                    if strong:
+                        key = strong.get_text(strip=True).replace(':', '')
+                        value = field.get_text(strip=True).replace(key, '').strip().replace(':', '').strip()
+                        if key and value:
+                            data[key] = value
+
+                # Pattern 4: Testo con pattern "Chiave: Valore"
+                text_content = section_container.get_text()
+                patterns = re.findall(r'([A-Za-zÀ-ù\s]+):\s*([^\n]+)', text_content)
+                for key, value in patterns:
+                    key = key.strip()
+                    value = value.strip()
+                    if key and value and len(key) < 50:
+                        data[key] = value
+
+                break
+
+        return data
+
+    def parse_detail_page(self, soup, url):
+        """Analizza la pagina dettaglio ed estrae tutti i dati strutturati"""
+        immobile = {'url': url, 'data_inserimento': datetime.now().isoformat()}
+
+        print(f"\n📋 ANALISI SEZIONI STRUTTURATE")
+        print("-" * 60)
+
+        # **Dati del lotto**
+        print("\n🏷️  Estrazione: Dati del lotto...")
+        dati_lotto = self.extract_section_data(soup, r'Dati\s+del\s+lotto')
+        if dati_lotto:
+            print(f"   ✓ Trovati {len(dati_lotto)} campi")
+            for key, value in list(dati_lotto.items())[:3]:
+                print(f"     • {key}: {value}")
+
+            # Mappa i dati del lotto
+            if 'Lotto' in dati_lotto or 'Numero lotto' in dati_lotto:
+                immobile['lotto'] = dati_lotto.get('Lotto') or dati_lotto.get('Numero lotto')
+            if 'Descrizione' in dati_lotto:
+                immobile['descrizione_breve'] = dati_lotto['Descrizione'][:500]
+            if 'Categoria' in dati_lotto or 'Tipologia' in dati_lotto:
+                immobile['tipo_immobile'] = dati_lotto.get('Categoria') or dati_lotto.get('Tipologia')
+
+        # **Dati dei beni**
+        print("\n🏠 Estrazione: Dati dei beni...")
+        dati_beni = self.extract_section_data(soup, r'Dati\s+dei\s+beni')
+        if dati_beni:
+            print(f"   ✓ Trovati {len(dati_beni)} campi")
+            for key, value in list(dati_beni.items())[:3]:
+                print(f"     • {key}: {value}")
+
+            # Mappa i dati dei beni
+            if 'Indirizzo' in dati_beni or 'Via' in dati_beni:
+                immobile['indirizzo'] = dati_beni.get('Indirizzo') or dati_beni.get('Via')
+            if 'Città' in dati_beni or 'Comune' in dati_beni:
+                immobile['citta'] = dati_beni.get('Città') or dati_beni.get('Comune')
+            if 'CAP' in dati_beni or 'Codice Postale' in dati_beni:
+                immobile['cap'] = dati_beni.get('CAP') or dati_beni.get('Codice Postale')
+            if 'Superficie' in dati_beni or 'Mq' in dati_beni:
+                immobile['superficie'] = dati_beni.get('Superficie') or dati_beni.get('Mq')
+            if 'Locali' in dati_beni or 'Vani' in dati_beni:
+                try:
+                    locali_str = dati_beni.get('Locali') or dati_beni.get('Vani')
+                    immobile['numero_locali'] = int(re.search(r'\d+', locali_str).group())
+                except:
+                    pass
+            if 'Bagni' in dati_beni:
+                try:
+                    immobile['numero_bagni'] = int(re.search(r'\d+', dati_beni['Bagni']).group())
+                except:
+                    pass
+            if 'Piano' in dati_beni:
+                immobile['piano'] = dati_beni['Piano']
+            if 'Stato' in dati_beni or 'Condizioni' in dati_beni:
+                immobile['stato'] = dati_beni.get('Stato') or dati_beni.get('Condizioni')
+
+            # Dati catastali dai beni
+            if 'Foglio' in dati_beni:
+                immobile['foglio'] = dati_beni['Foglio']
+            if 'Particella' in dati_beni or 'Mappale' in dati_beni:
+                immobile['particella'] = dati_beni.get('Particella') or dati_beni.get('Mappale')
+            if 'Subalterno' in dati_beni or 'Sub' in dati_beni:
+                immobile['subalterno'] = dati_beni.get('Subalterno') or dati_beni.get('Sub')
+            if 'Categoria' in dati_beni or 'Categoria catastale' in dati_beni:
+                immobile['categoria'] = dati_beni.get('Categoria') or dati_beni.get('Categoria catastale')
+            if 'Rendita' in dati_beni or 'Rendita catastale' in dati_beni:
+                immobile['rendita'] = dati_beni.get('Rendita') or dati_beni.get('Rendita catastale')
+
+        # **Dati della vendita**
+        print("\n💰 Estrazione: Dati della vendita...")
+        dati_vendita = self.extract_section_data(soup, r'Dati\s+della\s+vendita')
+        if dati_vendita:
+            print(f"   ✓ Trovati {len(dati_vendita)} campi")
+            for key, value in list(dati_vendita.items())[:3]:
+                print(f"     • {key}: {value}")
+
+            # Mappa i dati della vendita
+            if 'Prezzo base' in dati_vendita or 'Base d\'asta' in dati_vendita or 'Prezzo' in dati_vendita:
+                immobile['prezzo_asta'] = (dati_vendita.get('Prezzo base') or
+                                           dati_vendita.get('Base d\'asta') or
+                                           dati_vendita.get('Prezzo'))
+            if 'Data asta' in dati_vendita or 'Data vendita' in dati_vendita:
+                immobile['data_asta'] = dati_vendita.get('Data asta') or dati_vendita.get('Data vendita')
+            if 'Ora' in dati_vendita or 'Orario' in dati_vendita:
+                immobile['ora_asta'] = dati_vendita.get('Ora') or dati_vendita.get('Orario')
+            if 'Tipo asta' in dati_vendita or 'Modalità' in dati_vendita:
+                immobile['tipo_asta'] = dati_vendita.get('Tipo asta') or dati_vendita.get('Modalità')
+            if 'Rilancio minimo' in dati_vendita or 'Offerta minima' in dati_vendita:
+                immobile['rilancio_minimo'] = dati_vendita.get('Rilancio minimo') or dati_vendita.get('Offerta minima')
+
+        # **Dettaglio della procedura e contatti**
+        print("\n⚖️  Estrazione: Dettaglio procedura e contatti...")
+        dati_procedura = self.extract_section_data(soup, r'Dettaglio\s+della\s+procedura')
+        if dati_procedura:
+            print(f"   ✓ Trovati {len(dati_procedura)} campi")
+            for key, value in list(dati_procedura.items())[:3]:
+                print(f"     • {key}: {value}")
+
+            # Mappa i dati della procedura
+            if 'Tribunale' in dati_procedura:
+                immobile['tribunale'] = dati_procedura['Tribunale']
+            if 'RGE' in dati_procedura or 'Numero RGE' in dati_procedura or 'Proc. Esec.' in dati_procedura:
+                immobile['rge'] = (dati_procedura.get('RGE') or
+                                   dati_procedura.get('Numero RGE') or
+                                   dati_procedura.get('Proc. Esec.'))
+            if 'Giudice' in dati_procedura or 'Giudice delegato' in dati_procedura:
+                immobile['giudice'] = dati_procedura.get('Giudice') or dati_procedura.get('Giudice delegato')
+            if 'Custode' in dati_procedura or 'Custode giudiziario' in dati_procedura:
+                immobile['custode'] = dati_procedura.get('Custode') or dati_procedura.get('Custode giudiziario')
+            if 'Professionista delegato' in dati_procedura or 'Delegato' in dati_procedura:
+                immobile['delegato'] = dati_procedura.get('Professionista delegato') or dati_procedura.get('Delegato')
+            if 'Telefono' in dati_procedura or 'Tel' in dati_procedura:
+                immobile['telefono'] = dati_procedura.get('Telefono') or dati_procedura.get('Tel')
+            if 'Email' in dati_procedura or 'E-mail' in dati_procedura:
+                immobile['email'] = dati_procedura.get('Email') or dati_procedura.get('E-mail')
+
+        # Estrazione aggiuntiva da testo libero (fallback)
+        full_text = soup.get_text()
+
+        # Titolo
+        if 'titolo' not in immobile:
+            title_elem = soup.find(['h1', 'h2'], class_=re.compile('title|titolo|heading', re.I))
             if not title_elem:
-                title_elem = element.find('a')
+                title_elem = soup.find('h1')
             if title_elem:
                 immobile['titolo'] = title_elem.get_text(strip=True)
 
-            full_text = element.get_text()
-
-            city_match = re.search(r'([A-Za-zÀ-ù\s]+)\s*\(([A-Z]{2})\)', full_text)
+        # Città (se non trovata)
+        if 'citta' not in immobile:
+            city_match = re.search(r'(?:Comune|Città|Località)[\s:]*([A-Za-zÀ-ù\s]+?)(?:\(([A-Z]{2})\))?', full_text,
+                                   re.I)
             if city_match:
                 immobile['citta'] = city_match.group(1).strip()
 
-            price_match = re.search(r'€\s*([\d.,]+)', full_text)
-            if price_match:
-                immobile['prezzo_asta'] = f"€{price_match.group(1)}"
+        # Indirizzo (se non trovato)
+        if 'indirizzo' not in immobile:
+            addr_match = re.search(
+                r'(?:via|viale|piazza|corso|contrada|località|loc\.?|frazione|fraz\.?)\s+[^\n,]{5,80}', full_text, re.I)
+            if addr_match:
+                immobile['indirizzo'] = addr_match.group(0).strip()
 
-            tribunale_match = re.search(r'Tribunale\s+(?:di\s+)?([A-Za-zÀ-ù\s]+)', full_text, re.I)
-            if tribunale_match:
-                immobile['tribunale'] = tribunale_match.group(1).strip()
+        # CAP (se non trovato)
+        if 'cap' not in immobile:
+            cap_match = re.search(r'\b(\d{5})\b', full_text)
+            if cap_match:
+                immobile['cap'] = cap_match.group(1)
 
-            proc_match = re.search(r'(?:Proc|RGE)[\s\.]*(\d+/\d+)', full_text, re.I)
-            if proc_match:
-                immobile['rge'] = proc_match.group(1)
+        # Prezzo (se non trovato)
+        if 'prezzo_asta' not in immobile:
+            price_patterns = [
+                r'(?:Prezzo|Base)\s+(?:d[\'i]?\s*)?asta[\s:]*€?\s*([\d.,]+)',
+                r'Base\s+d[\'i]?\s*asta[\s:]*€?\s*([\d.,]+)',
+                r'Prezzo[\s:]*€?\s*([\d.,]+)'
+            ]
+            for pattern in price_patterns:
+                price_match = re.search(pattern, full_text, re.I)
+                if price_match:
+                    immobile['prezzo_asta'] = f"€{price_match.group(1)}"
+                    break
 
-            date_match = re.search(r'(\d{2}/\d{2}/\d{4})', full_text)
-            if date_match:
-                immobile['data_asta'] = date_match.group(1)
+        # Descrizione completa
+        if 'descrizione_completa' not in immobile:
+            desc_sections = soup.find_all(['div', 'p'], class_=re.compile('desc|text|content', re.I))
+            desc_texts = []
+            for section in desc_sections:
+                text = section.get_text(strip=True)
+                if len(text) > 100:
+                    desc_texts.append(text)
+            if desc_texts:
+                immobile['descrizione_completa'] = ' '.join(desc_texts[:2])[:1000]
 
-            lotto_match = re.search(r'Lotto[\s:]*(\d+)', full_text, re.I)
-            if lotto_match:
-                immobile['lotto'] = lotto_match.group(1)
-
+        # Tipo immobile e vendita
+        if 'tipo_immobile' not in immobile:
             immobile['tipo_immobile'] = 'Immobile'
-            immobile['tipo_vendita'] = 'Asta Giudiziaria'
-            immobile['data_inserimento'] = datetime.now().isoformat()
+        immobile['tipo_vendita'] = 'Asta Giudiziaria'
 
-            return immobile if immobile.get('url') else None
+        print(f"\n✅ Estrazione dati completata")
+        print(f"   📊 Campi estratti: {len([k for k, v in immobile.items() if v])}")
 
-        except Exception as e:
-            print(f"Errore nel parsing: {e}")
-            return None
-
-    def scrape_detail_page(self, url):
-        """Scarica i dettagli completi (NON USATA - logica spostata in scrape_all)"""
-        pass
+        return immobile
 
     def save_to_json(self, immobile, output_dir='immobili_json'):
-        """Salva in formato JSON"""
+        """Salva in formato JSON strutturato"""
         Path(output_dir).mkdir(exist_ok=True)
 
         titolo_safe = re.sub(r'[^\w\s-]', '', immobile.get('titolo', 'immobile'))[:50]
@@ -555,25 +791,47 @@ class AsteGiudiziarieItScraper:
             'localizzazione': {
                 'indirizzo': immobile.get('indirizzo'),
                 'citta': immobile.get('citta'),
-                'cap': immobile.get('cap')
+                'cap': immobile.get('cap'),
+                'zona': immobile.get('zona')
             },
             'prezzi': {
-                'prezzo_asta': immobile.get('prezzo_asta')
+                'prezzo_asta': immobile.get('prezzo_asta'),
+                'rilancio_minimo': immobile.get('rilancio_minimo')
             },
             'caratteristiche': {
+                'superficie': immobile.get('superficie'),
                 'numero_locali': immobile.get('numero_locali'),
                 'numero_bagni': immobile.get('numero_bagni'),
-                'piano': immobile.get('piano')
+                'piano': immobile.get('piano'),
+                'stato': immobile.get('stato')
+            },
+            'descrizione': {
+                'breve': immobile.get('descrizione_breve'),
+                'completa': immobile.get('descrizione_completa')
             },
             'informazioni_asta': {
                 'data_asta': immobile.get('data_asta'),
+                'ora_asta': immobile.get('ora_asta'),
+                'tipo_asta': immobile.get('tipo_asta'),
                 'tribunale': immobile.get('tribunale'),
                 'rge': immobile.get('rge'),
                 'lotto': immobile.get('lotto')
             },
             'dati_catastali': {
                 'foglio': immobile.get('foglio'),
-                'particella': immobile.get('particella')
+                'particella': immobile.get('particella'),
+                'subalterno': immobile.get('subalterno'),
+                'categoria': immobile.get('categoria'),
+                'rendita': immobile.get('rendita')
+            },
+            'procedura': {
+                'giudice': immobile.get('giudice'),
+                'custode': immobile.get('custode'),
+                'delegato': immobile.get('delegato')
+            },
+            'contatti': {
+                'telefono': immobile.get('telefono'),
+                'email': immobile.get('email')
             }
         }
 
@@ -594,30 +852,92 @@ class AsteGiudiziarieItScraper:
         return data
 
     def save_to_db(self, immobile):
-        """Salva nel database"""
+        """Salva nel database con tutti i nuovi campi"""
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
 
         try:
+            # Verifica/crea colonne aggiuntive se non esistono
+            cursor.execute("PRAGMA table_info(aste)")
+            existing_columns = [row[1] for row in cursor.fetchall()]
+
+            new_columns = {
+                'superficie': 'TEXT',
+                'stato': 'TEXT',
+                'ora_asta': 'TEXT',
+                'tipo_asta': 'TEXT',
+                'rilancio_minimo': 'TEXT',
+                'subalterno': 'TEXT',
+                'tribunale': 'TEXT',
+                'rge': 'TEXT',
+                'giudice': 'TEXT',
+                'custode': 'TEXT',
+                'delegato': 'TEXT',
+                'email': 'TEXT',
+                'zona': 'TEXT'
+            }
+
+            for col_name, col_type in new_columns.items():
+                if col_name not in existing_columns:
+                    cursor.execute(f'ALTER TABLE aste ADD COLUMN {col_name} {col_type}')
+                    print(f"  📝 Colonna '{col_name}' aggiunta al database")
+
             cursor.execute('''
                 INSERT OR REPLACE INTO aste (
                     titolo, tipo_immobile, tipo_vendita, url, data_inserimento,
-                    indirizzo, citta, cap, prezzo_asta, numero_locali, numero_bagni, piano,
-                    data_asta, lotto, foglio, particella, telefono, json_completo
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    indirizzo, indirizzo_completo, zona, citta, cap, 
+                    prezzo_asta, superficie, numero_locali, numero_bagni, piano, stato,
+                    descrizione_breve, descrizione_completa,
+                    data_asta, ora_asta, tipo_asta, rilancio_minimo, lotto,
+                    foglio, particella, subalterno, categoria, rendita,
+                    tribunale, rge, giudice, custode, delegato,
+                    telefono, email, json_completo
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
-                immobile.get('titolo'), immobile.get('tipo_immobile'), immobile.get('tipo_vendita'),
-                immobile.get('url'), immobile.get('data_inserimento'), immobile.get('indirizzo'),
-                immobile.get('citta'), immobile.get('cap'), immobile.get('prezzo_asta'),
-                immobile.get('numero_locali'), immobile.get('numero_bagni'), immobile.get('piano'),
-                immobile.get('data_asta'), immobile.get('lotto'), immobile.get('foglio'),
-                immobile.get('particella'), immobile.get('telefono'),
+                immobile.get('titolo'),
+                immobile.get('tipo_immobile'),
+                immobile.get('tipo_vendita'),
+                immobile.get('url'),
+                immobile.get('data_inserimento'),
+                immobile.get('indirizzo'),
+                immobile.get('indirizzo'),  # indirizzo_completo
+                immobile.get('zona'),
+                immobile.get('citta'),
+                immobile.get('cap'),
+                immobile.get('prezzo_asta'),
+                immobile.get('superficie'),
+                immobile.get('numero_locali'),
+                immobile.get('numero_bagni'),
+                immobile.get('piano'),
+                immobile.get('stato'),
+                immobile.get('descrizione_breve'),
+                immobile.get('descrizione_completa'),
+                immobile.get('data_asta'),
+                immobile.get('ora_asta'),
+                immobile.get('tipo_asta'),
+                immobile.get('rilancio_minimo'),
+                immobile.get('lotto'),
+                immobile.get('foglio'),
+                immobile.get('particella'),
+                immobile.get('subalterno'),
+                immobile.get('categoria'),
+                immobile.get('rendita'),
+                immobile.get('tribunale'),
+                immobile.get('rge'),
+                immobile.get('giudice'),
+                immobile.get('custode'),
+                immobile.get('delegato'),
+                immobile.get('telefono'),
+                immobile.get('email'),
                 json.dumps(immobile, ensure_ascii=False)
             ))
+
             conn.commit()
-            print(f"  ✓ DB salvato")
+            print(f"  ✓ DB salvato (ID: {cursor.lastrowid})")
         except Exception as e:
             print(f"  ✗ Errore DB: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             conn.close()
 
@@ -674,7 +994,7 @@ class AsteGiudiziarieItScraper:
                 print(f"🔗 URL: {url}")
                 print(f"{'=' * 60}")
 
-                # Controlla se esiste già (senza aprire la pagina)
+                # Controlla se esiste già
                 check = self.check_immobile_exists(url)
 
                 if check['exists']:
@@ -686,163 +1006,23 @@ class AsteGiudiziarieItScraper:
 
                 print(f"🆕 NUOVO - Scarico dettagli completi...")
 
-                # Apri nuova finestra per questo immobile
+                # Apri nuova finestra
                 self.driver.execute_script("window.open('');")
                 time.sleep(0.5)
 
                 # Passa alla nuova finestra
                 windows = self.driver.window_handles
-                detail_window = windows[-1]  # Ultima finestra aperta
+                detail_window = windows[-1]
                 self.driver.switch_to.window(detail_window)
 
-                # Vai alla pagina dettaglio
                 try:
                     self.driver.get(url)
                     time.sleep(3)
 
                     soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-                    immobile = {'url': url, 'data_inserimento': datetime.now().isoformat()}
 
-                    # Estrai tutti i dati dalla pagina dettaglio
-                    full_text = soup.get_text()
-
-                    # Titolo
-                    title_elem = soup.find(['h1', 'h2'], class_=re.compile('title|titolo|heading', re.I))
-                    if not title_elem:
-                        title_elem = soup.find('h1')
-                    if title_elem:
-                        immobile['titolo'] = title_elem.get_text(strip=True)
-                    else:
-                        immobile['titolo'] = f"Asta Immobile {idx}"
-
-                    print(f"📌 Titolo: {immobile['titolo']}")
-
-                    # Città
-                    city_match = re.search(r'(?:Comune|Città|Località)[\s:]*([A-Za-zÀ-ù\s]+?)(?:\(([A-Z]{2})\))?',
-                                           full_text, re.I)
-                    if city_match:
-                        immobile['citta'] = city_match.group(1).strip()
-                        print(f"📍 Città: {immobile['citta']}")
-
-                    # Indirizzo
-                    addr_match = re.search(
-                        r'(?:via|viale|piazza|corso|contrada|località|loc\.?|frazione|fraz\.?)\s+[^\n,]{5,80}',
-                        full_text, re.I)
-                    if addr_match:
-                        immobile['indirizzo'] = addr_match.group(0).strip()
-                        print(f"🏠 Indirizzo: {immobile['indirizzo']}")
-
-                    # CAP
-                    cap_match = re.search(r'\b(\d{5})\b', full_text)
-                    if cap_match:
-                        immobile['cap'] = cap_match.group(1)
-
-                    # Prezzo base d'asta
-                    price_patterns = [
-                        r'(?:Prezzo|Base)\s+(?:d[\'i]?\s*)?asta[\s:]*€?\s*([\d.,]+)',
-                        r'Base\s+d[\'i]?\s*asta[\s:]*€?\s*([\d.,]+)',
-                        r'Prezzo[\s:]*€?\s*([\d.,]+)'
-                    ]
-                    for pattern in price_patterns:
-                        price_match = re.search(pattern, full_text, re.I)
-                        if price_match:
-                            immobile['prezzo_asta'] = f"€{price_match.group(1)}"
-                            print(f"💰 Prezzo: {immobile['prezzo_asta']}")
-                            break
-
-                    # Tribunale
-                    tribunale_match = re.search(r'Tribunale\s+(?:di\s+)?([A-Za-zÀ-ù\s]+)', full_text, re.I)
-                    if tribunale_match:
-                        immobile['tribunale'] = tribunale_match.group(1).strip()
-                        print(f"⚖️  Tribunale: {immobile['tribunale']}")
-
-                    # RGE/Procedura
-                    rge_patterns = [
-                        r'(?:RGE|R\.G\.E\.|Proc\.?|Procedura|Esec\.?)[\s\.:n°]*(\d+/\d+)',
-                        r'(?:n\.?\s*)?(\d+/\d{4})'
-                    ]
-                    for pattern in rge_patterns:
-                        rge_match = re.search(pattern, full_text, re.I)
-                        if rge_match:
-                            immobile['rge'] = rge_match.group(1)
-                            print(f"📋 RGE: {immobile['rge']}")
-                            break
-
-                    # Data asta
-                    date_match = re.search(r'(\d{2}/\d{2}/\d{4})', full_text)
-                    if date_match:
-                        immobile['data_asta'] = date_match.group(1)
-                        print(f"📅 Data asta: {immobile['data_asta']}")
-
-                    # Lotto
-                    lotto_match = re.search(r'Lotto[\s:n°]*(\d+)', full_text, re.I)
-                    if lotto_match:
-                        immobile['lotto'] = lotto_match.group(1)
-                        print(f"🏷️  Lotto: {immobile['lotto']}")
-
-                    # Caratteristiche immobile
-                    locali_match = re.search(r'(\d+)\s*(?:vani|local[ie]|stanze|camere)', full_text, re.I)
-                    if locali_match:
-                        immobile['numero_locali'] = int(locali_match.group(1))
-                        print(f"🚪 Locali: {immobile['numero_locali']}")
-
-                    bagni_match = re.search(r'(\d+)\s*bagn[io]', full_text, re.I)
-                    if bagni_match:
-                        immobile['numero_bagni'] = int(bagni_match.group(1))
-                        print(f"🚿 Bagni: {immobile['numero_bagni']}")
-
-                    piano_match = re.search(r'piano\s*([TtSs0-9]+|terra|primo|secondo|terzo|quarto|quinto)', full_text,
-                                            re.I)
-                    if piano_match:
-                        immobile['piano'] = piano_match.group(1)
-                        print(f"🏢 Piano: {immobile['piano']}")
-
-                    # Superficie
-                    superficie_match = re.search(r'(?:superficie|mq|m²|metri\s+quadr)[\s:]*(\d+)', full_text, re.I)
-                    if superficie_match:
-                        immobile['superficie'] = superficie_match.group(1)
-                        print(f"📐 Superficie: {immobile['superficie']} mq")
-
-                    # Dati catastali
-                    foglio_match = re.search(r'foglio[\s\.:n°]*(\d+)', full_text, re.I)
-                    if foglio_match:
-                        immobile['foglio'] = foglio_match.group(1)
-
-                    particella_match = re.search(r'(?:particella|part\.?)[\s\.:n°]*(\d+)', full_text, re.I)
-                    if particella_match:
-                        immobile['particella'] = particella_match.group(1)
-
-                    subalterno_match = re.search(r'(?:subalterno|sub\.?)[\s\.:n°]*(\d+)', full_text, re.I)
-                    if subalterno_match:
-                        immobile['subalterno'] = subalterno_match.group(1)
-
-                    categoria_match = re.search(r'categoria[\s\.:]*([A-Z]/\d+|[CDE]/\d+)', full_text, re.I)
-                    if categoria_match:
-                        immobile['categoria'] = categoria_match.group(1)
-
-                    rendita_match = re.search(r'rendita[\s\.:]*€?\s*([\d.,]+)', full_text, re.I)
-                    if rendita_match:
-                        immobile['rendita'] = rendita_match.group(1)
-
-                    # Descrizione
-                    desc_sections = soup.find_all(['div', 'p'], class_=re.compile('desc|text|content', re.I))
-                    desc_texts = []
-                    for section in desc_sections:
-                        text = section.get_text(strip=True)
-                        if len(text) > 100:
-                            desc_texts.append(text)
-                    if desc_texts:
-                        immobile['descrizione_completa'] = ' '.join(desc_texts[:2])[:1000]
-                        immobile['descrizione_breve'] = desc_texts[0][:500] if desc_texts else None
-
-                    # Telefono/Contatti
-                    tel_match = re.search(r'(?:tel|telefono|cell)[\s\.:]*(\+?\d[\d\s\.-]{8,})', full_text, re.I)
-                    if tel_match:
-                        immobile['telefono'] = tel_match.group(1).strip()
-
-                    # Tipo immobile e vendita
-                    immobile['tipo_immobile'] = 'Immobile'
-                    immobile['tipo_vendita'] = 'Asta Giudiziaria'
+                    # Usa il nuovo parser strutturato
+                    immobile = self.parse_detail_page(soup, url)
 
                     # Salva
                     self.save_to_json(immobile)
@@ -850,6 +1030,9 @@ class AsteGiudiziarieItScraper:
                     count_new += 1
 
                     print(f"\n✅ Salvato con successo!")
+                    print(f"   📌 Titolo: {immobile.get('titolo', 'N/A')}")
+                    print(f"   📍 Città: {immobile.get('citta', 'N/A')}")
+                    print(f"   💰 Prezzo: {immobile.get('prezzo_asta', 'N/A')}")
 
                 except Exception as e:
                     print(f"❌ Errore durante il download: {e}")
@@ -857,14 +1040,14 @@ class AsteGiudiziarieItScraper:
                     traceback.print_exc()
 
                 finally:
-                    # CHIUDI la finestra dettagli
+                    # Chiudi finestra dettagli
                     try:
                         self.driver.close()
                         print(f"🗑️  Finestra dettagli chiusa")
                     except:
                         pass
 
-                    # Torna SEMPRE alla finestra principale
+                    # Torna alla finestra principale
                     try:
                         self.driver.switch_to.window(main_window)
                         print(f"↩️  Tornato alla finestra principale")
