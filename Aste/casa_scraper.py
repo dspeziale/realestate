@@ -9,7 +9,7 @@ import time
 
 
 class CasaItScraper:
-    def __init__(self, db_name='immobili.db'):
+    def __init__(self, db_name='aste_immobiliari.db'):
         self.db_name = db_name
         self.base_url = "https://www.casa.it"
         self.headers = {
@@ -77,12 +77,31 @@ class CasaItScraper:
                 immagini TEXT,
                 url TEXT UNIQUE,
                 data_inserimento TIMESTAMP,
+                data_ultimo_aggiornamento TIMESTAMP,
                 tipo_vendita TEXT
             )
         ''')
 
         conn.commit()
         conn.close()
+
+    def check_immobile_exists(self, url):
+        """Controlla se un immobile è già presente nel database tramite URL"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT id, titolo, data_inserimento FROM immobili WHERE url = ?', (url,))
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            return {
+                'exists': True,
+                'id': result[0],
+                'titolo': result[1],
+                'data_inserimento': result[2]
+            }
+        return {'exists': False}
 
     def extract_price(self, price_text):
         """Estrae il prezzo numerico dal testo"""
@@ -513,6 +532,9 @@ class CasaItScraper:
             caratteristiche_json = json.dumps(immobile.get('caratteristiche', {}), ensure_ascii=False)
             immagini_json = json.dumps(immobile.get('immagini', []), ensure_ascii=False)
 
+            # Aggiungi data ultimo aggiornamento
+            immobile['data_ultimo_aggiornamento'] = datetime.now().isoformat()
+
             cursor.execute('''
                 INSERT OR REPLACE INTO immobili 
                 (titolo, indirizzo, indirizzo_completo, zona, citta, cap, prezzo_asta, prezzo_numerico, 
@@ -521,8 +543,8 @@ class CasaItScraper:
                  box_auto, tribunale, rge, lotto, tipo_asta, base_asta, rilancio_minimo, data_asta,
                  foglio, particella, subalterno, categoria_catastale, rendita,
                  email_contatto, telefono_contatto, caratteristiche, immagini,
-                 url, data_inserimento, tipo_vendita)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 url, data_inserimento, data_ultimo_aggiornamento, tipo_vendita)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 immobile.get('titolo'),
                 immobile.get('indirizzo'),
@@ -562,12 +584,13 @@ class CasaItScraper:
                 immagini_json,
                 immobile.get('url'),
                 immobile.get('data_inserimento'),
+                immobile.get('data_ultimo_aggiornamento'),
                 immobile.get('tipo_vendita')
             ))
             conn.commit()
             print(f"  ✓ Salvato in DB")
         except sqlite3.IntegrityError:
-            print(f"  ℹ Immobile già presente nel DB")
+            print(f"  ℹ Immobile già presente nel DB - Aggiornato")
         finally:
             conn.close()
 
@@ -592,7 +615,6 @@ class CasaItScraper:
         print("HTML salvato in 'debug_page.html' per analisi\n")
 
         # Cerca tutti gli elementi che contengono immobili
-        # Casa.it usa diverse classi, cerchiamo pattern comuni
         immobili_elements = soup.find_all(['article', 'div'], class_=re.compile('listing|card|property|result', re.I))
 
         if not immobili_elements:
@@ -602,7 +624,9 @@ class CasaItScraper:
 
         print(f"Trovati {len(immobili_elements)} elementi immobiliari\n")
 
-        count = 0
+        count_new = 0
+        count_skipped = 0
+
         for idx, element in enumerate(immobili_elements, 1):
             print(f"\n{'=' * 60}")
             print(f"Immobile {idx}/{len(immobili_elements)}")
@@ -612,6 +636,20 @@ class CasaItScraper:
             immobile = self.parse_immobile(element)
 
             if immobile and immobile.get('url'):
+                # CONTROLLA SE L'IMMOBILE È GIÀ STATO SCARICATO
+                check_result = self.check_immobile_exists(immobile['url'])
+
+                if check_result['exists']:
+                    print(f"⏭️  SALTATO - Immobile già presente nel database")
+                    print(f"   Titolo: {check_result['titolo']}")
+                    print(f"   Data inserimento: {check_result['data_inserimento']}")
+                    print(f"   ID database: {check_result['id']}")
+                    count_skipped += 1
+                    continue
+
+                # Se non esiste, procedi con il download completo
+                print(f"🆕 NUOVO - Procedo con il download completo")
+
                 # Scarica e aggiungi dettagli dalla pagina dell'immobile
                 dettagli = self.scrape_detail_page(immobile['url'])
 
@@ -643,32 +681,109 @@ class CasaItScraper:
                 # Salva in JSON e DB
                 self.save_to_json(immobile)
                 self.save_to_db(immobile)
-                count += 1
+                count_new += 1
 
-                print(f"\n✓ Elaborato completo: {count}/{len(immobili_elements)}")
+                print(f"\n✓ Elaborato completo: {count_new} nuovi, {count_skipped} saltati")
             else:
                 print(f"✗ Impossibile estrarre URL dall'elemento")
 
         print(f"\n{'=' * 60}")
         print(f"SCRAPING COMPLETATO!")
         print(f"{'=' * 60}")
-        print(f"📊 Immobili elaborati: {count}")
+        print(f"📊 Statistiche:")
+        print(f"   • Immobili trovati: {len(immobili_elements)}")
+        print(f"   • Nuovi scaricati: {count_new}")
+        print(f"   • Già presenti (saltati): {count_skipped}")
         print(f"💾 Database: {self.db_name}")
         print(f"📁 File JSON: cartella 'immobili_json/'")
         print(f"{'=' * 60}")
 
-        return count
+        return count_new
+
+    def get_statistics(self):
+        """Restituisce statistiche dal database"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+
+        stats = {}
+
+        # Totale immobili
+        cursor.execute('SELECT COUNT(*) FROM immobili')
+        stats['totale'] = cursor.fetchone()[0]
+
+        # Per tipo immobile
+        cursor.execute('SELECT tipo_immobile, COUNT(*) FROM immobili GROUP BY tipo_immobile')
+        stats['per_tipo'] = dict(cursor.fetchall())
+
+        # Per città
+        cursor.execute(
+            'SELECT citta, COUNT(*) FROM immobili WHERE citta IS NOT NULL GROUP BY citta ORDER BY COUNT(*) DESC LIMIT 10')
+        stats['per_citta'] = dict(cursor.fetchall())
+
+        # Range prezzi
+        cursor.execute(
+            'SELECT MIN(prezzo_numerico), MAX(prezzo_numerico), AVG(prezzo_numerico) FROM immobili WHERE prezzo_numerico IS NOT NULL')
+        result = cursor.fetchone()
+        stats['prezzi'] = {
+            'minimo': result[0],
+            'massimo': result[1],
+            'media': result[2]
+        }
+
+        # Immobili con data asta
+        cursor.execute('SELECT COUNT(*) FROM immobili WHERE data_asta IS NOT NULL')
+        stats['con_data_asta'] = cursor.fetchone()[0]
+
+        conn.close()
+        return stats
+
+    def print_statistics(self):
+        """Stampa statistiche dal database"""
+        stats = self.get_statistics()
+
+        print(f"\n{'=' * 60}")
+        print(f"📊 STATISTICHE DATABASE")
+        print(f"{'=' * 60}")
+        print(f"Totale immobili: {stats['totale']}")
+
+        if stats['per_tipo']:
+            print(f"\nPer tipo:")
+            for tipo, count in stats['per_tipo'].items():
+                print(f"  • {tipo}: {count}")
+
+        if stats['per_citta']:
+            print(f"\nTop 10 città:")
+            for citta, count in stats['per_citta'].items():
+                print(f"  • {citta}: {count}")
+
+        if stats['prezzi']['minimo']:
+            print(f"\nPrezzi:")
+            print(f"  • Minimo: €{stats['prezzi']['minimo']:,.2f}")
+            print(f"  • Massimo: €{stats['prezzi']['massimo']:,.2f}")
+            print(f"  • Media: €{stats['prezzi']['media']:,.2f}")
+
+        print(f"\nImmobili con data asta: {stats['con_data_asta']}")
+        print(f"{'=' * 60}\n")
 
 
 def main():
-    url = "https://www.casa.it/srp/?tr=vendita&mqMin=200&sortType=price_asc&only_auction=true&propertyTypeGroup=commerciale&q=a0d22860"
+    # URL di ricerca per immobili all'asta a Roma (min 200mq)
+    url = "https://www.casa.it/srp/?tr=vendita&mqMin=200&sortType=price_asc&geobounds={%22bbox%22:[[41.97261768278087%2C12.464675081765128]%2C[41.86813559005047%2C12.585524691140128]]}&only_auction=true&propertyTypeGroup=case"
 
     scraper = CasaItScraper()
 
+    # Mostra statistiche pre-scraping
+    print("\n🔍 Controllo database esistente...")
+    scraper.print_statistics()
+
     # Opzione 1: Scraping automatico
+    print("\n🚀 Avvio scraping...\n")
     scraper.scrape_all(url)
 
-    # Opzione 2: Se hai salvato l'HTML manualmente, decommentare:
+    # Mostra statistiche post-scraping
+    scraper.print_statistics()
+
+    # Opzione 2: Se hai salvato l'HTML manualmente, usa:
     # scraper.scrape_all(url, html_file='casa_page.html')
 
 

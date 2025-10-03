@@ -88,9 +88,15 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'inserisci' %}active{% endif %}" href="{{ url_for('inserisci') }}">
+                                <i class="bi bi-plus-circle"></i>
+                                Inserisci Asta
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'carica' %}active{% endif %}" href="{{ url_for('carica') }}">
                                 <i class="bi bi-cloud-upload"></i>
-                                Carica Asta
+                                Carica JSON
                             </a>
                         </li>
                         <li class="nav-item">

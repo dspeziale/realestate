@@ -47,7 +47,7 @@
         <div class="col-md-6 col-lg-4 mb-4">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-gradient">
-                    <h6 class="mb-0 text-truncate">{{ asta.titolo or 'N/A' }}</h6>
+                    <h6 class="mb-0 text-truncate" style="color: red;">{{ asta.titolo or 'N/A' }}</h6>
                 </div>
                 <div class="card-body">
                     <div class="mb-2">
@@ -57,9 +57,25 @@
                         </small>
                     </div>
 
+                    {% set indirizzo_pulito = '' %}
+                    {% if asta.indirizzo and asta.indirizzo_completo != 'N/A' %}
+                        {% if 'gaDatalayer' in asta.indirizzo_completo or 'dataLayer' in asta.indirizzo_completo or 'var ' in asta.indirizzo_completo %}
+                            {# Indirizzo contiene codice JavaScript, non mostrarlo #}
+                            {% set indirizzo_pulito = '' %}
+                        {% else %}
+                            {% set indirizzo_pulito = asta.indirizzo %}
+                        {% endif %}
+                    {% endif %}
+
+                    {% if indirizzo_pulito %}
                     <p class="card-text small text-truncate mb-2">
-                        <i class="bi bi-house"></i> {{ asta.indirizzo or 'N/A' }}
+                        <i class="bi bi-house"></i> {{ indirizzo_pulito }}
                     </p>
+                    {% else %}
+                    <p class="card-text small text-muted mb-2">
+                        <i class="bi bi-house"></i> <em>Indirizzo non disponibile</em>
+                    </p>
+                    {% endif %}
 
                     <div class="row g-2 mb-3">
                         <div class="col-6">
@@ -86,7 +102,7 @@
 
                     {% if asta.lotto %}
                     <div class="mb-2">
-                        <span class="badge bg-info">Lotto {{ asta.lotto }}</span>
+                        <span class="badge bg-info text-white">Lotto {{ asta.lotto }}</span>
                     </div>
                     {% endif %}
 
@@ -143,6 +159,14 @@
     .card:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
+    }
+    .badge.bg-info {
+        background-color: #0dcaf0 !important;
+        color: white !important;
+    }
+    .badge.bg-warning {
+        background-color: #ffc107 !important;
+        color: #000 !important;
     }
 </style>
 {% endblock %}
