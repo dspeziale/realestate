@@ -978,7 +978,7 @@ class AsteGiudiziarieItScraper:
                 return
 
             print(f"\n{'=' * 60}")
-            print(f"INIZIO DOWNLOAD DETTAGLI")
+            print(f"INIZIO DOWNLOAD DETTAGLI CON SCROLL AUTOMATICO")
             print(f"{'=' * 60}\n")
 
             # Salva la finestra principale
@@ -987,10 +987,16 @@ class AsteGiudiziarieItScraper:
 
             count_new = 0
             count_skipped = 0
+            all_urls = set(vendita_urls)  # Usa set per evitare duplicati
 
-            for idx, url in enumerate(vendita_urls, 1):
+            idx = 0
+            while idx < len(list(all_urls)):
+                current_urls = list(all_urls)
+                url = current_urls[idx]
+                idx += 1
+
                 print(f"\n{'=' * 60}")
-                print(f"Immobile {idx}/{len(vendita_urls)}")
+                print(f"Immobile {idx}/{len(current_urls)}")
                 print(f"🔗 URL: {url}")
                 print(f"{'=' * 60}")
 
@@ -1002,6 +1008,9 @@ class AsteGiudiziarieItScraper:
                     print(f"   ID: {check['id']}")
                     print(f"   Titolo: {check['titolo']}")
                     count_skipped += 1
+
+                    # SCROLL sulla pagina principale per caricare più risultati
+                    self.scroll_and_load_more(main_window, all_urls)
                     continue
 
                 print(f"🆕 NUOVO - Scarico dettagli completi...")
@@ -1054,11 +1063,14 @@ class AsteGiudiziarieItScraper:
                     except:
                         pass
 
+                    # SCROLL sulla pagina principale per caricare più risultati
+                    self.scroll_and_load_more(main_window, all_urls)
+
             print(f"\n{'=' * 60}")
             print(f"COMPLETATO!")
             print(f"{'=' * 60}")
             print(f"📊 Statistiche:")
-            print(f"   • Totale URL: {len(vendita_urls)}")
+            print(f"   • Totale URL trovati: {len(all_urls)}")
             print(f"   • Nuovi scaricati: {count_new}")
             print(f"   • Già presenti: {count_skipped}")
             print(f"💾 Database: {self.db_name}")
@@ -1069,6 +1081,61 @@ class AsteGiudiziarieItScraper:
             if self.driver:
                 print("🔚 Chiudo il browser...")
                 self.driver.quit()
+
+    def scroll_and_load_more(self, main_window, all_urls):
+        """Esegue scroll sulla pagina principale e carica nuovi immobili"""
+        try:
+            # Assicurati di essere sulla finestra principale
+            self.driver.switch_to.window(main_window)
+
+            print(f"\n📜 Eseguo scroll per caricare più risultati...")
+
+            # Salva il numero iniziale di URL
+            initial_count = len(all_urls)
+
+            # Scroll verso il basso
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+
+            # Scroll più graduale per attivare lazy loading
+            for i in range(3):
+                scroll_position = (i + 1) * (self.driver.execute_script("return document.body.scrollHeight") // 4)
+                self.driver.execute_script(f"window.scrollTo(0, {scroll_position});")
+                time.sleep(1)
+
+            # Attendi caricamento nuovi elementi
+            time.sleep(2)
+
+            # Cerca nuovi link
+            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+            vendita_links = soup.find_all('a', href=re.compile(r'/vendita-', re.I))
+
+            new_urls = set()
+            for link in vendita_links:
+                href = link.get('href', '')
+                if href and '/vendita-' in href:
+                    if not href.startswith('http'):
+                        href = self.base_url + href
+                    if href.startswith('https://www.astegiudiziarie.it/vendita-'):
+                        new_urls.add(href)
+
+            # Aggiungi nuovi URL al set esistente
+            before_count = len(all_urls)
+            all_urls.update(new_urls)
+            after_count = len(all_urls)
+
+            new_found = after_count - before_count
+            if new_found > 0:
+                print(f"   ✅ Trovati {new_found} nuovi immobili (Totale: {after_count})")
+            else:
+                print(f"   ℹ️  Nessun nuovo immobile trovato (Totale: {after_count})")
+
+            # Scroll verso l'alto per tornare alla posizione iniziale
+            self.driver.execute_script("window.scrollTo(0, 0);")
+            time.sleep(0.5)
+
+        except Exception as e:
+            print(f"⚠️ Errore durante lo scroll: {e}")
 
 
 def main():
