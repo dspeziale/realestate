@@ -19,13 +19,9 @@ class AsteGiudiziarieScraperV2:
         self.db_name = db_name
         self.base_url = "https://www.astegiudiziarie.it"
         self.driver = None
-
-        # Carica credenziali
         load_dotenv()
         self.email = os.getenv('ASTE_EMAIL')
         self.password = os.getenv('ASTE_PASSWORD')
-
-        # Inizializza database
         self.setup_database()
 
     def setup_database(self):
@@ -33,22 +29,15 @@ class AsteGiudiziarieScraperV2:
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
 
-        # Tabella principale ASTE
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS aste (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-                -- Identificativi
                 codice_asta TEXT UNIQUE NOT NULL,
                 url TEXT UNIQUE,
-
-                -- Info Generali
                 titolo TEXT,
                 tipologia_immobile TEXT,
                 categoria TEXT,
                 genere TEXT,
-
-                -- Localizzazione
                 indirizzo TEXT,
                 indirizzo_completo TEXT,
                 civico TEXT,
@@ -59,8 +48,6 @@ class AsteGiudiziarieScraperV2:
                 zona TEXT,
                 latitudine REAL,
                 longitudine REAL,
-
-                -- Caratteristiche Immobile
                 piano TEXT,
                 vani REAL,
                 bagni INTEGER,
@@ -68,14 +55,10 @@ class AsteGiudiziarieScraperV2:
                 disponibilita TEXT,
                 classe_energetica TEXT,
                 stato_immobile TEXT,
-
-                -- Dati Lotto
                 codice_lotto TEXT,
                 numero_beni_lotto INTEGER,
                 descrizione_lotto TEXT,
                 valore_stima TEXT,
-
-                -- Dati Vendita
                 data_vendita DATETIME,
                 ora_vendita TEXT,
                 tipo_vendita TEXT,
@@ -85,8 +68,6 @@ class AsteGiudiziarieScraperV2:
                 citta_luogo_vendita TEXT,
                 cap_luogo_vendita TEXT,
                 termine_offerte DATETIME,
-
-                -- Prezzi
                 prezzo_base REAL,
                 prezzo_base_formatted TEXT,
                 offerta_minima REAL,
@@ -95,41 +76,29 @@ class AsteGiudiziarieScraperV2:
                 rialzo_minimo_formatted TEXT,
                 deposito_cauzionale TEXT,
                 deposito_spese TEXT,
-
-                -- Procedura
                 tribunale TEXT,
                 tipo_procedura TEXT,
                 numero_rge TEXT,
                 anno_rge TEXT,
-
-                -- Professionisti
                 delegato_nome TEXT,
                 delegato_cognome TEXT,
                 delegato_telefono TEXT,
                 delegato_email TEXT,
                 delegato_procede_vendita BOOLEAN,
-
                 custode_nome TEXT,
                 custode_cognome TEXT,
                 custode_telefono TEXT,
                 custode_email TEXT,
                 custode_gestisce_visite BOOLEAN,
-
-                -- Descrizioni
                 descrizione_breve TEXT,
                 descrizione_completa TEXT,
-
-                -- Metadata
                 data_pubblicazione DATE,
                 data_inserimento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 data_aggiornamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-                -- JSON completo
                 json_completo TEXT
             )
         ''')
 
-        # Tabella ALLEGATI
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS allegati (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,7 +110,6 @@ class AsteGiudiziarieScraperV2:
             )
         ''')
 
-        # Tabella FOTO
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS foto (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -152,7 +120,6 @@ class AsteGiudiziarieScraperV2:
             )
         ''')
 
-        # Tabella PLANIMETRIE
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS planimetrie (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -163,7 +130,6 @@ class AsteGiudiziarieScraperV2:
             )
         ''')
 
-        # Tabella STORICO_VENDITE
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS storico_vendite (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -175,7 +141,6 @@ class AsteGiudiziarieScraperV2:
             )
         ''')
 
-        # Indici per performance
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_codice_asta ON aste(codice_asta)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_citta ON aste(citta)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_data_vendita ON aste(data_vendita)')
@@ -184,14 +149,13 @@ class AsteGiudiziarieScraperV2:
 
         conn.commit()
         conn.close()
-        print(f"✅ Database '{self.db_name}' inizializzato con struttura completa\n")
+        print(f"Database '{self.db_name}' inizializzato\n")
 
     def init_selenium(self):
         """Inizializza Selenium"""
         try:
-            print("🔧 Inizializzo il browser...")
+            print("Inizializzo il browser...")
             options = Options()
-            # options.add_argument('--headless')
             options.add_argument('--disable-blink-features=AutomationControlled')
             options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -200,25 +164,23 @@ class AsteGiudiziarieScraperV2:
             self.driver = webdriver.Chrome(options=options)
             self.driver.maximize_window()
             self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            print("✓ Browser avviato\n")
+            print("Browser avviato\n")
             return True
         except Exception as e:
-            print(f"❌ Errore: {e}")
+            print(f"Errore: {e}")
             return False
 
     def login(self):
         """Login al sito"""
         try:
-            print("🔐 Login in corso...")
+            print("Login in corso...")
             self.driver.get(self.base_url)
             time.sleep(3)
 
-            # Click Accedi/Registrati
             accedi_btn = self.driver.find_element(By.XPATH, "//button[contains(text(), 'Accedi')]")
             accedi_btn.click()
             time.sleep(2)
 
-            # Click Privati
             try:
                 privati_btn = self.driver.find_element(By.XPATH, "//button[contains(text(), 'Privati')]")
                 privati_btn.click()
@@ -226,7 +188,6 @@ class AsteGiudiziarieScraperV2:
             except:
                 pass
 
-            # Inserisci credenziali
             email_field = self.driver.find_element(By.CSS_SELECTOR, "input[type='email']")
             email_field.send_keys(self.email)
 
@@ -235,11 +196,11 @@ class AsteGiudiziarieScraperV2:
             password_field.send_keys(Keys.RETURN)
 
             time.sleep(5)
-            print("✅ Login completato\n")
+            print("Login completato\n")
             return True
 
         except Exception as e:
-            print(f"❌ Errore login: {e}")
+            print(f"Errore login: {e}")
             return False
 
     def extract_text(self, soup, selector, default='', attribute=None):
@@ -254,13 +215,68 @@ class AsteGiudiziarieScraperV2:
             pass
         return default
 
-    def extract_number_advanced(self, soup, label_text, unit=''):
-        """
-        Estrazione ROBUSTA di numeri (superficie, vani, bagni)
-        """
+    def extract_price_advanced(self, soup, label_text):
+        """Estrazione ROBUSTA dei prezzi con debug"""
         page_text = soup.get_text()
 
-        # Metodo 1: regex nel testo
+        print(f"  === Cerco '{label_text}' ===")
+
+        # Metodo 1: attributi data-pvp
+        attr_mapping = {
+            'Prezzo base': 'data-pvp-datiVendita-prezzoValoreBase',
+            'Offerta minima': 'data-pvp-datiVendita-offertaMinima',
+            'Rialzo minimo': 'data-pvp-datiVendita-rialzoMinimo'
+        }
+
+        if label_text in attr_mapping:
+            elems = soup.find_all(attrs={attr_mapping[label_text]: True})
+            print(f"  [data-pvp] Trovati {len(elems)} elementi")
+            for elem in elems:
+                value = elem.get(attr_mapping[label_text], '').strip()
+                if value:
+                    print(f"  [Metodo 1] {label_text}: {value}")
+                    return value
+
+        # Metodo 2: Regex ampio nel testo
+        patterns = [
+            rf'{re.escape(label_text)}[:\s]*€\s*([\d.,]+)',
+            rf'{label_text}.*?€\s*([\d.,]+)',
+            rf'€\s*([\d.,]+).*?{label_text}',
+            rf'{re.escape(label_text)}[:\s]*€?\s*([\d]+\.[\d]+,[\d]+)',
+            rf'{re.escape(label_text)}[:\s]*€?\s*([\d]+,[\d]+)',
+        ]
+
+        for idx, pattern in enumerate(patterns, 1):
+            match = re.search(pattern, page_text, re.I)
+            if match:
+                value = f"€ {match.group(1)}"
+                print(f"  [Regex {idx}] {label_text}: {value}")
+                return value
+
+        # Metodo 3: Cerca elementi contenenti label e €
+        label_variations = [label_text, label_text.replace(' ', ''), label_text.lower()]
+        for variation in label_variations:
+            elems = soup.find_all(string=re.compile(variation, re.I))
+            for elem in elems[:3]:
+                parent = elem.find_parent()
+                if parent:
+                    full_text = parent.get_text(strip=True)
+                    idx = full_text.find(variation)
+                    if idx != -1:
+                        nearby = full_text[idx:idx + 100]
+                        price_match = re.search(r'€\s*([\d.,]+)', nearby)
+                        if price_match:
+                            value = f"€ {price_match.group(1)}"
+                            print(f"  [Nearby] {label_text}: {value}")
+                            return value
+
+        print(f"  [NON TROVATO] {label_text}")
+        return None
+
+    def extract_number_advanced(self, soup, label_text, unit=''):
+        """Estrazione ROBUSTA di numeri"""
+        page_text = soup.get_text()
+
         patterns = [
             rf'{re.escape(label_text)}[\s:]+(\d+(?:[.,]\d+)?)\s*{unit}',
             rf'{re.escape(label_text)}[\s:]+(\d+(?:[.,]\d+)?)',
@@ -273,8 +289,7 @@ class AsteGiudiziarieScraperV2:
                 print(f"  [Regex] {label_text}: {value}{unit}")
                 return value
 
-        # Metodo 2: dt/dd
-        label_elem = soup.find(['dt', 'strong', 'label', 'span'], string=re.compile(re.escape(label_text), re.I))
+        label_elem = soup.find(['dt', 'strong', 'label'], string=re.compile(re.escape(label_text), re.I))
         if label_elem:
             dd_elem = label_elem.find_next_sibling('dd')
             if dd_elem:
@@ -297,84 +312,19 @@ class AsteGiudiziarieScraperV2:
         print(f"  [NON TROVATO] {label_text}")
         return None
 
-    def find_text_after(self, soup, search_text):
-        """Trova testo dopo una stringa specifica"""
-        elem = soup.find(string=re.compile(search_text, re.I))
-        if elem:
-            parent = elem.find_parent()
-            if parent:
-                # Cerca il prossimo elemento con testo
-                next_elem = parent.find_next_sibling()
-                if next_elem:
-                    return next_elem.get_text(strip=True)
-                # Oppure cerca nel parent stesso
-                text = parent.get_text(strip=True)
-                # Rimuovi la label e prendi il resto
-                return text.replace(search_text, '').strip().strip(':').strip()
-        return ''
-
-    def extract_price(self, soup, label_text):
-        """
-        Estrazione ROBUSTA dei prezzi con metodi multipli
-        """
-        page_text = soup.get_text()
-
-        # Metodo 1: attributi data-pvp
-        attr_mapping = {
-            'Prezzo base': 'data-pvp-datiVendita-prezzoValoreBase',
-            'Offerta minima': 'data-pvp-datiVendita-offertaMinima',
-            'Rialzo minimo': 'data-pvp-datiVendita-rialzoMinimo'
-        }
-
-        if label_text in attr_mapping:
-            elem = soup.find(attrs={attr_mapping[label_text]: True})
-            if elem:
-                value = elem.get(attr_mapping[label_text], '').strip()
-                if value and '€' in value:
-                    print(f"  [Metodo 1] {label_text}: {value}")
-                    return value
-
-        # Metodo 2: dt/dd
-        dt_elem = soup.find('dt', string=re.compile(re.escape(label_text), re.I))
-        if dt_elem:
-            dd_elem = dt_elem.find_next_sibling('dd')
-            if dd_elem:
-                value = dd_elem.get_text(strip=True)
-                if '€' in value:
-                    print(f"  [Metodo 2] {label_text}: {value}")
-                    return value
-
-        # Metodo 3: label/strong + span/div
-        label_elem = soup.find(['strong', 'label', 'span'], string=re.compile(re.escape(label_text), re.I))
-        if label_elem:
-            parent = label_elem.find_parent()
-            if parent:
-                for elem in parent.find_all(['span', 'div', 'p']):
-                    text = elem.get_text(strip=True)
-                    if '€' in text and text != label_text:
-                        print(f"  [Metodo 3] {label_text}: {text}")
-                        return text
-
-        # Metodo 4: regex nel testo
-        patterns = [
-            rf'{re.escape(label_text)}[\s:]*€?\s*([\d.,]+(?:\s*€)?)',
-            rf'{re.escape(label_text)}[\s:]*€\s*([\d.,]+)',
-            rf'{re.escape(label_text)}.*?€\s*([\d.,]+)',
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, page_text, re.I | re.DOTALL)
-            if match:
-                value = f"€ {match.group(1)}"
-                print(f"  [Metodo 4] {label_text}: {value}")
-                return value
-
-        print(f"  [NON TROVATO] {label_text}")
-        return None
+    def clean_price(self, price_text):
+        """Converte prezzo in float"""
+        if not price_text:
+            return None
+        clean = re.sub(r'[€\s]', '', str(price_text))
+        clean = clean.replace('.', '').replace(',', '.')
+        try:
+            return float(clean)
+        except:
+            return None
 
     def parse_detail_page_v2(self, soup, url):
-        """Parsing completo della pagina dettaglio - VERSIONE ROBUSTA"""
-        # Inizializza tutti i campi con valori di default
+        """Parsing completo della pagina dettaglio"""
         data = {
             'url': url,
             'codice_asta': None,
@@ -429,88 +379,186 @@ class AsteGiudiziarieScraperV2:
             'data_pubblicazione': None
         }
 
-        print("\n📋 PARSING DETTAGLIATO")
+        print("\nPARSING DETTAGLIATO")
         print("-" * 60)
 
-        # === CODICE ASTA ===
-        # Cerca in vari modi
-        codice = None
+        page_text = soup.get_text()
 
-        # Metodo 1: cerca nel testo della pagina
+        # === CODICE ASTA ===
         codice_patterns = [
             r'Codice asta[:\s]+([A-Z0-9]+)',
             r'Codice[:\s]+([A-Z0-9]+)',
             r'COD\.\s+([A-Z0-9]+)'
         ]
-        page_text = soup.get_text()
         for pattern in codice_patterns:
             match = re.search(pattern, page_text, re.I)
             if match:
-                codice = match.group(1)
+                data['codice_asta'] = match.group(1)
                 break
 
-        # Metodo 2: cerca nei badge
-        if not codice:
+        if not data['codice_asta']:
             badge = soup.find('span', class_='badge', string=re.compile(r'[A-Z0-9]{7,}'))
             if badge:
-                codice = badge.get_text(strip=True)
+                data['codice_asta'] = badge.get_text(strip=True)
 
-        data['codice_asta'] = codice or 'N/A'
-        print(f"✓ Codice: {data['codice_asta']}")
+        data['codice_asta'] = data['codice_asta'] or 'N/A'
+        print(f"Codice: {data['codice_asta']}")
 
         # === INFO GENERALI ===
-        # Titolo
         h1 = soup.find('h1')
         data['titolo'] = h1.get_text(strip=True) if h1 else None
 
-        # Cerca nei data attributes
         data['tipologia_immobile'] = self.extract_text(soup, '[data-pvp-bene-categoria]',
                                                        attribute='data-pvp-bene-categoria')
-        if not data['tipologia_immobile']:
-            data['tipologia_immobile'] = self.extract_text(soup, '.titoloBene')
-
         data['genere'] = self.extract_text(soup, '[data-pvp-lotto-genere]', attribute='data-pvp-lotto-genere')
         data['categoria'] = self.extract_text(soup, '[data-pvp-lotto-categoria]', attribute='data-pvp-lotto-categoria')
 
-        # === LOCALIZZAZIONE ===
+        # === LOCALIZZAZIONE - VERSIONE POTENZIATA ===
+        print("\nLocalizzazione:")
+
+        # === INDIRIZZO ===
+        # Metodo 1: Attributi data-pvp
         data['indirizzo'] = self.extract_text(soup, '[data-pvp-lotto-indirizzo]', attribute='data-pvp-lotto-indirizzo')
         if not data['indirizzo']:
             data['indirizzo'] = self.extract_text(soup, '[data-pvp-bene-ubicazione-indirizzo]',
                                                   attribute='data-pvp-bene-ubicazione-indirizzo')
 
+        # Metodo 2: Cerca in h2/h3/strong con pattern "Via/Viale/Piazza"
+        if not data['indirizzo']:
+            for tag in soup.find_all(['h2', 'h3', 'h4', 'strong', 'span', 'div']):
+                text = tag.get_text(strip=True)
+                if re.match(r'(?:Via|Viale|Piazza|Corso|Contrada|Località|Loc\.|Lungomare|Strada)\s+', text, re.I):
+                    if 5 < len(text) < 150:
+                        data['indirizzo'] = text
+                        print(f"  [Tag HTML] Indirizzo: {data['indirizzo']}")
+                        break
+
+        # Metodo 3: Regex nel testo completo
+        if not data['indirizzo']:
+            indirizzo_patterns = [
+                r'(?:Via|Viale|Piazza|Corso|Contrada|Località|Loc\.|Frazione|Fraz\.|Lungomare|Strada)\s+[A-Za-zÀ-ù\s\d\',.-]{5,80}(?:\s+\d+)?',
+                r'Indirizzo[:\s]+([^,\n]{5,100})',
+                r'Ubicazione[:\s]+([^,\n]{5,100})',
+            ]
+            for pattern in indirizzo_patterns:
+                match = re.search(pattern, page_text, re.I)
+                if match:
+                    addr = match.group(1) if match.groups() else match.group(0)
+                    data['indirizzo'] = addr.strip()
+                    print(f"  [Regex] Indirizzo: {data['indirizzo']}")
+                    break
+
+        if data['indirizzo']:
+            print(f"  ✓ Indirizzo: {data['indirizzo']}")
+        else:
+            print(f"  ✗ Indirizzo NON TROVATO")
+
+        # === CITTÀ ===
+        # Metodo 1: Attributi data-pvp
         data['citta'] = self.extract_text(soup, '[data-pvp-lotto-citta]', attribute='data-pvp-lotto-citta')
         if not data['citta']:
             data['citta'] = self.extract_text(soup, '[data-pvp-bene-ubicazione-citta]',
                                               attribute='data-pvp-bene-ubicazione-citta')
 
+        # Metodo 2: Cerca "Comune:" o "Città:" nel testo
+        if not data['citta']:
+            citta_patterns = [
+                r'Comune[:\s]+([A-Za-zÀ-ù\s]+?)(?:\(|,|-|\n|$)',
+                r'Città[:\s]+([A-Za-zÀ-ù\s]+?)(?:\(|,|-|\n|$)',
+                r'Località[:\s]+([A-Za-zÀ-ù\s]+?)(?:\(|,|-|\n|$)',
+            ]
+            for pattern in citta_patterns:
+                match = re.search(pattern, page_text, re.I)
+                if match:
+                    citta = match.group(1).strip()
+                    # Pulisci parole comuni che non sono città
+                    if citta and len(citta) > 2 and citta.lower() not in ['di', 'del', 'della', 'dei']:
+                        data['citta'] = citta
+                        print(f"  [Regex] Città: {data['citta']}")
+                        break
+
+        # Metodo 3: Cerca nei tag con classi comuni
+        if not data['citta']:
+            for elem in soup.find_all(['span', 'div', 'p'], class_=re.compile('city|citta|comune|locality', re.I)):
+                text = elem.get_text(strip=True)
+                # Verifica che sia un nome plausibile di città (2-50 caratteri, solo lettere e spazi)
+                if text and 2 < len(text) < 50 and re.match(r'^[A-Za-zÀ-ù\s\'-]+$', text):
+                    data['citta'] = text
+                    print(f"  [HTML class] Città: {data['citta']}")
+                    break
+
+        # Metodo 4: Estrai dalla URL (esempio: ...roma-via-...)
+        if not data['citta']:
+            url_match = re.search(r'/([a-z-]+)-(?:via|viale|piazza|corso)', url, re.I)
+            if url_match:
+                citta_url = url_match.group(1).replace('-', ' ').title()
+                data['citta'] = citta_url
+                print(f"  [URL] Città: {data['citta']}")
+
+        if data['citta']:
+            print(f"  ✓ Città: {data['citta']}")
+        else:
+            print(f"  ✗ Città NON TROVATA")
+
+        # === CAP ===
         data['cap'] = self.extract_text(soup, '[data-pvp-bene-ubicazione-capZipCode]',
                                         attribute='data-pvp-bene-ubicazione-capZipCode')
+
+        if not data['cap']:
+            # Cerca 5 cifre consecutive (CAP italiano)
+            cap_matches = re.findall(r'\b(\d{5})\b', page_text)
+            # Prendi il primo CAP valido (00000-99999)
+            for cap in cap_matches:
+                if '00000' <= cap <= '99999':
+                    data['cap'] = cap
+                    print(f"  [Regex] CAP: {data['cap']}")
+                    break
+
+        # === PROVINCIA ===
         data['provincia'] = self.extract_text(soup, '[data-pvp-bene-ubicazione-provincia]',
                                               attribute='data-pvp-bene-ubicazione-provincia')
 
-        # Coordinate GPS
+        # Fallback: cerca sigla tra parentesi dopo città o CAP
+        if not data['provincia']:
+            prov_patterns = [
+                r'\(([A-Z]{2})\)',  # (RM), (MI), ecc.
+                r'Provincia[:\s]+([A-Z]{2})',
+            ]
+            for pattern in prov_patterns:
+                match = re.search(pattern, page_text)
+                if match:
+                    data['provincia'] = match.group(1)
+                    print(f"  [Regex] Provincia: {data['provincia']}")
+                    break
+
+        # Fallback provincia: cerca sigla tra parentesi dopo città
+        if not data['provincia'] and data['citta']:
+            prov_match = re.search(rf"{re.escape(data['citta'])}\s*\(([A-Z]{{2}})\)", page_text)
+            if prov_match:
+                data['provincia'] = prov_match.group(1)
+                print(f"  [Regex] Provincia: {data['provincia']}")
+
+        # GPS
         lat_input = soup.find('input', id='lat')
         lng_input = soup.find('input', id='lng')
         if lat_input and lat_input.get('value'):
             try:
                 data['latitudine'] = float(lat_input['value'])
             except:
-                data['latitudine'] = None
+                pass
         if lng_input and lng_input.get('value'):
             try:
                 data['longitudine'] = float(lng_input['value'])
             except:
-                data['longitudine'] = None
+                pass
 
         # === DATI LOTTO ===
         data['codice_lotto'] = self.extract_text(soup, '[data-pvp-lotto-codice]', attribute='data-pvp-lotto-codice')
 
-        # Descrizione lotto - cerca nel primo accordion
         desc_elem = soup.select_one('#collapseLotto .accordion-body > p')
         if desc_elem:
             data['descrizione_lotto'] = desc_elem.get_text(strip=True)
 
-        # Numero beni - cerca con regex
         num_beni_match = re.search(r'Numero beni[:\s]+(\d+)', page_text, re.I)
         if num_beni_match:
             try:
@@ -519,10 +567,8 @@ class AsteGiudiziarieScraperV2:
                 pass
 
         # === CARATTERISTICHE IMMOBILE ===
-        # Cerca vani, superficie, bagni con regex nel testo
-        print("\n🏠 Estrazione caratteristiche immobile:")
+        print("\nCaratteristiche immobile:")
 
-        # Vani
         vani_str = self.extract_number_advanced(soup, 'Vani')
         if vani_str:
             try:
@@ -530,7 +576,6 @@ class AsteGiudiziarieScraperV2:
             except:
                 pass
 
-        # Bagni
         bagni_str = self.extract_number_advanced(soup, 'Bagni')
         if bagni_str:
             try:
@@ -538,7 +583,6 @@ class AsteGiudiziarieScraperV2:
             except:
                 pass
 
-        # Superficie
         superficie_str = self.extract_number_advanced(soup, 'Metri quadri', 'mq')
         if not superficie_str:
             superficie_str = self.extract_number_advanced(soup, 'Superficie', 'mq')
@@ -552,22 +596,11 @@ class AsteGiudiziarieScraperV2:
         if piano_match:
             data['piano'] = piano_match.group(1).strip()[:50]
 
-        disponibilita_match = re.search(r'Disponibilità[:\s]+([^\n]+)', page_text, re.I)
-        if disponibilita_match:
-            data['disponibilita'] = disponibilita_match.group(1).strip()[:100]
-
-        classe_match = re.search(r'Certificazione energetica[:\s]+([^\n]+)', page_text, re.I)
-        if classe_match:
-            data['classe_energetica'] = classe_match.group(1).strip()[:50]
-
         # === DATI VENDITA ===
-        # Data vendita da attributo
-        data['data_vendita'] = None
         data_vendita_elem = soup.find('[data-pvp-datiVendita-dataOraVendita]')
         if data_vendita_elem:
             data['data_vendita'] = data_vendita_elem.get('data-pvp-datiVendita-dataOraVendita')
 
-        # Oppure cerca nel testo
         if not data['data_vendita']:
             data_match = re.search(r'Data vendita[:\s]+(\d{2}/\d{2}/\d{4}.*?\d{2}:\d{2})', page_text, re.I)
             if data_match:
@@ -578,63 +611,35 @@ class AsteGiudiziarieScraperV2:
         data['modalita_vendita'] = self.extract_text(soup, '[data-pvp-datiVendita-modalitaVendita]',
                                                      attribute='data-pvp-datiVendita-modalitaVendita')
 
-        # Luogo vendita
-        data['indirizzo_luogo_vendita'] = self.extract_text(soup, '[data-pvp-datiVendita-luogoVendita-indirizzo]',
-                                                            attribute='data-pvp-datiVendita-luogoVendita-indirizzo')
-        data['citta_luogo_vendita'] = self.extract_text(soup, '[data-pvp-datiVendita-luogoVendita-citta]',
-                                                        attribute='data-pvp-datiVendita-luogoVendita-citta')
-        data['cap_luogo_vendita'] = self.extract_text(soup, '[data-pvp-datiVendita-luogoVendita-capZipCode]',
-                                                      attribute='data-pvp-datiVendita-luogoVendita-capZipCode')
-
-        # Termine offerte
-        termine_elem = soup.find('[data-pvp-datiVendita-terminePresentazioneOfferte]')
-        if termine_elem:
-            data['termine_offerte'] = termine_elem.get('data-pvp-datiVendita-terminePresentazioneOfferte')
-
         # === PREZZI ===
-            # === PREZZI - METODO AVANZATO ===
-            print("\n💰 Estrazione prezzi:")
+        print("\nPrezzi:")
 
-            # Prezzo Base
-            prezzo_base_text = self.extract_price(soup, 'Prezzo base')
-            if not prezzo_base_text:
-                prezzo_base_text = self.extract_price(soup, "Base d'asta")
+        prezzo_base_text = self.extract_price_advanced(soup, 'Prezzo base')
+        if not prezzo_base_text:
+            prezzo_base_text = self.extract_price_advanced(soup, "Base d'asta")
 
-            data['prezzo_base_formatted'] = prezzo_base_text
-            data['prezzo_base'] = self.clean_price(prezzo_base_text)
+        data['prezzo_base_formatted'] = prezzo_base_text
+        data['prezzo_base'] = self.clean_price(prezzo_base_text)
 
-            # Offerta Minima
-            offerta_min_text = self.extract_price(soup, 'Offerta minima')
-            data['offerta_minima_formatted'] = offerta_min_text
-            data['offerta_minima'] = self.clean_price(offerta_min_text)
+        offerta_min_text = self.extract_price_advanced(soup, 'Offerta minima')
+        data['offerta_minima_formatted'] = offerta_min_text
+        data['offerta_minima'] = self.clean_price(offerta_min_text)
 
-            # Rialzo Minimo
-            rialzo_text = self.extract_price(soup, 'Rialzo minimo')
-            data['rialzo_minimo_formatted'] = rialzo_text
-            data['rialzo_minimo'] = self.clean_price(rialzo_text)
-
-        # Deposito cauzionale - cerca nel testo
-        deposito_match = re.search(r'Deposito cauzionale[:\s]+([^\n]+)', page_text, re.I)
-        if deposito_match:
-            data['deposito_cauzionale'] = deposito_match.group(1).strip()[:100]
+        rialzo_text = self.extract_price_advanced(soup, 'Rialzo minimo')
+        data['rialzo_minimo_formatted'] = rialzo_text
+        data['rialzo_minimo'] = self.clean_price(rialzo_text)
 
         # === PROCEDURA ===
         tribunale_match = re.search(r'Tribunale[:\s]+([^\n]+)', page_text, re.I)
         if tribunale_match:
             data['tribunale'] = tribunale_match.group(1).strip()[:100]
 
-        tipo_proc_match = re.search(r'Tipo di procedura[:\s]+([^\n]+)', page_text, re.I)
-        if tipo_proc_match:
-            data['tipo_procedura'] = tipo_proc_match.group(1).strip()[:100]
-
-        # RGE
         ruolo_match = re.search(r'Ruolo[:\s]+(\d+)/(\d+)', page_text, re.I)
         if ruolo_match:
             data['numero_rge'] = ruolo_match.group(1)
             data['anno_rge'] = ruolo_match.group(2)
 
         # === PROFESSIONISTI ===
-        # Cerca sezioni professionisti
         soggetti = soup.find_all('[data-pvp-soggetto]')
         for soggetto in soggetti:
             tipo_text = soggetto.get_text()
@@ -648,7 +653,6 @@ class AsteGiudiziarieScraperV2:
                                                               attribute='data-pvp-soggetto-telefono')
                 data['delegato_email'] = self.extract_text(soggetto, '[data-pvp-soggetto-email]',
                                                            attribute='data-pvp-soggetto-email')
-                data['delegato_procede_vendita'] = bool(soggetto.find('[data-pvp-soggetto-procedeOpVendita]'))
 
             elif 'Custode' in tipo_text:
                 data['custode_cognome'] = self.extract_text(soggetto, '[data-pvp-soggetto-cognome]',
@@ -659,100 +663,84 @@ class AsteGiudiziarieScraperV2:
                                                              attribute='data-pvp-soggetto-telefono')
                 data['custode_email'] = self.extract_text(soggetto, '[data-pvp-soggetto-email]',
                                                           attribute='data-pvp-soggetto-email')
-                data['custode_gestisce_visite'] = bool(soggetto.find('[data-pvp-soggetto-soggVisitaBene]'))
 
-        # === DESCRIZIONI ===
+        # === DESCRIZIONE ===
         desc_breve_elem = soup.find('[data-pvp-bene-descrizioneIT]')
         if desc_breve_elem:
             data['descrizione_breve'] = desc_breve_elem.get_text(strip=True)
 
-        # === DATA PUBBLICAZIONE ===
-        pubblicazione_match = re.search(r'Pubblicata dal (\d{2}/\d{2}/\d{4})', page_text)
-        if pubblicazione_match:
-            data['data_pubblicazione'] = pubblicazione_match.group(1)
+        print(f"\nParsing completato - {len([v for v in data.values() if v])} campi estratti")
 
-        print(f"✅ Parsing completato - {len([v for v in data.values() if v])} campi estratti")
-        print(f"\n📊 RIEPILOGO VALORI NUMERICI:")
-        print(f"  • Prezzo Base: {data['prezzo_base_formatted']} → {data['prezzo_base']}")
-        print(f"  • Offerta Minima: {data['offerta_minima_formatted']} → {data['offerta_minima']}")
-        print(f"  • Rialzo Minimo: {data['rialzo_minimo_formatted']} → {data['rialzo_minimo']}")
-        print(f"  • Superficie: {data['superficie_mq']} mq")
-        print(f"  • Vani: {data['vani']}")
-        print(f"  • Bagni: {data['bagni']}")
+        # RIEPILOGO
+        print(f"\nRIEPILOGO VALORI NUMERICI:")
+        print(f"  Prezzo Base: {data['prezzo_base_formatted']} -> {data['prezzo_base']}")
+        print(f"  Offerta Minima: {data['offerta_minima_formatted']} -> {data['offerta_minima']}")
+        print(f"  Rialzo Minimo: {data['rialzo_minimo_formatted']} -> {data['rialzo_minimo']}")
+        print(f"  Superficie: {data['superficie_mq']} mq")
+        print(f"  Vani: {data['vani']}")
+        print(f"  Bagni: {data['bagni']}")
+
         return data
 
     def extract_allegati(self, soup, codice_asta):
-        """Estrae tutti gli allegati"""
+        """Estrae allegati"""
         allegati = []
-
         links = soup.select('.list-group-modulistica a[href*="/allegato/"]')
         for link in links:
-            allegato = {
+            allegati.append({
                 'codice_asta': codice_asta,
                 'tipo_allegato': link.get_text(strip=True),
                 'url_download': self.base_url + link['href'] if not link['href'].startswith('http') else link['href'],
                 'nome_file': link['href'].split('/')[-2] if '/' in link['href'] else ''
-            }
-            allegati.append(allegato)
-
+            })
         return allegati
 
     def extract_foto(self, soup, codice_asta):
-        """Estrae tutte le foto"""
+        """Estrae foto"""
         foto_list = []
-
         foto_links = soup.select('a[data-fslightbox="galleryFoto"]')
         for idx, link in enumerate(foto_links, 1):
-            foto = {
+            foto_list.append({
                 'codice_asta': codice_asta,
                 'url_foto': self.base_url + link['href'] if not link['href'].startswith('http') else link['href'],
                 'ordine': idx
-            }
-            foto_list.append(foto)
-
+            })
         return foto_list
 
     def extract_planimetrie(self, soup, codice_asta):
         """Estrae planimetrie"""
         plani_list = []
-
         plani_links = soup.select('a[data-fslightbox="galleryPlani"]')
         for idx, link in enumerate(plani_links, 1):
-            plani = {
+            plani_list.append({
                 'codice_asta': codice_asta,
                 'url_planimetria': self.base_url + link['href'] if not link['href'].startswith('http') else link[
                     'href'],
                 'ordine': idx
-            }
-            plani_list.append(plani)
-
+            })
         return plani_list
 
     def extract_storico_vendite(self, soup, codice_asta):
-        """Estrae storico vendite precedenti"""
+        """Estrae storico vendite"""
         storico = []
-
         rows = soup.select('.table tbody tr')
         for row in rows:
             cells = row.find_all('td')
             if len(cells) >= 2:
-                vendita = {
+                storico.append({
                     'codice_asta': codice_asta,
                     'data_vendita': cells[0].get_text(strip=True),
                     'prezzo_base_formatted': cells[1].get_text(strip=True),
-                    'prezzo_base': self.extract_price(cells[1].get_text(strip=True))
-                }
-                storico.append(vendita)
-
+                    'prezzo_base': self.clean_price(cells[1].get_text(strip=True))
+                })
         return storico
 
     def save_to_db(self, data, allegati, foto, planimetrie, storico):
-        """Salva tutto nel database"""
+        """Salva nel database"""
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
 
         try:
-            # Salva asta principale - AGGIORNATO con tutti i campi corretti
             cursor.execute('''
                 INSERT OR REPLACE INTO aste (
                     codice_asta, url, titolo, tipologia_immobile, categoria, genere,
@@ -778,95 +766,55 @@ class AsteGiudiziarieScraperV2:
                          ?,?,?,?, ?,?,?, ?,?,?,?, ?,?, ?,?, ?,?, ?,?, 
                          ?,?,?,?, ?,?,?,?,?, ?,?,?,?,?, ?,?, ?,?)
             ''', (
-                data.get('codice_asta'),
-                data.get('url'),
-                data.get('titolo'),
-                data.get('tipologia_immobile'),
-                data.get('categoria'),
-                data.get('genere'),
-                data.get('indirizzo'),
-                data.get('indirizzo'),  # indirizzo_completo
-                data.get('citta'),
-                data.get('provincia'),
-                data.get('cap'),
-                data.get('zona'),
-                data.get('latitudine'),
-                data.get('longitudine'),
-                data.get('piano'),
-                data.get('vani'),
-                data.get('bagni'),
-                data.get('superficie_mq'),
-                data.get('disponibilita'),
-                data.get('classe_energetica'),
-                data.get('codice_lotto'),
-                data.get('numero_beni_lotto'),
-                data.get('descrizione_lotto'),
-                None,  # valore_stima
-                data.get('data_vendita'),
-                data.get('tipo_vendita'),
-                data.get('modalita_vendita'),
-                data.get('indirizzo_luogo_vendita'),
-                data.get('citta_luogo_vendita'),
-                data.get('cap_luogo_vendita'),
+                data.get('codice_asta'), data.get('url'), data.get('titolo'),
+                data.get('tipologia_immobile'), data.get('categoria'), data.get('genere'),
+                data.get('indirizzo'), data.get('indirizzo'), data.get('citta'),
+                data.get('provincia'), data.get('cap'), data.get('zona'),
+                data.get('latitudine'), data.get('longitudine'),
+                data.get('piano'), data.get('vani'), data.get('bagni'), data.get('superficie_mq'),
+                data.get('disponibilita'), data.get('classe_energetica'),
+                data.get('codice_lotto'), data.get('numero_beni_lotto'), data.get('descrizione_lotto'), None,
+                data.get('data_vendita'), data.get('tipo_vendita'), data.get('modalita_vendita'),
+                data.get('indirizzo_luogo_vendita'), data.get('citta_luogo_vendita'), data.get('cap_luogo_vendita'),
                 data.get('termine_offerte'),
-                data.get('prezzo_base'),
-                data.get('prezzo_base_formatted'),
-                data.get('offerta_minima'),
-                data.get('offerta_minima_formatted'),
-                data.get('rialzo_minimo'),
-                data.get('rialzo_minimo_formatted'),
-                data.get('deposito_cauzionale'),
-                None,  # deposito_spese
-                data.get('tribunale'),
-                data.get('tipo_procedura'),
-                data.get('numero_rge'),
-                data.get('anno_rge'),
-                data.get('delegato_nome'),
-                data.get('delegato_cognome'),
-                data.get('delegato_telefono'),
-                data.get('delegato_email'),
-                data.get('delegato_procede_vendita'),
-                data.get('custode_nome'),
-                data.get('custode_cognome'),
-                data.get('custode_telefono'),
-                data.get('custode_email'),
-                data.get('custode_gestisce_visite'),
-                data.get('descrizione_breve'),
-                None,  # descrizione_completa
-                data.get('data_pubblicazione'),
-                json.dumps(data, ensure_ascii=False)
+                data.get('prezzo_base'), data.get('prezzo_base_formatted'),
+                data.get('offerta_minima'), data.get('offerta_minima_formatted'),
+                data.get('rialzo_minimo'), data.get('rialzo_minimo_formatted'),
+                data.get('deposito_cauzionale'), None,
+                data.get('tribunale'), data.get('tipo_procedura'), data.get('numero_rge'), data.get('anno_rge'),
+                data.get('delegato_nome'), data.get('delegato_cognome'), data.get('delegato_telefono'),
+                data.get('delegato_email'), data.get('delegato_procede_vendita'),
+                data.get('custode_nome'), data.get('custode_cognome'), data.get('custode_telefono'),
+                data.get('custode_email'), data.get('custode_gestisce_visite'),
+                data.get('descrizione_breve'), None,
+                data.get('data_pubblicazione'), json.dumps(data, ensure_ascii=False)
             ))
 
             codice = data.get('codice_asta')
 
-            # Elimina vecchi allegati/foto/plani/storico
             cursor.execute('DELETE FROM allegati WHERE codice_asta = ?', (codice,))
             cursor.execute('DELETE FROM foto WHERE codice_asta = ?', (codice,))
             cursor.execute('DELETE FROM planimetrie WHERE codice_asta = ?', (codice,))
             cursor.execute('DELETE FROM storico_vendite WHERE codice_asta = ?', (codice,))
 
-            # Salva allegati
             for alleg in allegati:
                 cursor.execute('''
                     INSERT INTO allegati (codice_asta, tipo_allegato, nome_file, url_download)
                     VALUES (?, ?, ?, ?)
                 ''', (alleg['codice_asta'], alleg['tipo_allegato'], alleg['nome_file'], alleg['url_download']))
 
-            # Salva foto
             for f in foto:
                 cursor.execute('''
                     INSERT INTO foto (codice_asta, url_foto, ordine)
                     VALUES (?, ?, ?)
                 ''', (f['codice_asta'], f['url_foto'], f['ordine']))
 
-            # Salva planimetrie
             for p in planimetrie:
                 cursor.execute('''
                     INSERT INTO planimetrie (codice_asta, url_planimetria, ordine)
                     VALUES (?, ?, ?)
                 ''', (p['codice_asta'], p['url_planimetria'], p['ordine']))
 
-            # Salva storico
             for s in storico:
                 cursor.execute('''
                     INSERT INTO storico_vendite (codice_asta, data_vendita, prezzo_base, prezzo_base_formatted)
@@ -874,30 +822,28 @@ class AsteGiudiziarieScraperV2:
                 ''', (s['codice_asta'], s['data_vendita'], s['prezzo_base'], s['prezzo_base_formatted']))
 
             conn.commit()
-            print(f"✅ Salvato nel DB: {codice}")
-            print(f"   • Allegati: {len(allegati)}")
-            print(f"   • Foto: {len(foto)}")
-            print(f"   • Planimetrie: {len(planimetrie)}")
-            print(f"   • Storico: {len(storico)}")
+            print(f"\nSalvato nel DB: {codice}")
+            print(f"  Allegati: {len(allegati)}")
+            print(f"  Foto: {len(foto)}")
+            print(f"  Planimetrie: {len(planimetrie)}")
+            print(f"  Storico: {len(storico)}")
 
         except Exception as e:
             conn.rollback()
-            print(f"❌ Errore DB: {e}")
+            print(f"Errore DB: {e}")
             import traceback
             traceback.print_exc()
         finally:
             conn.close()
 
     def search_by_city(self, city="Roma"):
-        """Esegue la ricerca dopo il login"""
+        """Esegue la ricerca"""
         try:
-            print(f"🔍 RICERCA IMMOBILI A {city.upper()}")
+            print(f"RICERCA IMMOBILI A {city.upper()}")
             print("-" * 60)
-
             time.sleep(3)
 
-            # Cerca il campo indirizzo
-            print(f"\n📍 Cerco il campo 'Indirizzo'...")
+            print(f"\nCerco il campo 'Indirizzo'...")
             indirizzo_field = None
             indirizzo_selectors = [
                 "input[name*='indirizzo']",
@@ -921,7 +867,7 @@ class AsteGiudiziarieScraperV2:
                             if any(keyword in (placeholder + name).lower() for keyword in
                                    ['indirizzo', 'città', 'dove', 'location', 'address', 'cerca']):
                                 indirizzo_field = elem
-                                print(f"✓ Campo trovato: {selector}")
+                                print(f"Campo trovato: {selector}")
                                 break
                     if indirizzo_field:
                         break
@@ -929,18 +875,16 @@ class AsteGiudiziarieScraperV2:
                     continue
 
             if not indirizzo_field:
-                print("❌ Campo indirizzo non trovato!")
+                print("Campo indirizzo non trovato!")
                 return None, []
 
-            # Inserisci la città
-            print(f"\n⌨️  Inserisco '{city}'...")
+            print(f"\nInserisco '{city}'...")
             indirizzo_field.clear()
             time.sleep(0.5)
             indirizzo_field.send_keys(city)
             time.sleep(2)
 
-            # Cerca il pulsante Cerca
-            print(f"\n🔘 Cerco il pulsante 'Cerca'...")
+            print(f"\nCerco il pulsante 'Cerca'...")
             cerca_selectors = [
                 "//button[contains(text(), 'Cerca')]",
                 "//button[contains(text(), 'CERCA')]",
@@ -960,16 +904,15 @@ class AsteGiudiziarieScraperV2:
                     for elem in elements:
                         if elem.is_displayed():
                             cerca_button = elem
-                            print(f"✓ Pulsante trovato: {selector}")
+                            print(f"Pulsante trovato: {selector}")
                             break
                     if cerca_button:
                         break
                 except:
                     continue
 
-            # Clicca o premi INVIO
             if cerca_button:
-                print("🖱️  Clicco su 'Cerca'...")
+                print("Clicco su 'Cerca'...")
                 try:
                     cerca_button.click()
                 except:
@@ -978,15 +921,13 @@ class AsteGiudiziarieScraperV2:
                     except:
                         indirizzo_field.send_keys(Keys.RETURN)
             else:
-                print("⚠️ Pulsante 'Cerca' non trovato, premo INVIO...")
+                print("Pulsante 'Cerca' non trovato, premo INVIO...")
                 indirizzo_field.send_keys(Keys.RETURN)
 
-            # Attendi risultati
-            print(f"\n⏳ Attendo caricamento risultati...")
+            print(f"\nAttendo caricamento risultati...")
             time.sleep(5)
 
-            # Cerca i link con /vendita-
-            print(f"\n🔗 Cerco link con '/vendita-'...")
+            print(f"\nCerco link con '/vendita-'...")
             soup = BeautifulSoup(self.driver.page_source, 'html.parser')
             vendita_links = soup.find_all('a', href=re.compile(r'/vendita-', re.I))
 
@@ -999,39 +940,24 @@ class AsteGiudiziarieScraperV2:
                     if href.startswith('https://www.astegiudiziarie.it/vendita-'):
                         unique_urls.add(href)
 
-            print(f"✅ {len(unique_urls)} URL unici trovati\n")
+            print(f"{len(unique_urls)} URL unici trovati\n")
             return self.driver.page_source, list(unique_urls)
 
         except Exception as e:
-            print(f"❌ Errore durante la ricerca: {e}")
+            print(f"Errore durante la ricerca: {e}")
             import traceback
             traceback.print_exc()
             return None, []
 
-    def clean_price(self, price_text):
-        """Converte stringa prezzo in float"""
-        if not price_text:
-            return None
-        clean = re.sub(r'[€\s]', '', str(price_text))
-        clean = clean.replace('.', '').replace(',', '.')
-        try:
-            return float(clean)
-        except:
-            return None
-
     def scroll_and_load_more(self, main_window, all_urls):
-        """Esegue scroll sulla pagina principale e carica nuovi immobili"""
+        """Esegue scroll per caricare più risultati"""
         try:
             self.driver.switch_to.window(main_window)
-            print(f"\n📜 Eseguo scroll per caricare più risultati...")
+            print(f"\nEseguo scroll per caricare più risultati...")
 
-            initial_count = len(all_urls)
-
-            # Scroll verso il basso
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(2)
 
-            # Scroll graduale
             for i in range(3):
                 scroll_position = (i + 1) * (self.driver.execute_script("return document.body.scrollHeight") // 4)
                 self.driver.execute_script(f"window.scrollTo(0, {scroll_position});")
@@ -1039,7 +965,6 @@ class AsteGiudiziarieScraperV2:
 
             time.sleep(2)
 
-            # Cerca nuovi link
             soup = BeautifulSoup(self.driver.page_source, 'html.parser')
             vendita_links = soup.find_all('a', href=re.compile(r'/vendita-', re.I))
 
@@ -1058,18 +983,18 @@ class AsteGiudiziarieScraperV2:
 
             new_found = after_count - before_count
             if new_found > 0:
-                print(f"   ✅ Trovati {new_found} nuovi immobili (Totale: {after_count})")
+                print(f"   Trovati {new_found} nuovi immobili (Totale: {after_count})")
             else:
-                print(f"   ℹ️  Nessun nuovo immobile trovato (Totale: {after_count})")
+                print(f"   Nessun nuovo immobile trovato (Totale: {after_count})")
 
             self.driver.execute_script("window.scrollTo(0, 0);")
             time.sleep(0.5)
 
         except Exception as e:
-            print(f"⚠️ Errore durante lo scroll: {e}")
+            print(f"Errore durante lo scroll: {e}")
 
     def check_immobile_exists(self, url):
-        """Controlla se un immobile è già presente nel database"""
+        """Controlla se immobile esiste già"""
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         cursor.execute('SELECT codice_asta, titolo, data_inserimento FROM aste WHERE url = ?', (url,))
@@ -1081,7 +1006,7 @@ class AsteGiudiziarieScraperV2:
         return {'exists': False}
 
     def scrape_all(self, city="Roma", max_aste=None):
-        """Scraping completo con scorrimento automatico delle pagine"""
+        """Scraping completo"""
         print(f"\n{'=' * 60}")
         print(f"SCRAPER ASTEGIUDIZIARIE.IT V2")
         print(f"Città: {city}")
@@ -1090,7 +1015,7 @@ class AsteGiudiziarieScraperV2:
         print(f"{'=' * 60}\n")
 
         if not self.email or not self.password:
-            print("❌ Credenziali mancanti! Crea file .env con ASTE_EMAIL e ASTE_PASSWORD")
+            print("Credenziali mancanti! Crea file .env con ASTE_EMAIL e ASTE_PASSWORD")
             return
 
         if not self.init_selenium():
@@ -1100,24 +1025,22 @@ class AsteGiudiziarieScraperV2:
             if not self.login():
                 return
 
-            # Esegui ricerca
             result = self.search_by_city(city)
 
             if not result:
-                print("❌ Ricerca fallita!")
+                print("Ricerca fallita!")
                 return
 
             html, vendita_urls = result
 
             if not vendita_urls:
-                print("❌ Nessun link '/vendita-' trovato!")
+                print("Nessun link '/vendita-' trovato!")
                 return
 
             print(f"\n{'=' * 60}")
             print(f"INIZIO DOWNLOAD DETTAGLI CON SCROLL AUTOMATICO")
             print(f"{'=' * 60}\n")
 
-            # Salva finestra principale
             main_window = self.driver.current_window_handle
 
             count_new = 0
@@ -1127,7 +1050,7 @@ class AsteGiudiziarieScraperV2:
             idx = 0
             while idx < len(list(all_urls)):
                 if max_aste and count_new >= max_aste:
-                    print(f"\n⚠️ Raggiunto limite di {max_aste} aste")
+                    print(f"\nRaggiunto limite di {max_aste} aste")
                     break
 
                 current_urls = list(all_urls)
@@ -1136,25 +1059,21 @@ class AsteGiudiziarieScraperV2:
 
                 print(f"\n{'=' * 60}")
                 print(f"Immobile {idx}/{len(current_urls)}")
-                print(f"🔗 URL: {url}")
+                print(f"URL: {url}")
                 print(f"{'=' * 60}")
 
-                # Controlla se esiste già
                 check = self.check_immobile_exists(url)
 
                 if check['exists']:
-                    print(f"⏭️  SALTATO - Già presente nel DB")
+                    print(f"SALTATO - Già presente nel DB")
                     print(f"   Codice: {check['codice']}")
                     print(f"   Titolo: {check['titolo']}")
                     count_skipped += 1
-
-                    # Scroll per caricare più risultati
                     self.scroll_and_load_more(main_window, all_urls)
                     continue
 
-                print(f"🆕 NUOVO - Scarico dettagli completi...")
+                print(f"NUOVO - Scarico dettagli completi...")
 
-                # Apri nuova finestra
                 self.driver.execute_script("window.open('');")
                 time.sleep(0.5)
 
@@ -1168,75 +1087,66 @@ class AsteGiudiziarieScraperV2:
 
                     soup = BeautifulSoup(self.driver.page_source, 'html.parser')
 
-                    # Parse completo
-                    immobile = self.parse_detail_page_v2(soup, url)
+                    # DEBUG: Salva HTML
+                    with open(f'debug_dettaglio_latest.html', 'w', encoding='utf-8') as f:
+                        f.write(soup.prettify())
 
-                    # Estrai allegati, foto, planimetrie, storico
+                    immobile = self.parse_detail_page_v2(soup, url)
                     allegati = self.extract_allegati(soup, immobile['codice_asta'])
                     foto = self.extract_foto(soup, immobile['codice_asta'])
                     planimetrie = self.extract_planimetrie(soup, immobile['codice_asta'])
                     storico = self.extract_storico_vendite(soup, immobile['codice_asta'])
 
-                    # Salva tutto
                     self.save_to_db(immobile, allegati, foto, planimetrie, storico)
                     count_new += 1
 
-                    print(f"\n✅ Salvato con successo!")
-                    print(f"   📌 Titolo: {immobile.get('titolo', 'N/A')}")
-                    print(f"   📍 Città: {immobile.get('citta', 'N/A')}")
-                    print(f"   💰 Prezzo: {immobile.get('prezzo_base_formatted', 'N/A')}")
+                    print(f"\nSalvato con successo!")
+                    print(f"   Titolo: {immobile.get('titolo', 'N/A')}")
+                    print(f"   Città: {immobile.get('citta', 'N/A')}")
+                    print(f"   Prezzo: {immobile.get('prezzo_base_formatted', 'N/A')}")
 
                 except Exception as e:
-                    print(f"❌ Errore durante il download: {e}")
+                    print(f"Errore durante il download: {e}")
                     import traceback
                     traceback.print_exc()
 
                 finally:
-                    # Chiudi finestra dettagli
                     try:
                         self.driver.close()
                     except:
                         pass
 
-                    # Torna alla finestra principale
                     try:
                         self.driver.switch_to.window(main_window)
                     except:
                         pass
 
-                    # Scroll per caricare più risultati
                     self.scroll_and_load_more(main_window, all_urls)
 
             print(f"\n{'=' * 60}")
             print(f"COMPLETATO!")
             print(f"{'=' * 60}")
-            print(f"📊 Statistiche:")
-            print(f"   • Totale URL trovati: {len(all_urls)}")
-            print(f"   • Nuovi scaricati: {count_new}")
-            print(f"   • Già presenti: {count_skipped}")
-            print(f"💾 Database: {self.db_name}")
+            print(f"Statistiche:")
+            print(f"   Totale URL trovati: {len(all_urls)}")
+            print(f"   Nuovi scaricati: {count_new}")
+            print(f"   Già presenti: {count_skipped}")
+            print(f"Database: {self.db_name}")
             print(f"{'=' * 60}\n")
 
         finally:
             if self.driver:
-                print("🔚 Chiudo il browser...")
+                print("Chiudo il browser...")
                 self.driver.quit()
 
 
 def main():
-    # Reset database
     db_file = 'aste_immobiliari_v2.db'
     if os.path.exists(db_file):
         os.remove(db_file)
-        print(f"🗑️  Database esistente rimosso\n")
+        print(f"Database esistente rimosso\n")
 
     scraper = AsteGiudiziarieScraperV2()
-
-    # Parametri di scraping
-    city = "Roma"
-    max_aste = 1000  # Limita a 50 per test, rimuovi per scaricare tutto
-
-    scraper.scrape_all(city, max_aste=max_aste)
+    scraper.scrape_all("Roma")
 
 
 if __name__ == "__main__":
