@@ -254,6 +254,49 @@ class AsteGiudiziarieScraperV2:
             pass
         return default
 
+    def extract_number_advanced(self, soup, label_text, unit=''):
+        """
+        Estrazione ROBUSTA di numeri (superficie, vani, bagni)
+        """
+        page_text = soup.get_text()
+
+        # Metodo 1: regex nel testo
+        patterns = [
+            rf'{re.escape(label_text)}[\s:]+(\d+(?:[.,]\d+)?)\s*{unit}',
+            rf'{re.escape(label_text)}[\s:]+(\d+(?:[.,]\d+)?)',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, page_text, re.I)
+            if match:
+                value = match.group(1).replace(',', '.')
+                print(f"  [Regex] {label_text}: {value}{unit}")
+                return value
+
+        # Metodo 2: dt/dd
+        label_elem = soup.find(['dt', 'strong', 'label', 'span'], string=re.compile(re.escape(label_text), re.I))
+        if label_elem:
+            dd_elem = label_elem.find_next_sibling('dd')
+            if dd_elem:
+                text = dd_elem.get_text(strip=True)
+                num_match = re.search(r'(\d+(?:[.,]\d+)?)', text)
+                if num_match:
+                    value = num_match.group(1).replace(',', '.')
+                    print(f"  [HTML] {label_text}: {value}{unit}")
+                    return value
+
+            parent = label_elem.find_parent()
+            if parent:
+                text = parent.get_text(strip=True).replace(label_text, '').strip()
+                num_match = re.search(r'(\d+(?:[.,]\d+)?)', text)
+                if num_match:
+                    value = num_match.group(1).replace(',', '.')
+                    print(f"  [Parent] {label_text}: {value}{unit}")
+                    return value
+
+        print(f"  [NON TROVATO] {label_text}")
+        return None
+
     def find_text_after(self, soup, search_text):
         """Trova testo dopo una stringa specifica"""
         elem = soup.find(string=re.compile(search_text, re.I))
@@ -270,17 +313,64 @@ class AsteGiudiziarieScraperV2:
                 return text.replace(search_text, '').strip().strip(':').strip()
         return ''
 
-    def extract_price(self, text):
-        """Estrae valore numerico da stringa prezzo"""
-        if not text:
-            return None
-        # Rimuovi € e spazi, converti
-        clean = re.sub(r'[€\s]', '', text)
-        clean = clean.replace('.', '').replace(',', '.')
-        try:
-            return float(clean)
-        except:
-            return None
+    def extract_price(self, soup, label_text):
+        """
+        Estrazione ROBUSTA dei prezzi con metodi multipli
+        """
+        page_text = soup.get_text()
+
+        # Metodo 1: attributi data-pvp
+        attr_mapping = {
+            'Prezzo base': 'data-pvp-datiVendita-prezzoValoreBase',
+            'Offerta minima': 'data-pvp-datiVendita-offertaMinima',
+            'Rialzo minimo': 'data-pvp-datiVendita-rialzoMinimo'
+        }
+
+        if label_text in attr_mapping:
+            elem = soup.find(attrs={attr_mapping[label_text]: True})
+            if elem:
+                value = elem.get(attr_mapping[label_text], '').strip()
+                if value and '€' in value:
+                    print(f"  [Metodo 1] {label_text}: {value}")
+                    return value
+
+        # Metodo 2: dt/dd
+        dt_elem = soup.find('dt', string=re.compile(re.escape(label_text), re.I))
+        if dt_elem:
+            dd_elem = dt_elem.find_next_sibling('dd')
+            if dd_elem:
+                value = dd_elem.get_text(strip=True)
+                if '€' in value:
+                    print(f"  [Metodo 2] {label_text}: {value}")
+                    return value
+
+        # Metodo 3: label/strong + span/div
+        label_elem = soup.find(['strong', 'label', 'span'], string=re.compile(re.escape(label_text), re.I))
+        if label_elem:
+            parent = label_elem.find_parent()
+            if parent:
+                for elem in parent.find_all(['span', 'div', 'p']):
+                    text = elem.get_text(strip=True)
+                    if '€' in text and text != label_text:
+                        print(f"  [Metodo 3] {label_text}: {text}")
+                        return text
+
+        # Metodo 4: regex nel testo
+        patterns = [
+            rf'{re.escape(label_text)}[\s:]*€?\s*([\d.,]+(?:\s*€)?)',
+            rf'{re.escape(label_text)}[\s:]*€\s*([\d.,]+)',
+            rf'{re.escape(label_text)}.*?€\s*([\d.,]+)',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, page_text, re.I | re.DOTALL)
+            if match:
+                value = f"€ {match.group(1)}"
+                print(f"  [Metodo 4] {label_text}: {value}")
+                return value
+
+        print(f"  [NON TROVATO] {label_text}")
+        return None
 
     def parse_detail_page_v2(self, soup, url):
         """Parsing completo della pagina dettaglio - VERSIONE ROBUSTA"""
@@ -430,24 +520,31 @@ class AsteGiudiziarieScraperV2:
 
         # === CARATTERISTICHE IMMOBILE ===
         # Cerca vani, superficie, bagni con regex nel testo
-        vani_match = re.search(r'Vani[:\s]+([\d,\.]+)', page_text, re.I)
-        if vani_match:
+        print("\n🏠 Estrazione caratteristiche immobile:")
+
+        # Vani
+        vani_str = self.extract_number_advanced(soup, 'Vani')
+        if vani_str:
             try:
-                data['vani'] = float(vani_match.group(1).replace(',', '.'))
+                data['vani'] = float(vani_str)
             except:
                 pass
 
-        bagni_match = re.search(r'Bagni[:\s]+(\d+)', page_text, re.I)
-        if bagni_match:
+        # Bagni
+        bagni_str = self.extract_number_advanced(soup, 'Bagni')
+        if bagni_str:
             try:
-                data['bagni'] = int(bagni_match.group(1))
+                data['bagni'] = int(float(bagni_str))
             except:
                 pass
 
-        superficie_match = re.search(r'Metri quadri[:\s]+([\d,\.]+)', page_text, re.I)
-        if superficie_match:
+        # Superficie
+        superficie_str = self.extract_number_advanced(soup, 'Metri quadri', 'mq')
+        if not superficie_str:
+            superficie_str = self.extract_number_advanced(soup, 'Superficie', 'mq')
+        if superficie_str:
             try:
-                data['superficie_mq'] = float(superficie_match.group(1).replace(',', '.'))
+                data['superficie_mq'] = float(superficie_str)
             except:
                 pass
 
@@ -495,20 +592,26 @@ class AsteGiudiziarieScraperV2:
             data['termine_offerte'] = termine_elem.get('data-pvp-datiVendita-terminePresentazioneOfferte')
 
         # === PREZZI ===
-        prezzo_base_text = self.extract_text(soup, '[data-pvp-datiVendita-prezzoValoreBase]',
-                                             attribute='data-pvp-datiVendita-prezzoValoreBase')
-        data['prezzo_base_formatted'] = prezzo_base_text
-        data['prezzo_base'] = self.extract_price(prezzo_base_text)
+            # === PREZZI - METODO AVANZATO ===
+            print("\n💰 Estrazione prezzi:")
 
-        offerta_min_text = self.extract_text(soup, '[data-pvp-datiVendita-offertaMinima]',
-                                             attribute='data-pvp-datiVendita-offertaMinima')
-        data['offerta_minima_formatted'] = offerta_min_text
-        data['offerta_minima'] = self.extract_price(offerta_min_text)
+            # Prezzo Base
+            prezzo_base_text = self.extract_price(soup, 'Prezzo base')
+            if not prezzo_base_text:
+                prezzo_base_text = self.extract_price(soup, "Base d'asta")
 
-        rialzo_text = self.extract_text(soup, '[data-pvp-datiVendita-rialzoMinimo]',
-                                        attribute='data-pvp-datiVendita-rialzoMinimo')
-        data['rialzo_minimo_formatted'] = rialzo_text
-        data['rialzo_minimo'] = self.extract_price(rialzo_text)
+            data['prezzo_base_formatted'] = prezzo_base_text
+            data['prezzo_base'] = self.clean_price(prezzo_base_text)
+
+            # Offerta Minima
+            offerta_min_text = self.extract_price(soup, 'Offerta minima')
+            data['offerta_minima_formatted'] = offerta_min_text
+            data['offerta_minima'] = self.clean_price(offerta_min_text)
+
+            # Rialzo Minimo
+            rialzo_text = self.extract_price(soup, 'Rialzo minimo')
+            data['rialzo_minimo_formatted'] = rialzo_text
+            data['rialzo_minimo'] = self.clean_price(rialzo_text)
 
         # Deposito cauzionale - cerca nel testo
         deposito_match = re.search(r'Deposito cauzionale[:\s]+([^\n]+)', page_text, re.I)
@@ -569,6 +672,13 @@ class AsteGiudiziarieScraperV2:
             data['data_pubblicazione'] = pubblicazione_match.group(1)
 
         print(f"✅ Parsing completato - {len([v for v in data.values() if v])} campi estratti")
+        print(f"\n📊 RIEPILOGO VALORI NUMERICI:")
+        print(f"  • Prezzo Base: {data['prezzo_base_formatted']} → {data['prezzo_base']}")
+        print(f"  • Offerta Minima: {data['offerta_minima_formatted']} → {data['offerta_minima']}")
+        print(f"  • Rialzo Minimo: {data['rialzo_minimo_formatted']} → {data['rialzo_minimo']}")
+        print(f"  • Superficie: {data['superficie_mq']} mq")
+        print(f"  • Vani: {data['vani']}")
+        print(f"  • Bagni: {data['bagni']}")
         return data
 
     def extract_allegati(self, soup, codice_asta):
@@ -898,6 +1008,17 @@ class AsteGiudiziarieScraperV2:
             traceback.print_exc()
             return None, []
 
+    def clean_price(self, price_text):
+        """Converte stringa prezzo in float"""
+        if not price_text:
+            return None
+        clean = re.sub(r'[€\s]', '', str(price_text))
+        clean = clean.replace('.', '').replace(',', '.')
+        try:
+            return float(clean)
+        except:
+            return None
+
     def scroll_and_load_more(self, main_window, all_urls):
         """Esegue scroll sulla pagina principale e carica nuovi immobili"""
         try:
@@ -1113,7 +1234,7 @@ def main():
 
     # Parametri di scraping
     city = "Roma"
-    max_aste = 50  # Limita a 50 per test, rimuovi per scaricare tutto
+    max_aste = 1000  # Limita a 50 per test, rimuovi per scaricare tutto
 
     scraper.scrape_all(city, max_aste=max_aste)
 
