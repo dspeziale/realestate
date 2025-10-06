@@ -1,0 +1,185 @@
+{% extends "base_v2.html" %}
+
+{% block title %}Dashboard - Aste Immobiliari V2{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+<style>
+    .dataTables_wrapper .dataTables_filter input {
+        border-radius: 20px;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f0f0ff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-grid-3x3-gap"></i> Dashboard Aste V2</h2>
+    <div>
+        <a href="{{ url_for('ricerca') }}" class="btn btn-outline-primary me-2">
+            <i class="bi bi-search"></i> Ricerca Avanzata
+        </a>
+        <a href="{{ url_for('mappa') }}" class="btn btn-outline-success">
+            <i class="bi bi-geo-alt"></i> Mappa
+        </a>
+    </div>
+</div>
+
+<!-- Statistiche rapide -->
+<div class="row mb-4" id="statsCards">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-clipboard-data" style="font-size: 3rem; color: #667eea;"></i>
+                <h3 class="mt-3" id="totalAste">-</h3>
+                <p class="text-muted mb-0">Aste Totali</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-currency-euro" style="font-size: 3rem; color: #f093fb;"></i>
+                <h3 class="mt-3" id="avgPrice">-</h3>
+                <p class="text-muted mb-0">Prezzo Medio</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-geo-alt" style="font-size: 3rem; color: #4facfe;"></i>
+                <h3 class="mt-3" id="topCity">-</h3>
+                <p class="text-muted mb-0">Città Principale</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-building" style="font-size: 3rem; color: #fa709a;"></i>
+                <h3 class="mt-3" id="topTribunale">-</h3>
+                <p class="text-muted mb-0">Tribunale Principale</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabella DataTables -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-table"></i> Lista Aste Giudiziarie</h5>
+    </div>
+    <div class="card-body">
+        <table id="asteTable" class="table table-striped table-hover" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Titolo</th>
+                    <th>Città</th>
+                    <th>Data Vendita</th>
+                    <th>Prezzo Base</th>
+                    <th>Tribunale</th>
+                    <th>Superficie</th>
+                    <th>Vani</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Popolato via AJAX -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Carica statistiche
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            $('#totalAste').text(data.total || 0);
+
+            if (data.prezzi && data.prezzi.media) {
+                $('#avgPrice').text('€ ' + Math.round(data.prezzi.media).toLocaleString());
+            }
+
+            if (data.per_citta) {
+                const topCity = Object.keys(data.per_citta)[0];
+                $('#topCity').text(topCity || 'N/A');
+            }
+
+            if (data.per_tribunale) {
+                const topTrib = Object.keys(data.per_tribunale)[0];
+                $('#topTribunale').text(topTrib || 'N/A');
+            }
+        });
+
+    // Inizializza DataTable
+    $('#asteTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: '/api/aste',
+            type: 'GET'
+        },
+        columns: [
+            { data: 'codice_asta' },
+            { data: 'titolo' },
+            { data: 'citta' },
+            { data: 'data_vendita' },
+            { data: 'prezzo_base' },
+            { data: 'tribunale' },
+            { data: 'superficie' },
+            { data: 'vani' },
+            { data: 'azioni', orderable: false, searchable: false }
+        ],
+        order: [[3, 'desc']],
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/it-IT.json'
+        },
+        responsive: true,
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+             '<"row"<"col-sm-12"tr>>' +
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        buttons: [
+            {
+                extend: 'excel',
+                text: '<i class="bi bi-file-earmark-excel"></i> Excel',
+                className: 'btn btn-success btn-sm'
+            },
+            {
+                extend: 'csv',
+                text: '<i class="bi bi-filetype-csv"></i> CSV',
+                className: 'btn btn-info btn-sm'
+            },
+            {
+                extend: 'print',
+                text: '<i class="bi bi-printer"></i> Stampa',
+                className: 'btn btn-secondary btn-sm'
+            }
+        ]
+    });
+});
+</script>
+{% endblock %}

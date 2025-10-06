@@ -160,6 +160,16 @@
             </div>
             <div class="card-body">
                 <div class="mb-3">
+                    <label class="text-muted small">Superficie</label>
+                    <p class="mb-0">
+                        {% if asta.superficie %}
+                            <i class="bi bi-rulers text-success"></i> {{ asta.superficie }} m²
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="mb-3">
                     <label class="text-muted small">Numero Locali</label>
                     <p class="mb-0">
                         {% if asta.numero_locali %}

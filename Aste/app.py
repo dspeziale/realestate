@@ -66,6 +66,7 @@ def init_db():
             citta TEXT,
             cap TEXT,
             prezzo_asta TEXT,
+            superficie TEXT,
             numero_locali INTEGER,
             numero_bagni INTEGER,
             piano TEXT,
@@ -254,6 +255,7 @@ def inserisci():
                     'prezzo_asta': sanitize_input(request.form.get('prezzo_asta'))
                 },
                 'caratteristiche': {
+                    'superficie': sanitize_input(request.form.get('superficie')),
                     'numero_locali': numero_locali,
                     'numero_bagni': numero_bagni,
                     'piano': sanitize_input(request.form.get('piano'))
@@ -306,10 +308,6 @@ def modifica(id):
                 flash('Il titolo è obbligatorio', 'error')
                 return redirect(url_for('modifica', id=id))
 
-            print(f"Titolo: {titolo}")
-            print(f"Città: {request.form.get('citta')}")
-            print(f"Prezzo: {request.form.get('prezzo_asta')}")
-
             # Validazione e conversione numeri
             numero_locali = request.form.get('numero_locali', '').strip()
             numero_bagni = request.form.get('numero_bagni', '').strip()
@@ -325,9 +323,6 @@ def modifica(id):
             except ValueError:
                 flash('Numero bagni non valido', 'error')
                 return redirect(url_for('modifica', id=id))
-
-            print(f"Numero locali: {numero_locali}")
-            print(f"Numero bagni: {numero_bagni}")
 
             # Connessione al database
             conn = get_db()
@@ -353,6 +348,7 @@ def modifica(id):
                     citta = ?,
                     cap = ?,
                     prezzo_asta = ?,
+                    superficie = ?,
                     numero_locali = ?,
                     numero_bagni = ?,
                     piano = ?,
@@ -378,6 +374,7 @@ def modifica(id):
                 sanitize_input(request.form.get('citta')),
                 sanitize_input(request.form.get('cap')),
                 sanitize_input(request.form.get('prezzo_asta')),
+                sanitize_input(request.form.get('superficie')),
                 numero_locali,
                 numero_bagni,
                 sanitize_input(request.form.get('piano')),
@@ -557,12 +554,12 @@ def inserisci_asta(data):
             INSERT INTO aste (
                 titolo, tipo_immobile, tipo_vendita, url, data_inserimento,
                 indirizzo, indirizzo_completo, zona, citta, cap,
-                prezzo_asta, numero_locali, numero_bagni, piano,
+                prezzo_asta, superficie, numero_locali, numero_bagni, piano,
                 descrizione_breve, descrizione_completa,
                 data_asta, lotto,
                 foglio, particella, categoria, rendita,
                 telefono, json_completo
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             info.get('titolo'),
             info.get('tipo_immobile'),
@@ -575,6 +572,7 @@ def inserisci_asta(data):
             loc.get('citta'),
             loc.get('cap'),
             prezzi.get('prezzo_asta'),
+            car.get('superficie'),
             car.get('numero_locali'),
             car.get('numero_bagni'),
             car.get('piano'),
@@ -628,6 +626,7 @@ if __name__ == '__main__':
     print(f"📁 Database: {DATABASE}")
     print(f"🌐 Server: http://localhost:5000")
     print(f"📊 Debug: ON")
+    print(f"🐍 Python: 3.13")
     print(f"{'=' * 60}\n")
 
     # Avvia app

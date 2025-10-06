@@ -1,0 +1,90 @@
+{% extends "base_v2.html" %}
+
+{% block title %}Ricerca Avanzata - Aste Immobiliari{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2><i class="bi bi-search"></i> Ricerca Avanzata</h2>
+    <p class="text-muted">Filtra le aste per trovare esattamente quello che cerchi</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtri di Ricerca</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('index') }}">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Codice Asta</label>
+                    <input type="text" class="form-control" name="codice" placeholder="Es: A4316080">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Città</label>
+                    <input type="text" class="form-control" name="citta" placeholder="Es: Roma">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Tribunale</label>
+                    <input type="text" class="form-control" name="tribunale" placeholder="Es: Velletri">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Prezzo Minimo (€)</label>
+                    <input type="number" class="form-control" name="prezzo_min" placeholder="0">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Prezzo Massimo (€)</label>
+                    <input type="number" class="form-control" name="prezzo_max" placeholder="1000000">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Superficie Min (mq)</label>
+                    <input type="number" class="form-control" name="superficie_min" placeholder="0">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Vani Min</label>
+                    <input type="number" class="form-control" name="vani_min" placeholder="1">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Tipo Immobile</label>
+                    <select class="form-select" name="tipo_immobile">
+                        <option value="">Tutti</option>
+                        <option value="Appartamento">Appartamento</option>
+                        <option value="Casa">Casa</option>
+                        <option value="Ufficio">Ufficio</option>
+                        <option value="Negozio">Negozio</option>
+                        <option value="Terreno">Terreno</option>
+                        <option value="Box">Box/Garage</option>
+                    </select>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('ricerca') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Reset
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Cerca
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-filter-circle" style="font-size: 4rem; color: #ccc;"></i>
+        <h4 class="mt-3">Utilizza i filtri sopra</h4>
+        <p class="text-muted">Imposta i criteri di ricerca e premi "Cerca" per visualizzare i risultati</p>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary mt-3">
+            <i class="bi bi-table"></i> Vai alla Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

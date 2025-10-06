@@ -66,6 +66,7 @@
                             <th>Titolo</th>
                             <th>Città</th>
                             <th>Indirizzo</th>
+                            <th>Superficie</th>
                             <th>Data Asta</th>
                             <th>Locali</th>
                             <th>Lotto</th>
@@ -86,6 +87,13 @@
                                 {% endif %}
                             </td>
                             <td>{{ (asta.indirizzo or 'N/A')[:40] }}{% if asta.indirizzo and asta.indirizzo|length > 40 %}...{% endif %}</td>
+                            <td>
+                                {% if asta.superficie %}
+                                    <i class="bi bi-rulers text-success"></i> {{ asta.superficie }} m²
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if asta.data_asta %}
                                     <span class="badge bg-info">{{ asta.data_asta }}</span>

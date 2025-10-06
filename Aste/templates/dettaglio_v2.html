@@ -1,0 +1,476 @@
+{% extends "base_v2.html" %}
+
+{% block title %}{{ asta.codice_asta }} - {{ asta.titolo }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .info-section {
+        margin-bottom: 2rem;
+    }
+    .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .info-value {
+        font-size: 1.1rem;
+        color: #212529;
+    }
+    #map { height: 400px; }
+    .swiper { width: 100%; height: 500px; }
+    .swiper-slide img { width: 100%; height: 100%; object-fit: cover; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mb-3">
+        <i class="bi bi-arrow-left"></i> Torna alla Dashboard
+    </a>
+
+    <!-- Header Asta -->
+    <div class="card border-primary">
+        <div class="card-header bg-primary text-white">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="mb-1">
+                        <i class="bi bi-building"></i> {{ asta.titolo or 'N/A' }}
+                    </h2>
+                    <p class="mb-0">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        {{ asta.indirizzo or 'N/A' }}, {{ asta.citta or 'N/A' }} ({{ asta.provincia or '' }})
+                    </p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <h3 class="text-warning mb-1">{{ asta.prezzo_base_formatted or 'N/A' }}</h3>
+                    <p class="mb-0 small">Offerta min: {{ asta.offerta_minima_formatted or 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <span class="badge bg-info">{{ asta.codice_asta }}</span>
+                </div>
+                <div class="col-md-3">
+                    <strong>Data Vendita:</strong> {{ asta.data_vendita or 'N/A' }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Tipo:</strong> {{ asta.tipo_vendita or 'N/A' }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Tribunale:</strong> {{ asta.tribunale or 'N/A' }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Colonna Sinistra -->
+    <div class="col-lg-8">
+
+        <!-- Galleria Foto -->
+        {% if foto %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-camera"></i> Galleria Foto ({{ foto|length }})</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="swiper fotoSwiper">
+                    <div class="swiper-wrapper">
+                        {% for f in foto %}
+                        <div class="swiper-slide">
+                            <img src="{{ f.url_foto }}" alt="Foto {{ f.ordine }}">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="swiper-button-next"></div>
+                    <div class="swiper-button-prev"></div>
+                    <div class="swiper-pagination"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Planimetrie -->
+        {% if planimetrie %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Planimetrie ({{ planimetrie|length }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for p in planimetrie %}
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ p.url_planimetria }}" target="_blank">
+                            <img src="{{ p.url_planimetria }}" class="img-fluid rounded" alt="Planimetria {{ p.ordine }}">
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Descrizione -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-text"></i> Descrizione</h5>
+            </div>
+            <div class="card-body">
+                <p>{{ asta.descrizione_breve or asta.descrizione_lotto or 'Nessuna descrizione disponibile' }}</p>
+            </div>
+        </div>
+
+        <!-- Dati del Lotto -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-box-seam"></i> Dati del Lotto</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="info-label">Codice Lotto</div>
+                        <div class="info-value">{{ asta.codice_lotto or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="info-label">Numero Beni</div>
+                        <div class="info-value">{{ asta.numero_beni_lotto or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="info-label">Categoria</div>
+                        <div class="info-value">{{ asta.categoria or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="info-label">Descrizione Lotto</div>
+                        <div class="info-value">{{ asta.descrizione_lotto or 'N/A' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Caratteristiche Immobile -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-house-door"></i> Caratteristiche Immobile</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="info-label">Superficie</div>
+                        <div class="info-value">
+                            <i class="bi bi-rulers text-primary"></i>
+                            {{ asta.superficie_mq or 'N/A' }} mq
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="info-label">Vani</div>
+                        <div class="info-value">
+                            <i class="bi bi-door-open text-primary"></i>
+                            {{ asta.vani or 'N/A' }}
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="info-label">Bagni</div>
+                        <div class="info-value">
+                            <i class="bi bi-droplet text-primary"></i>
+                            {{ asta.bagni or 'N/A' }}
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="info-label">Piano</div>
+                        <div class="info-value">{{ asta.piano or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-label">Disponibilità</div>
+                        <div class="info-value">{{ asta.disponibilita or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-label">Classe Energetica</div>
+                        <div class="info-value">{{ asta.classe_energetica or 'N/A' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dati della Vendita -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="bi bi-gavel"></i> Dati della Vendita</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="info-label">Data e Ora Vendita</div>
+                        <div class="info-value">
+                            <i class="bi bi-calendar-event text-danger"></i>
+                            {{ asta.data_vendita or 'N/A' }}
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-label">Termine Presentazione Offerte</div>
+                        <div class="info-value">{{ asta.termine_offerte or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="info-label">Tipo Vendita</div>
+                        <div class="info-value">
+                            <span class="badge bg-primary">{{ asta.tipo_vendita or 'N/A' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="info-label">Modalità</div>
+                        <div class="info-value">{{ asta.modalita_vendita or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="info-label">Rialzo Minimo</div>
+                        <div class="info-value">{{ asta.rialzo_minimo_formatted or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <div class="info-label">Luogo Vendita</div>
+                        <div class="info-value">
+                            {{ asta.indirizzo_luogo_vendita or 'N/A' }} -
+                            {{ asta.citta_luogo_vendita or 'N/A' }}
+                            {{ asta.cap_luogo_vendita or '' }}
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-label">Deposito Cauzionale</div>
+                        <div class="info-value">{{ asta.deposito_cauzionale or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-label">Deposito Spese</div>
+                        <div class="info-value">{{ asta.deposito_spese or 'N/A' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Procedura e Professionisti -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bank"></i> Dettaglio Procedura</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="info-label">Tribunale</div>
+                        <div class="info-value">{{ asta.tribunale or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-label">Tipo Procedura</div>
+                        <div class="info-value">{{ asta.tipo_procedura or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-label">Numero RGE</div>
+                        <div class="info-value">
+                            {{ asta.numero_rge or 'N/A' }}{% if asta.anno_rge %}/{{ asta.anno_rge }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Delegato Vendita -->
+                {% if asta.delegato_cognome or asta.delegato_nome %}
+                <div class="mb-4">
+                    <h6 class="text-primary"><i class="bi bi-person-badge"></i> Delegato alla Vendita</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Nome:</strong> {{ asta.delegato_nome or '' }} {{ asta.delegato_cognome or '' }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Telefono:</strong>
+                            {% if asta.delegato_telefono %}
+                                <a href="tel:{{ asta.delegato_telefono }}">{{ asta.delegato_telefono }}</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <strong>Email:</strong>
+                            {% if asta.delegato_email %}
+                                <a href="mailto:{{ asta.delegato_email }}">{{ asta.delegato_email }}</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Custode Giudiziario -->
+                {% if asta.custode_cognome or asta.custode_nome %}
+                <div>
+                    <h6 class="text-success"><i class="bi bi-shield-check"></i> Custode Giudiziario</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Nome:</strong> {{ asta.custode_nome or '' }} {{ asta.custode_cognome or '' }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Telefono:</strong>
+                            {% if asta.custode_telefono %}
+                                <a href="tel:{{ asta.custode_telefono }}">{{ asta.custode_telefono }}</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <strong>Email:</strong>
+                            {% if asta.custode_email %}
+                                <a href="mailto:{{ asta.custode_email }}">{{ asta.custode_email }}</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Mappa -->
+        {% if asta.latitudine and asta.longitudine %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-map"></i> Localizzazione</h5>
+            </div>
+            <div class="card-body p-0">
+                <div id="map"></div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Colonna Destra -->
+    <div class="col-lg-4">
+
+        <!-- Box Prezzi -->
+        <div class="card mb-4 border-warning">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="bi bi-currency-euro"></i> Informazioni Economiche</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="info-label">Prezzo Base</div>
+                    <h3 class="text-warning">{{ asta.prezzo_base_formatted or 'N/A' }}</h3>
+                </div>
+                <div class="mb-3">
+                    <div class="info-label">Offerta Minima</div>
+                    <h4 class="text-success">{{ asta.offerta_minima_formatted or 'N/A' }}</h4>
+                </div>
+                <div class="mb-3">
+                    <div class="info-label">Rialzo Minimo</div>
+                    <p class="mb-0">{{ asta.rialzo_minimo_formatted or 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Allegati -->
+        {% if allegati %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-paperclip"></i> Documentazione</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for alleg in allegati %}
+                    <li class="list-group-item px-0">
+                        <a href="{{ alleg.url_download }}" target="_blank" class="text-decoration-none">
+                            <i class="bi bi-file-pdf text-danger"></i>
+                            {{ alleg.tipo_allegato }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Storico Vendite -->
+        {% if storico %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Storico Vendite</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Prezzo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in storico %}
+                        <tr>
+                            <td>{{ s.data_vendita }}</td>
+                            <td>{{ s.prezzo_base_formatted }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Info Pubblicazione -->
+        <div class="card border-info">
+            <div class="card-body text-center">
+                <i class="bi bi-info-circle text-info" style="font-size: 2rem;"></i>
+                <p class="mt-2 mb-0 small">
+                    <strong>Pubblicata il:</strong> {{ asta.data_pubblicazione or 'N/A' }}<br>
+                    <strong>Ultimo aggiornamento:</strong> {{ asta.data_aggiornamento or 'N/A' }}
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// Swiper per foto
+{% if foto %}
+new Swiper('.fotoSwiper', {
+    loop: true,
+    pagination: {
+        el: '.swiper-pagination',
+        clickable: true
+    },
+    navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev'
+    },
+    autoplay: {
+        delay: 3000,
+        disableOnInteraction: false
+    }
+});
+{% endif %}
+
+// Mappa Leaflet
+{% if asta.latitudine and asta.longitudine %}
+var map = L.map('map').setView([{{ asta.latitudine }}, {{ asta.longitudine }}], 15);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+L.marker([{{ asta.latitudine }}, {{ asta.longitudine }}])
+    .addTo(map)
+    .bindPopup('<b>{{ asta.titolo }}</b><br>{{ asta.indirizzo }}')
+    .openPopup();
+{% endif %}
+</script>
+{% endblock %}
