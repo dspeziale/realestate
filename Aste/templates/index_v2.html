@@ -10,19 +10,48 @@
 <style>
     .dataTables_wrapper .dataTables_filter input {
         border-radius: 20px;
+        padding: 8px 15px;
     }
     .table-hover tbody tr:hover {
         background-color: #f0f0ff;
+        cursor: pointer;
+    }
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    .stat-card {
+        transition: all 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
+    }
+    .stat-icon {
+        font-size: 3rem;
+        opacity: 0.8;
+    }
+    #asteTable_wrapper {
+        padding: 20px;
+    }
+    .dataTables_info {
+        padding-top: 10px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-grid-3x3-gap"></i> Dashboard Aste V2</h2>
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
     <div>
+        <h2><i class="bi bi-grid-3x3-gap"></i> Dashboard Aste V2</h2>
+        <p class="text-muted mb-0">Gestione completa aste immobiliari giudiziarie</p>
+    </div>
+    <div class="mt-3 mt-md-0">
+        <a href="{{ url_for('inserisci') }}" class="btn btn-primary me-2">
+            <i class="bi bi-plus-circle"></i> Nuova Asta
+        </a>
         <a href="{{ url_for('ricerca') }}" class="btn btn-outline-primary me-2">
-            <i class="bi bi-search"></i> Ricerca Avanzata
+            <i class="bi bi-search"></i> Ricerca
         </a>
         <a href="{{ url_for('mappa') }}" class="btn btn-outline-success">
             <i class="bi bi-geo-alt"></i> Mappa
@@ -32,38 +61,54 @@
 
 <!-- Statistiche rapide -->
 <div class="row mb-4" id="statsCards">
-    <div class="col-md-3">
-        <div class="card text-center">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card text-center">
             <div class="card-body">
-                <i class="bi bi-clipboard-data" style="font-size: 3rem; color: #667eea;"></i>
-                <h3 class="mt-3" id="totalAste">-</h3>
+                <i class="bi bi-clipboard-data stat-icon" style="color: #667eea;"></i>
+                <h3 class="mt-3" id="totalAste">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </h3>
                 <p class="text-muted mb-0">Aste Totali</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card text-center">
             <div class="card-body">
-                <i class="bi bi-currency-euro" style="font-size: 3rem; color: #f093fb;"></i>
-                <h3 class="mt-3" id="avgPrice">-</h3>
+                <i class="bi bi-currency-euro stat-icon" style="color: #f093fb;"></i>
+                <h3 class="mt-3" id="avgPrice">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </h3>
                 <p class="text-muted mb-0">Prezzo Medio</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card text-center">
             <div class="card-body">
-                <i class="bi bi-geo-alt" style="font-size: 3rem; color: #4facfe;"></i>
-                <h3 class="mt-3" id="topCity">-</h3>
+                <i class="bi bi-geo-alt stat-icon" style="color: #4facfe;"></i>
+                <h3 class="mt-3" id="topCity">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </h3>
                 <p class="text-muted mb-0">Città Principale</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card text-center">
             <div class="card-body">
-                <i class="bi bi-building" style="font-size: 3rem; color: #fa709a;"></i>
-                <h3 class="mt-3" id="topTribunale">-</h3>
+                <i class="bi bi-building stat-icon" style="color: #fa709a;"></i>
+                <h3 class="mt-3" id="topTribunale">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </h3>
                 <p class="text-muted mb-0">Tribunale Principale</p>
             </div>
         </div>
@@ -96,6 +141,33 @@
         </table>
     </div>
 </div>
+
+<!-- Modal Conferma Eliminazione -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Conferma Eliminazione</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler eliminare definitivamente l'asta <strong id="deleteAstaCode"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Attenzione:</strong>
+                    Questa azione non può essere annullata. Verranno eliminati anche tutti i dati correlati.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Annulla
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">
+                    <i class="bi bi-trash"></i> Elimina Definitivamente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -111,6 +183,28 @@
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
 
 <script>
+// Variabile globale per codice asta da eliminare
+let codiceAstaDaEliminare = null;
+
+// Funzione per mostrare modal eliminazione
+function mostraModalElimina(codiceAsta) {
+    codiceAstaDaEliminare = codiceAsta;
+    $('#deleteAstaCode').text(codiceAsta);
+    $('#deleteModal').modal('show');
+}
+
+// Funzione conferma eliminazione
+$('#confirmDelete').on('click', function() {
+    if (codiceAstaDaEliminare) {
+        // Crea form nascosto per POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/elimina/' + codiceAstaDaEliminare;
+        document.body.appendChild(form);
+        form.submit();
+    }
+});
+
 $(document).ready(function() {
     // Carica statistiche
     fetch('/api/stats')
@@ -119,22 +213,32 @@ $(document).ready(function() {
             $('#totalAste').text(data.total || 0);
 
             if (data.prezzi && data.prezzi.media) {
-                $('#avgPrice').text('€ ' + Math.round(data.prezzi.media).toLocaleString());
+                $('#avgPrice').text('€ ' + Math.round(data.prezzi.media).toLocaleString('it-IT'));
+            } else {
+                $('#avgPrice').text('N/A');
             }
 
-            if (data.per_citta) {
+            if (data.per_citta && Object.keys(data.per_citta).length > 0) {
                 const topCity = Object.keys(data.per_citta)[0];
                 $('#topCity').text(topCity || 'N/A');
+            } else {
+                $('#topCity').text('N/A');
             }
 
-            if (data.per_tribunale) {
+            if (data.per_tribunale && Object.keys(data.per_tribunale).length > 0) {
                 const topTrib = Object.keys(data.per_tribunale)[0];
                 $('#topTribunale').text(topTrib || 'N/A');
+            } else {
+                $('#topTribunale').text('N/A');
             }
+        })
+        .catch(error => {
+            console.error('Errore caricamento statistiche:', error);
+            $('#totalAste, #avgPrice, #topCity, #topTribunale').text('N/A');
         });
 
     // Inizializza DataTable
-    $('#asteTable').DataTable({
+    const table = $('#asteTable').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
@@ -142,18 +246,69 @@ $(document).ready(function() {
             type: 'GET'
         },
         columns: [
-            { data: 'codice_asta' },
-            { data: 'titolo' },
+            {
+                data: 'codice_asta',
+                render: function(data, type, row) {
+                    return '<span class="badge bg-secondary">' + data + '</span>';
+                }
+            },
+            {
+                data: 'titolo',
+                render: function(data, type, row) {
+                    return '<strong>' + (data || 'N/A') + '</strong>';
+                }
+            },
             { data: 'citta' },
-            { data: 'data_vendita' },
-            { data: 'prezzo_base' },
+            {
+                data: 'data_vendita',
+                render: function(data, type, row) {
+                    if (data && data !== 'N/A') {
+                        return '<span class="badge bg-info">' + data + '</span>';
+                    }
+                    return '<span class="text-muted">N/A</span>';
+                }
+            },
+            {
+                data: 'prezzo_base',
+                render: function(data, type, row) {
+                    if (data && data !== 'N/A') {
+                        return '<strong class="text-success">' + data + '</strong>';
+                    }
+                    return '<span class="text-muted">N/A</span>';
+                }
+            },
             { data: 'tribunale' },
             { data: 'superficie' },
             { data: 'vani' },
-            { data: 'azioni', orderable: false, searchable: false }
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                render: function(data, type, row) {
+                    return `
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="/dettaglio/${row.codice_asta}"
+                               class="btn btn-primary"
+                               title="Visualizza dettagli">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="/modifica/${row.codice_asta}"
+                               class="btn btn-warning"
+                               title="Modifica">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button class="btn btn-danger"
+                                    onclick="mostraModalElimina('${row.codice_asta}')"
+                                    title="Elimina">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+            }
         ],
-        order: [[3, 'desc']],
-        pageLength: 100,
+        order: [[3, 'desc']], // Ordina per data vendita
+        pageLength: 25,
         lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/it-IT.json'
@@ -162,23 +317,30 @@ $(document).ready(function() {
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
              '<"row"<"col-sm-12"tr>>' +
              '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-        buttons: [
-            {
-                extend: 'excel',
-                text: '<i class="bi bi-file-earmark-excel"></i> Excel',
-                className: 'btn btn-success btn-sm'
-            },
-            {
-                extend: 'csv',
-                text: '<i class="bi bi-filetype-csv"></i> CSV',
-                className: 'btn btn-info btn-sm'
-            },
-            {
-                extend: 'print',
-                text: '<i class="bi bi-printer"></i> Stampa',
-                className: 'btn btn-secondary btn-sm'
-            }
-        ]
+        drawCallback: function(settings) {
+            // Tooltip per pulsanti
+            $('[title]').tooltip();
+        }
+    });
+
+    // Click su riga per andare al dettaglio (escluso colonna azioni)
+    $('#asteTable tbody').on('click', 'tr', function(e) {
+        // Non fare nulla se si clicca sui pulsanti
+        if ($(e.target).closest('.btn-group').length) {
+            return;
+        }
+
+        const data = table.row(this).data();
+        if (data) {
+            window.location.href = '/dettaglio/' + data.codice_asta;
+        }
+    });
+
+    // Evidenzia riga al hover
+    $('#asteTable tbody').on('mouseenter', 'tr', function() {
+        $(this).addClass('table-active');
+    }).on('mouseleave', 'tr', function() {
+        $(this).removeClass('table-active');
     });
 });
 </script>
