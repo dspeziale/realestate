@@ -4,184 +4,430 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Gestione Aste Immobiliari V2{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- jQuery (necessario per DataTables) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
     <style>
         body {
             min-height: 100vh;
+            background: #f8f9fa;
         }
+
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            width: 250px;
         }
+
         .sidebar .nav-link {
             color: rgba(255,255,255,0.8);
             padding: 12px 20px;
             margin: 5px 10px;
             border-radius: 8px;
             transition: all 0.3s;
+            display: flex;
+            align-items: center;
         }
+
         .sidebar .nav-link:hover {
             background: rgba(255,255,255,0.1);
             color: white;
+            transform: translateX(5px);
         }
+
         .sidebar .nav-link.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
         }
+
         .sidebar .nav-link i {
             margin-right: 10px;
             font-size: 1.2rem;
         }
+
         .sidebar-header {
             padding: 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            background: rgba(0,0,0,0.1);
         }
+
+        .sidebar-header h4 {
+            margin: 0;
+            font-weight: 600;
+        }
+
         .content-wrapper {
+            margin-left: 250px;
             padding: 30px;
-            background: #f8f9fa;
             min-height: 100vh;
         }
+
         .card {
             border: none;
             border-radius: 15px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             margin-bottom: 20px;
+            transition: all 0.3s;
         }
+
+        .card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
         .card-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 15px 15px 0 0 !important;
             padding: 15px 20px;
+            font-weight: 600;
         }
+
         .alert {
             border-radius: 10px;
             border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
+
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
+            transition: all 0.3s;
         }
+
         .btn-primary:hover {
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
+
+        .btn-secondary {
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: relative;
+                min-height: auto;
+            }
+
+            .content-wrapper {
+                margin-left: 0;
+            }
+        }
+
+        /* Custom scrollbar per sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.5);
+        }
     </style>
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-<div class="container-fluid">
-    <div class="row">
-        <!-- Sidebar -->
-        <nav class="col-md-3 col-lg-2 d-md-block sidebar p-0">
-            <div class="sidebar-header text-white">
-                <h4 class="mb-0"><i class="bi bi-building"></i> Aste V2</h4>
-            </div>
-            <div class="position-sticky pt-3">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"
-                           href="{{ url_for('index') }}">
-                            <i class="bi bi-house-door"></i>
-                            Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'ricerca' %}active{% endif %}"
-                           href="{{ url_for('ricerca') }}">
-                            <i class="bi bi-search"></i>
-                            Ricerca Avanzata
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'mappa' %}active{% endif %}"
-                           href="{{ url_for('mappa') }}">
-                            <i class="bi bi-geo-alt"></i>
-                            Mappa
-                        </a>
-                    </li>
-                </ul>
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 sidebar">
+                <div class="sidebar-header">
+                    <h4><i class="bi bi-building"></i> Aste V2</h4>
+                    <small class="text-white-50">Sistema Gestionale</small>
+                </div>
 
-                <hr style="border-color: rgba(255,255,255,0.2); margin: 20px 10px;">
+                <div class="position-sticky pt-3" style="overflow-y: auto; max-height: calc(100vh - 100px);">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"
+                               href="{{ url_for('index') }}">
+                                <i class="bi bi-house-door"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'inserisci' %}active{% endif %}"
+                               href="{{ url_for('inserisci') }}">
+                                <i class="bi bi-plus-circle"></i>
+                                Inserisci Asta
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'ricerca' %}active{% endif %}"
+                               href="{{ url_for('ricerca') }}">
+                                <i class="bi bi-search"></i>
+                                Ricerca Avanzata
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'mappa' %}active{% endif %}"
+                               href="{{ url_for('mappa') }}">
+                                <i class="bi bi-geo-alt"></i>
+                                Mappa GPS
+                            </a>
+                        </li>
+                    </ul>
 
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#infoModal">
-                            <i class="bi bi-info-circle"></i>
-                            Info Sistema
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+                    <hr style="border-color: rgba(255,255,255,0.2); margin: 20px 10px;">
 
-        <!-- Main content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 content-wrapper">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
-                 role="alert">
-                <i class="bi bi-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }}"></i>
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#infoModal">
+                                <i class="bi bi-info-circle"></i>
+                                Info Sistema
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#statsModal">
+                                <i class="bi bi-bar-chart"></i>
+                                Statistiche
+                            </a>
+                        </li>
+                    </ul>
 
-            {% block content %}{% endblock %}
-        </main>
+                    <div class="text-center mt-4 mb-3">
+                        <small class="text-white-50">
+                            <i class="bi bi-code-slash"></i> Python 3.13 + Flask<br>
+                            <i class="bi bi-database"></i> SQLite V2
+                        </small>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 content-wrapper">
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show animate__animated animate__fadeInDown"
+                                 role="alert">
+                                <i class="bi bi-{{ 'check-circle-fill' if category == 'success' else 'exclamation-triangle-fill' if category == 'warning' else 'info-circle-fill' }}"></i>
+                                <strong>
+                                    {% if category == 'success' %}Successo!{% elif category == 'error' %}Errore!{% elif category == 'warning' %}Attenzione!{% else %}Info{% endif %}
+                                </strong>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Page Content -->
+                {% block content %}{% endblock %}
+
+                <!-- Footer -->
+                <footer class="mt-5 pt-4 border-top">
+                    <div class="text-center text-muted small">
+                        <p class="mb-1">
+                            <i class="bi bi-building"></i> <strong>Sistema Gestionale Aste Immobiliari V2</strong>
+                        </p>
+                        <p class="mb-0">
+                            Sviluppato con <i class="bi bi-heart-fill text-danger"></i> da Daniele Speziale |
+                            Python 3.13 + Flask + SQLite
+                        </p>
+                    </div>
+                </footer>
+            </main>
+        </div>
     </div>
-</div>
 
-<!-- Modal Info -->
-<div class="modal fade" id="infoModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Sistema Aste Giudiziarie V2</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <h6>Gestionale Completo Aste Immobiliari</h6>
-                <p>Sistema avanzato per scraping e gestione aste da astegiudiziarie.it</p>
-                <h6>Autore</h6>
-                <ul>
-                    <li>Daniele Speziale</li>
-                </ul>
-                <hr>
-                <h6>Architettura</h6>
-                <ul>
-                    <li>Python 3.13</li>
-                    <li>Flask Framework</li>
-                    <li>SQLite Database (struttura avanzata)</li>
-                    <li>Bootstrap 5 + DataTables.js</li>
-                    <li>Selenium WebDriver</li>
-                    <li>Leaflet Maps per visualizzazione GPS</li>
-                </ul>
-                <hr>
-                <h6>Funzionalità:</h6>
-                <ul>
-                    <li>Scraping automatico con scroll dinamico</li>
-                    <li>Database con 56+ campi per asta</li>
-                    <li>Gestione allegati, foto, planimetrie</li>
-                    <li>Coordinate GPS per mappa interattiva</li>
-                    <li>Storico vendite</li>
-                    <li>Ricerca avanzata</li>
-                </ul>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+    <!-- Modal Info Sistema -->
+    <div class="modal fade" id="infoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-info-circle"></i> Informazioni Sistema</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6><i class="bi bi-gear-fill"></i> Sistema Gestionale Aste Immobiliari V2</h6>
+                    <p class="text-muted">Piattaforma completa per scraping, gestione e visualizzazione aste giudiziarie</p>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-server"></i> Tecnologie Backend</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check-circle text-success"></i> Python 3.13</li>
+                                <li><i class="bi bi-check-circle text-success"></i> Flask Framework</li>
+                                <li><i class="bi bi-check-circle text-success"></i> SQLite Database</li>
+                                <li><i class="bi bi-check-circle text-success"></i> Selenium WebDriver</li>
+                                <li><i class="bi bi-check-circle text-success"></i> BeautifulSoup4</li>
+                            </ul>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-brush"></i> Tecnologie Frontend</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check-circle text-success"></i> Bootstrap 5</li>
+                                <li><i class="bi bi-check-circle text-success"></i> DataTables.js</li>
+                                <li><i class="bi bi-check-circle text-success"></i> jQuery</li>
+                                <li><i class="bi bi-check-circle text-success"></i> Leaflet.js (mappe)</li>
+                                <li><i class="bi bi-check-circle text-success"></i> Swiper.js (gallery)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h6><i class="bi bi-list-check"></i> Funzionalità Principali</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="small">
+                                <li>Scraping automatico da astegiudiziarie.it</li>
+                                <li>Database avanzato (56+ campi per asta)</li>
+                                <li>CRUD completo (Create, Read, Update, Delete)</li>
+                                <li>Ricerca avanzata con filtri multipli</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="small">
+                                <li>Visualizzazione GPS su mappa interattiva</li>
+                                <li>Gestione allegati, foto, planimetrie</li>
+                                <li>Storico vendite per ogni asta</li>
+                                <li>Validazione dati e controllo duplicati</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h6><i class="bi bi-database"></i> Struttura Database</h6>
+                    <ul class="small mb-0">
+                        <li><strong>aste</strong> - Tabella principale (56 campi)</li>
+                        <li><strong>allegati</strong> - PDF e documenti scaricabili</li>
+                        <li><strong>foto</strong> - Galleria immagini immobile</li>
+                        <li><strong>planimetrie</strong> - Disegni tecnici</li>
+                        <li><strong>storico_vendite</strong> - Cronologia prezzi e date</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Chiudi
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-{% block extra_js %}{% endblock %}
+    <!-- Modal Statistiche -->
+    <div class="modal fade" id="statsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-bar-chart"></i> Statistiche Database</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="statsContent">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Caricamento statistiche...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Carica statistiche quando si apre il modal
+        $('#statsModal').on('show.bs.modal', function() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    let html = '<h6><i class="bi bi-clipboard-data"></i> Totale Aste: <span class="badge bg-primary">' + data.total + '</span></h6><hr>';
+
+                    if (data.per_citta && Object.keys(data.per_citta).length > 0) {
+                        html += '<h6><i class="bi bi-geo-alt"></i> Top 5 Città:</h6><ul class="list-group list-group-flush mb-3">';
+                        let count = 0;
+                        for (let [citta, num] of Object.entries(data.per_citta)) {
+                            if (count < 5) {
+                                html += '<li class="list-group-item d-flex justify-content-between"><span>' + citta + '</span><span class="badge bg-info">' + num + '</span></li>';
+                                count++;
+                            }
+                        }
+                        html += '</ul>';
+                    }
+
+                    if (data.per_tribunale && Object.keys(data.per_tribunale).length > 0) {
+                        html += '<h6><i class="bi bi-bank"></i> Top 5 Tribunali:</h6><ul class="list-group list-group-flush mb-3">';
+                        let count = 0;
+                        for (let [trib, num] of Object.entries(data.per_tribunale)) {
+                            if (count < 5) {
+                                html += '<li class="list-group-item d-flex justify-content-between"><span>' + trib + '</span><span class="badge bg-warning text-dark">' + num + '</span></li>';
+                                count++;
+                            }
+                        }
+                        html += '</ul>';
+                    }
+
+                    if (data.prezzi && data.prezzi.media) {
+                        html += '<h6><i class="bi bi-currency-euro"></i> Prezzi:</h6>';
+                        html += '<ul class="list-unstyled">';
+                        html += '<li>Media: <strong>€ ' + Math.round(data.prezzi.media).toLocaleString('it-IT') + '</strong></li>';
+                        if (data.prezzi.minimo) {
+                            html += '<li>Minimo: € ' + Math.round(data.prezzi.minimo).toLocaleString('it-IT') + '</li>';
+                        }
+                        if (data.prezzi.massimo) {
+                            html += '<li>Massimo: € ' + Math.round(data.prezzi.massimo).toLocaleString('it-IT') + '</li>';
+                        }
+                        html += '</ul>';
+                    }
+
+                    $('#statsContent').html(html);
+                })
+                .catch(error => {
+                    $('#statsContent').html('<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Errore nel caricamento delle statistiche</div>');
+                });
+        });
+
+        // Auto-dismiss alerts dopo 5 secondi
+        setTimeout(function() {
+            $('.alert').fadeOut('slow');
+        }, 5000);
+    </script>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

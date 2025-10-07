@@ -620,7 +620,7 @@ class AsteGiudiziarieScraperV2:
             # Trova l'elemento body per inviare i tasti
             body = self.driver.find_element(By.TAG_NAME, 'body')
 
-            for i in range(1, 300):
+            for i in range(1, 500):
                 # Premi PgDown
                 body.send_keys(Keys.PAGE_DOWN)
 
@@ -632,7 +632,7 @@ class AsteGiudiziarieScraperV2:
                     print(f"   ⌨️  PgDown: {i}/50 | Posizione: {current_pos}px | Progresso: {progress:.1f}%")
 
                 # Pausa per permettere il caricamento
-                time.sleep(0.5)
+                time.sleep(0.2)
 
             print(f"\n✅ Completate 50 pressioni di PgDown!")
 
