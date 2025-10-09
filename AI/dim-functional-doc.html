@@ -1,0 +1,2776 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIM - Descrizione Funzionale</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+        }
+        
+        .cover {
+            text-align: center;
+            padding: 100px 0;
+            page-break-after: always;
+        }
+        
+        .cover h1 {
+            font-size: 36px;
+            color: #0066cc;
+            margin-bottom: 20px;
+        }
+        
+        .cover .subtitle {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 40px;
+        }
+        
+        .cover .info {
+            font-size: 14px;
+            color: #888;
+            margin-top: 60px;
+        }
+        
+        .header {
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #0066cc;
+            font-size: 28px;
+        }
+        
+        .toc {
+            page-break-after: always;
+            margin-bottom: 40px;
+        }
+        
+        .toc h2 {
+            color: #0066cc;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .toc ul {
+            list-style: none;
+        }
+        
+        .toc li {
+            padding: 8px 0;
+            border-bottom: 1px dotted #ddd;
+        }
+        
+        .toc a {
+            text-decoration: none;
+            color: #333;
+        }
+        
+        .toc a:hover {
+            color: #0066cc;
+        }
+        
+        h1 {
+            color: #0066cc;
+            font-size: 28px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            page-break-before: always;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #0066cc;
+            font-size: 22px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        h3 {
+            color: #333;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        h4 {
+            color: #666;
+            font-size: 16px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+        
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        th {
+            background-color: #0066cc;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .warning {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .code {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #0066cc;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .no-print {
+                display: none;
+            }
+            
+            h1 {
+                page-break-before: always;
+            }
+            
+            table {
+                page-break-inside: avoid;
+            }
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 30px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .print-button:hover {
+            background-color: #0052a3;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button no-print" onclick="window.print()">🖨️ Stampa PDF</button>
+
+    <div class="cover">
+        <h1>DIM</h1>
+        <div class="subtitle">Digital Identity Management</div>
+        <div class="subtitle">Descrizione Funzionale Completa</div>
+        <div class="info">
+            <p><strong>Release:</strong> 1.0.0</p>
+            <p><strong>Data Emissione:</strong> 30/04/2021</p>
+            <p><strong>Stato:</strong> Definitivo</p>
+            <p><strong>Emesso da:</strong> Ingegneria IAM</p>
+            <p style="margin-top: 40px;"><em>Telecom Italia – USO INTERNO – Tutti i diritti riservati</em></p>
+        </div>
+    </div>
+
+    <div class="toc">
+        <h2>Indice</h2>
+        <ul>
+            <li><a href="#intro">1. Introduzione e Scopo</a></li>
+            <li><a href="#perimetro">2. Perimetro di Intervento</a></li>
+            <li><a href="#architettura">3. Architettura</a></li>
+            <li><a href="#profilatura">4. Profilatura Utenti</a></li>
+            <li><a href="#gestione-sistemi">5. Gestione Sistemi di Provisioning</a></li>
+            <li><a href="#gestione-accessi">6. Gestione Accessi</a></li>
+            <li><a href="#governance">7. Governance degli Accessi</a></li>
+            <li><a href="#lifecycle">8. Tool Lifecycle</a></li>
+            <li><a href="#provisioning">9. Gestione Operativa Provisioning</a></li>
+            <li><a href="#sicurezza">10. Sicurezza e Audit</a></li>
+            <li><a href="#integrazioni">11. Integrazioni e Interfacce</a></li>
+            <li><a href="#best-practices">12. Best Practices</a></li>
+            <li><a href="#limitazioni">13. Limitazioni e Vincoli</a></li>
+            <li><a href="#configurazioni">14. Configurazioni Tecniche</a></li>
+            <li><a href="#troubleshooting">15. Troubleshooting</a></li>
+            <li><a href="#appendici">16. Appendici</a></li>
+        </ul>
+    </div>
+
+    <h1 id="intro">1. Introduzione e Scopo</h1>
+    
+    <p><strong>DIM (Digital Identity Management)</strong> è la nuova piattaforma di Identity & Access Management (IAM) di TIM, basata sulla tecnologia <strong>SailPoint IdentityIQ</strong>, destinata a sostituire l'attuale sistema proprietario <strong>IAM Engine</strong>.</p>
+    
+    <p>La piattaforma è progettata per gestire in modo completo il ciclo di vita degli accessi ai sistemi target integrati nello IAM TIM, garantendo:</p>
+    
+    <ul>
+        <li>Controllo centralizzato delle identità digitali</li>
+        <li>Automazione dei processi di provisioning</li>
+        <li>Governance avanzata degli accessi</li>
+        <li>Conformità normativa e audit trail completo</li>
+        <li>Sicurezza e segregazione dei compiti</li>
+    </ul>
+
+    <h1 id="perimetro">2. Perimetro di Intervento (Release 1.0.0)</h1>
+    
+    <p>La prima release copre sistemi con le seguenti caratteristiche:</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Caratteristica</th>
+                <th>Requisito</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Tipo Provisioning</td>
+                <td>IAM Light</td>
+            </tr>
+            <tr>
+                <td>Tipo Sistema</td>
+                <td>Interfaccia Applicativa cat. E (non PCS)</td>
+            </tr>
+            <tr>
+                <td>Autenticazione</td>
+                <td>Password non gestita</td>
+            </tr>
+            <tr>
+                <td>Parametri Aggiuntivi</td>
+                <td>Nessuno su base profilo</td>
+            </tr>
+            <tr>
+                <td>Sorgente Dati</td>
+                <td>Non IDM</td>
+            </tr>
+            <tr>
+                <td>Workflow</td>
+                <td>Senza RPC e GGU_EXT</td>
+            </tr>
+            <tr>
+                <td>VPN</td>
+                <td>Escluse</td>
+            </tr>
+            <tr>
+                <td>Profili</td>
+                <td>Senza incompatibilità/correlazioni</td>
+            </tr>
+            <tr>
+                <td>Target</td>
+                <td>Singolo target per richiesta</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h1 id="architettura">3. Architettura</h1>
+    
+    <h2>3.1 Componenti Principali</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Componente</th>
+                <th>Ruolo</th>
+                <th>Tecnologia</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>DIM (IIQ)</strong></td>
+                <td>Piattaforma core IAM</td>
+                <td>SailPoint IdentityIQ</td>
+            </tr>
+            <tr>
+                <td><strong>OSB12</strong></td>
+                <td>Layer integrazione</td>
+                <td>Oracle Service Bus</td>
+            </tr>
+            <tr>
+                <td><strong>IAM Light</strong></td>
+                <td>Sistema provisioning</td>
+                <td>Custom TIM</td>
+            </tr>
+            <tr>
+                <td><strong>PEI</strong></td>
+                <td>Trasformazione messaggi</td>
+                <td>Custom Integration Layer</td>
+            </tr>
+            <tr>
+                <td><strong>Database DIM</strong></td>
+                <td>Repository consistenze</td>
+                <td>Relazionale</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>3.2 Gestione del Transitorio</h2>
+    
+    <div class="info">
+        <strong>Importante:</strong> Durante la fase transitoria, DIM e IAM Engine operano in modalità <strong>esclusiva ed auto-consistente</strong>, gestendo rispettivamente i propri sistemi integrati senza sovrapposizioni.
+    </div>
+    
+    <p>Caratteristiche fase transitoria:</p>
+    <ul>
+        <li>Nessuna comunicazione automatica tra le due piattaforme</li>
+        <li>Dismissione manuale dei sistemi migrati su IAM Engine</li>
+        <li>Sincronizzazione dati a responsabilità dell'amministratore</li>
+        <li>Periodo di coesistenza limitato e pianificato</li>
+    </ul>
+
+    <h1 id="profilatura">4. Profilatura Utenti</h1>
+    
+    <h2>4.1 Tipologie di Utenti</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Profilo</th>
+                <th>Tipologia Utenti Interni</th>
+                <th>Tipologia Utenti Esterni</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Utente Finale (UF)</strong></td>
+                <td>Dipendente, Dipendente Consociata, Responsabile</td>
+                <td>Outsourcer, Collaboratore Esterno, Responsabile Outsourcer</td>
+            </tr>
+            <tr>
+                <td><strong>Manager</strong></td>
+                <td>Responsabile Gerarchico (RG)</td>
+                <td>Responsabile Outsourcer (RO)</td>
+            </tr>
+            <tr>
+                <td><strong>RPA</strong></td>
+                <td colspan="2">Responsabile Processi Applicativi (per profilo)</td>
+            </tr>
+            <tr>
+                <td><strong>RPA Primario</strong></td>
+                <td colspan="2">Application Owner (per sistema)</td>
+            </tr>
+            <tr>
+                <td><strong>RPR</strong></td>
+                <td colspan="2">Responsabile Processi di Riferimento</td>
+            </tr>
+            <tr>
+                <td><strong>Gestore Sistemistico</strong></td>
+                <td colspan="2">Responsabile aspetti sistemistici profilo</td>
+            </tr>
+            <tr>
+                <td><strong>Gestore Applicativo</strong></td>
+                <td colspan="2">Responsabile aspetti applicativi profilo</td>
+            </tr>
+            <tr>
+                <td><strong>Owner SP</strong></td>
+                <td colspan="2">Owner Schema Profili</td>
+            </tr>
+            <tr>
+                <td><strong>Gestore Schema Profili</strong></td>
+                <td colspan="2">Gestore informazioni schema profili</td>
+            </tr>
+            <tr>
+                <td><strong>GGU</strong></td>
+                <td colspan="2">Gruppo Gestione Utenza (amministratori)</td>
+            </tr>
+            <tr>
+                <td><strong>GA</strong></td>
+                <td colspan="2">Gestore Applicativo (amministratori tecnici)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>4.2 Matrice Competenze per Profilo</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Profilo</th>
+                <th>Gestione Sistemi</th>
+                <th>Gestione Accessi</th>
+                <th>Governance</th>
+                <th>Reportistica</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>UF</strong></td>
+                <td>Consultazione</td>
+                <td>Proprie login</td>
+                <td>-</td>
+                <td>Proprie login</td>
+            </tr>
+            <tr>
+                <td><strong>Manager</strong></td>
+                <td>Consultazione</td>
+                <td>Login sottoposti</td>
+                <td>NCD, Certificazioni</td>
+                <td>Login sottoposti</td>
+            </tr>
+            <tr>
+                <td><strong>RPA</strong></td>
+                <td>Consultazione</td>
+                <td>-</td>
+                <td>Certificazioni</td>
+                <td>Login competenza</td>
+            </tr>
+            <tr>
+                <td><strong>RPA Primario</strong></td>
+                <td>-</td>
+                <td>-</td>
+                <td>NCD, Certificazioni</td>
+                <td>Login applicazione</td>
+            </tr>
+            <tr>
+                <td><strong>Responsabili Profili</strong></td>
+                <td>Consultazione</td>
+                <td>-</td>
+                <td>Certificazioni</td>
+                <td>Login competenza</td>
+            </tr>
+            <tr>
+                <td><strong>Gestore Schema Profili</strong></td>
+                <td>CRUD limitato</td>
+                <td>-</td>
+                <td>-</td>
+                <td>Login competenza</td>
+            </tr>
+            <tr>
+                <td><strong>GGU/GA</strong></td>
+                <td>CRUD completo</td>
+                <td>Batch massive</td>
+                <td>Configurazione completa</td>
+                <td>Globale</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h1 id="gestione-sistemi">5. Gestione Sistemi di Provisioning</h1>
+    
+    <h2>5.1 Schema dei Profili</h2>
+    
+    <p>Il sistema gestisce uno schema completo dei profili per ogni applicazione, comprensivo di:</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Componente</th>
+                <th>Descrizione</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Catalogo MIMIP</strong></td>
+                <td>Anagrafica centralizzata sistemi su cataloghi aziendali</td>
+            </tr>
+            <tr>
+                <td><strong>Gestione Anagrafica</strong></td>
+                <td>Attributi estesi dell'applicazione</td>
+            </tr>
+            <tr>
+                <td><strong>Classe Soggetti Abilitati</strong></td>
+                <td>Catalogo sigle struttura autorizzate</td>
+            </tr>
+            <tr>
+                <td><strong>Gestione Profili</strong></td>
+                <td>CRUD completo profili applicativi</td>
+            </tr>
+            <tr>
+                <td><strong>Gestione RPA</strong></td>
+                <td>Assegnazione responsabili per profilo</td>
+            </tr>
+            <tr>
+                <td><strong>Allegati</strong></td>
+                <td>Documentazione tecnica e funzionale</td>
+            </tr>
+            <tr>
+                <td><strong>Gestione Picklist</strong></td>
+                <td>Valori configurabili per campi</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>5.2 Nuova Integrazione Sistema</h2>
+    
+    <h3>5.2.1 Processo Puntuale</h3>
+    
+    <ol>
+        <li><strong>Definizione Preliminare</strong>
+            <ul>
+                <li>Applicazione → Definizione Applicazione</li>
+                <li>Configurazione dati base SailPoint</li>
+            </ul>
+        </li>
+        <li><strong>Configurazione Connettore</strong>
+            <ul>
+                <li>Settings: puntamenti dati account/profili</li>
+                <li>Schema: Object Type Account e Profile</li>
+            </ul>
+        </li>
+        <li><strong>Direttive Provisioning</strong>
+            <ul>
+                <li>Definizione operazioni (Create, Modify, Delete, Enable, Disable)</li>
+                <li>Configurazione Field per ogni operazione</li>
+                <li>Rule e script di valorizzazione</li>
+            </ul>
+        </li>
+        <li><strong>Schema dei Profili</strong>
+            <ul>
+                <li>Gestione Anagrafica applicazione</li>
+                <li>Creazione profili richiedibili</li>
+                <li>Configurazione RPA e responsabili</li>
+            </ul>
+        </li>
+        <li><strong>Task Aggregazione</strong>
+            <ul>
+                <li>Task Account Aggregation</li>
+                <li>Task Group Aggregation</li>
+                <li>Schedulazione appropriata</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h3>5.2.2 Processo Semi-Automatico (CSV)</h3>
+    
+    <ol>
+        <li><strong>Import Anagrafiche Applicazioni</strong>
+            <ul>
+                <li>File CSV con tracciato predefinito</li>
+                <li>Campo "applicazione_riferimento" per clone configurazioni</li>
+                <li>Validazione sintattica e semantica</li>
+            </ul>
+        </li>
+        <li><strong>Import Profili</strong>
+            <ul>
+                <li>File CSV profili per applicazione</li>
+                <li>Template scaricabile con guida</li>
+            </ul>
+        </li>
+        <li><strong>Catalogo MIMIP</strong>
+            <ul>
+                <li>Valorizzazione manuale schede</li>
+            </ul>
+        </li>
+    </ol>
+
+    <div class="warning">
+        <strong>Attenzione:</strong> Le direttive di provisioning importate sono copia dell'applicazione di riferimento. È obbligatorio verificarle e modificarle secondo le esigenze del nuovo sistema.
+    </div>
+
+    <h2>5.3 Migrazione da IAM Engine</h2>
+    
+    <h3>5.3.1 Step 1 - Data Migration Tool (DMT)</h3>
+    
+    <p><strong>Prerequisiti:</strong></p>
+    <ul>
+        <li>RPA Primario assegnato su IAM Engine</li>
+        <li>Sistema attivo e configurato su IAM Engine</li>
+    </ul>
+    
+    <p><strong>Processo:</strong></p>
+    <ol>
+        <li>Accesso Console Build Automation</li>
+        <li>Avvio processo "Data Migration Tool"</li>
+        <li>Upload file CSV con lista applicazioni da migrare</li>
+        <li>Configurazione parametro flgOverwrite (Y/N)</li>
+        <li>Salvataggio chiave di risposta per log</li>
+    </ol>
+    
+    <p><strong>Output:</strong></p>
+    <ul>
+        <li><code>Applications.csv</code> - Configurazioni applicazioni</li>
+        <li><code>&lt;Applicazione&gt;#$#Account.csv</code> - Dati account</li>
+        <li><code>&lt;Applicazione&gt;#$#Profile.csv</code> - Dati profili</li>
+        <li><code>application_processed.csv</code> - Log elaborazioni</li>
+        <li><code>incongruences.csv</code> - Dati scartati</li>
+    </ul>
+
+    <h3>5.3.2 Step 2 - Application Builder</h3>
+    
+    <p><strong>Processo:</strong></p>
+    <ol>
+        <li>Accesso DIM con utente GA</li>
+        <li>Setup → Tasks</li>
+        <li>Esecuzione "TIM Import Application Builder Create"</li>
+        <li>Verifica risultati in Task Results</li>
+        <li>Controllo task aggregazione creati e avviati</li>
+    </ol>
+    
+    <p><strong>Verifiche Post-Import:</strong></p>
+    <ul>
+        <li>Applications → Application Definition → Dettagli applicazione</li>
+        <li>Verifica attributi estesi schema profili</li>
+        <li>Controllo configurazione connettore</li>
+        <li>Validazione schema (Object Types)</li>
+        <li>Verifica direttive provisioning (ogni Field)</li>
+        <li>Controllo account importati</li>
+        <li>Verifica profili in Entitlement Catalog</li>
+        <li>Valorizzazione catalogo MIMIP</li>
+    </ul>
+
+    <div class="info">
+        <strong>Nota:</strong> Dopo il primo import, eseguire sempre "TIM Import Application Builder Update" per storicizzare i file elaborati.
+    </div>
+
+    <h2>5.4 Lavorazione da File</h2>
+    
+    <p>Funzionalità per gestione massiva tramite QuickLink <strong>Amministrazione TIM → Lavorazione da File</strong>.</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Tipologia Import</th>
+                <th>Descrizione</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Anagrafiche Applicazioni</td>
+                <td>Creazione/modifica massiva sistemi</td>
+            </tr>
+            <tr>
+                <td>Profili Interfaccia Applicativa</td>
+                <td>Creazione/modifica massiva profili</td>
+            </tr>
+            <tr>
+                <td>Nomina e Revoca Responsabili</td>
+                <td>Gestione RPA, RPR, GS, GA, Owner SP, Gestore Schema</td>
+            </tr>
+            <tr>
+                <td>Nomina RPA Primario</td>
+                <td>Assegnazione Application Owner</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <p><strong>Campi Obbligatori Lavorazione:</strong></p>
+    <ul>
+        <li><strong>Autorizzatore:</strong> Identità autorizzante</li>
+        <li><strong>File di autorizzazione:</strong> Documento allegato</li>
+        <li><strong>Note:</strong> Riferimenti (es. ticket Remedy)</li>
+        <li><strong>File di import:</strong> CSV con tracciato specifico</li>
+    </ul>
+    
+    <p>Template e guide scaricabili dall'interfaccia. Validazione sintattica e semantica automatica.</p>
+
+    <h2>5.5 Stati del Sistema</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Stato</th>
+                <th>Descrizione</th>
+                <th>Impatto</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Attivo</strong></td>
+                <td>Disponibile per provisioning</td>
+                <td>Richieste elaborate normalmente</td>
+            </tr>
+            <tr>
+                <td><strong>In Manutenzione</strong></td>
+                <td>Flag "Maintenance Enabled"</td>
+                <td>Non visibile in GUI, provisioning bloccato (richieste accodate)</td>
+            </tr>
+            <tr>
+                <td><strong>Cancellato</strong></td>
+                <td>Eliminazione fisica</td>
+                <td>Possibile solo senza oggetti correlati</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h1 id="gestione-accessi">6. Gestione Accessi</h1>
+    
+    <h2>6.1 Lifecycle Management (LCM)</h2>
+    
+    <h3>6.1.1 Operazioni Supportate</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Operazione</th>
+                <th>Account Standard</th>
+                <th>Account Non-Standard</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Creazione Account</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td>Modifica Profili</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td>Variazione Anagrafica</td>
+                <td>-</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td>Proroga Scadenza</td>
+                <td>✓</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>Abilitazione/Disabilitazione</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td>Riattivazione Inattività</td>
+                <td>✓</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>Cancellazione</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>6.1.2 Workflow Autorizzativi</h3>
+    
+    <p><strong>Default Account Standard:</strong></p>
+    <div class="code">Richiedente → RG (Manager) → Provisioning Automatico</div>
+    
+    <p><strong>Default Account Non-Standard:</strong></p>
+    <div class="code">Richiedente → RG (Manager) → RPA Primario → Provisioning</div>
+    
+    <div class="info">
+        <strong>Configurazione:</strong> Amministrazione TIM → Configurazione Workflow<br>
+        Possibilità di deroghe per singola applicazione.
+    </div>
+
+    <h3>6.1.3 Modalità di Richiesta</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Modalità</th>
+                <th>Interfaccia</th>
+                <th>Utenti</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Web GUI Puntuale</strong></td>
+                <td>Gestisci Accessi → Gestione Account</td>
+                <td>UF, Manager</td>
+            </tr>
+            <tr>
+                <td><strong>Batch Request</strong></td>
+                <td>Amministrazione TIM → Batch Request → Login</td>
+                <td>GGU, GA, Manager</td>
+            </tr>
+            <tr>
+                <td><strong>NCD</strong></td>
+                <td>Automatico da aggregazione</td>
+                <td>Sistema</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>6.1.4 Stati Richiesta</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Stato</th>
+                <th>Significato</th>
+                <th>Azioni Disponibili</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>In Attesa</strong></td>
+                <td>Pending approvazione</td>
+                <td>Sollecito via email approvatore</td>
+            </tr>
+            <tr>
+                <td><strong>Provisioning</strong></td>
+                <td>In elaborazione verso target</td>
+                <td>Monitoraggio</td>
+            </tr>
+            <tr>
+                <td><strong>Retry</strong></td>
+                <td>In rielaborazione (possibile errore)</td>
+                <td>Verifica Pending AS</td>
+            </tr>
+            <tr>
+                <td><strong>Completato</strong></td>
+                <td>Esito positivo</td>
+                <td>Consultazione</td>
+            </tr>
+            <tr>
+                <td><strong>Non Riuscito</strong></td>
+                <td>Esito negativo confermato</td>
+                <td>Consultazione dettaglio errore</td>
+            </tr>
+            <tr>
+                <td><strong>Rifiutato</strong></td>
+                <td>Negato in fase autorizzativa</td>
+                <td>Consultazione motivazioni</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>6.2 Batch Request</h2>
+    
+    <p><strong>Tipologie Lavorazione Massiva:</strong></p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Tipologia</th>
+                <th>Descrizione</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>DB e Provisioning</td>
+                <td>Aggiorna DIM + provisioning target</td>
+            </tr>
+            <tr>
+                <td>Solo DB</td>
+                <td>Aggiorna solo DIM (no provisioning)</td>
+            </tr>
+            <tr>
+                <td>Solo Provisioning</td>
+                <td>Provisioning target (DB già aggiornato)</td>
+            </tr>
+            <tr>
+                <td>Solo Provisioning Non Controllato</td>
+                <td>Provisioning senza validazioni semantiche</td>
+            </tr>
+            <tr>
+                <td>DB e Provisioning Manuale</td>
+                <td>Genera Work Item manuale, aggiorna DB post-approvazione</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <p><strong>Processo:</strong></p>
+    <ol>
+        <li>Upload file CSV con tracciato specifico per operazione</li>
+        <li>Allegato autorizzativo obbligatorio</li>
+        <li>Validazione sintattica immediata</li>
+        <li>Validazione semantica via task schedulato</li>
+        <li>Generazione richieste auto-approvate</li>
+        <li>Monitoraggio in "Visualizza Lavorazione"</li>
+    </ol>
+
+    <div class="info">
+        <strong>Campo Data Elaborazione:</strong> Possibilità di schedulare elaborazione tuple a data/ora futura.
+    </div>
+
+    <h1 id="governance">7. Governance degli Accessi</h1>
+    
+    <h2>7.1 Certificazioni</h2>
+    
+    <h3>7.1.1 Modelli Disponibili</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Modello</th>
+                <th>Certificatore</th>
+                <th>Scope</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>TIM Standard Login</strong></td>
+                <td>Manager (RG/RO)</td>
+                <td>Account Standard</td>
+                <td>Conferma / Cancellazione</td>
+            </tr>
+            <tr>
+                <td><strong>TIM NON Standard Login</strong></td>
+                <td>RPA Primario</td>
+                <td>Account M2M e Sistema</td>
+                <td>Conferma / Cancellazione</td>
+            </tr>
+            <tr>
+                <td><strong>Profile Owners (mono-profilo)</strong></td>
+                <td>Responsabili Schema Profili</td>
+                <td>App mono-profilo</td>
+                <td>Conferma / Cancellazione</td>
+            </tr>
+            <tr>
+                <td><strong>Profile Owners (multi-profilo)</strong></td>
+                <td>Responsabili Schema Profili</td>
+                <td>App multi-profilo</td>
+                <td>Conferma / Dissociazione profilo</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>7.1.2 Ciclo di Vita Certificazione</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Fase</th>
+                <th>Durata Default</th>
+                <th>Attività</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Staging</strong></td>
+                <td>-</td>
+                <td>Configurazione e verifica parametri</td>
+            </tr>
+            <tr>
+                <td><strong>Active Period</strong></td>
+                <td>30 giorni</td>
+                <td>Lavorazione item da parte certificatori</td>
+            </tr>
+            <tr>
+                <td><strong>Challenge Period</strong></td>
+                <td>7 giorni</td>
+                <td>Contestazione decisioni da parte titolari</td>
+            </tr>
+            <tr>
+                <td><strong>Sign-Off</strong></td>
+                <td>-</td>
+                <td>Firma certificatore (disponibile da Active Period)</td>
+            </tr>
+            <tr>
+                <td><strong>Revocation</strong></td>
+                <td>7 giorni</td>
+                <td>Esecuzione revoche approvate</td>
+            </tr>
+            <tr>
+                <td><strong>Closed</strong></td>
+                <td>-</td>
+                <td>Certificazione completata</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="warning">
+        <strong>Attenzione Template al Primo Utilizzo:</strong><br>
+        Non annullare certificazione in Staging al primo utilizzo, altrimenti il template viene perso irreversibilmente. Se necessario annullare, prima eseguire nuovamente per renderla disponibile nella sezione Certificazioni.
+    </div>
+
+    <h3>7.1.3 Operatività Certificatore</h3>
+    
+    <p><strong>Sezione:</strong> Il Mio Lavoro → Controlli di Accesso</p>
+    
+    <p><strong>Azioni per Item:</strong></p>
+    <ul>
+        <li><strong>Approva:</strong> Conferma mantenimento accesso</li>
+        <li><strong>Revoca:</strong> Richiesta cancellazione login o dissociazione profilo</li>
+        <li><strong>Forward:</strong> Delega lavorazione ad altro utente</li>
+    </ul>
+    
+    <p><strong>Sign-Off Obbligatorio:</strong></p>
+    <ul>
+        <li>Disponibile dopo aver lavorato tutti gli item</li>
+        <li>Necessario per procedere a Revocation Phase</li>
+        <li>Item non lavorati: auto-approvazione automatica</li>
+    </ul>
+
+    <h3>7.1.4 Challenge</h3>
+    
+    <p>Fase opzionale in cui il titolare della login può contestare decisione di revoca:</p>
+    
+    <ol>
+        <li>Titolare riceve notifica decisione revoca</li>
+        <li>Può inviare challenge motivata al certificatore</li>
+        <li>Certificatore riceve challenge e può:
+            <ul>
+                <li>Confermare revoca (motivando)</li>
+                <li>Cambiare decisione in approvazione</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h2>7.2 Native Change Detection (NCD)</h2>
+    
+    <h3>7.2.1 Scopo</h3>
+    <p>Rilevare e sanare inconsistenze tra consistenza DIM e dati effettivi sui sistemi target.</p>
+
+    <h3>7.2.2 Configurazione Globale</h3>
+    
+    <div class="code">
+Setup → Lifecycle Events
+  TIM NCD Manager Approval Lifecycle
+    ☑ Abilitato (Disabled = non selezionato)
+
+Setup → Tasks → Refresh Identity Cube
+  ☑ Process Events (obbligatorio)
+  Schedulazione: Ogni 4 ore
+
+Global Settings → IdentityIQ Configuration → Work Items
+  Work Item Archives:
+    ☑ Approval (per audit)
+    </div>
+
+    <h3>7.2.3 Configurazione per Applicazione</h3>
+    
+    <div class="code">
+Applications → Application Definition → [Applicazione]
+
+☑ Riconoscimento Modifiche Native
+
+Operazioni da rilevare:
+  ☑ Crea    (login su target, non su DIM)
+  ☑ Modifica (disallineamenti attributi)
+  ☑ Elimina  (login su DIM, non su target)
+
+Attributi da Riconoscere (User Defined - Default):
+  - nome_utenza
+  - matricola
+  - profili
+  - disable
+  - locked
+    </div>
+
+    <div class="warning">
+        <strong>Importante:</strong> NCD rileva solo modifiche su attributi configurati. Modifiche su altri attributi non generano item di approvazione.
+    </div>
+
+    <h3>7.2.4 Processo Operativo</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Step</th>
+                <th>Attività</th>
+                <th>Responsabile</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1. Aggregazione</td>
+                <td>Task legge dati da target e aggiorna DIM</td>
+                <td>Sistema</td>
+            </tr>
+            <tr>
+                <td>2. Rilevamento</td>
+                <td>Refresh Identity Cube identifica differenze</td>
+                <td>Sistema</td>
+            </tr>
+            <tr>
+                <td>3. Generazione Item</td>
+                <td>Creazione work item con dettaglio modifiche</td>
+                <td>Sistema</td>
+            </tr>
+            <tr>
+                <td>4. Approvazione Manager</td>
+                <td>Prima approvazione (tracciamento con commento)</td>
+                <td>Manager (RG/RO)</td>
+            </tr>
+            <tr>
+                <td>5. Decisione RPA Primario</td>
+                <td>Decisione finale vincolante</td>
+                <td>RPA Primario</td>
+            </tr>
+            <tr>
+                <td>6. Azione Conseguente</td>
+                <td>Conferma aggiornamento o rollback</td>
+                <td>Sistema</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>7.2.5 Casi d'Uso</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Situazione</th>
+                <th>RPA Approva</th>
+                <th>RPA Nega</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Login su DIM, non su Target</td>
+                <td>Cancella su DIM</td>
+                <td>Crea su Target</td>
+            </tr>
+            <tr>
+                <td>Login su Target, non su DIM</td>
+                <td>Crea su DIM (Standard/M2M)</td>
+                <td>Cancella su Target</td>
+            </tr>
+            <tr>
+                <td>Disallineamento attributi</td>
+                <td>Aggiorna DIM</td>
+                <td>Ripristina Target</td>
+            </tr>
+            <tr>
+                <td>Profilo non censito su DIM</td>
+                <td>Crea profilo + associa (da completare manualmente)</td>
+                <td>Dissocia da Target</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="info">
+        <strong>Profili Non Censiti:</strong><br>
+        Quando NCD rileva profilo non presente a catalogo, l'approvazione crea automaticamente il profilo con campi minimi (Nome, Richiedibile=Y, Privilegiato=N). 
+        <strong>GGU deve completare schema profili manualmente.</strong><br>
+        Report "TIM Login/Profile Detail" indica origine="Aggregazione" e "Censito in Schema Profili=NO".
+    </div>
+
+    <h2>7.3 Reportistica</h2>
+    
+    <h3>7.3.1 Categorie Report</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Categoria</th>
+                <th>Report Principali</th>
+                <th>Visibilità</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Access Review</strong></td>
+                <td>TIM [Ruolo] Access Review Live Report</td>
+                <td>Per competenza</td>
+            </tr>
+            <tr>
+                <td><strong>Profile Owner</strong></td>
+                <td>TIM [Ruolo] Login Report</td>
+                <td>Per competenza</td>
+            </tr>
+            <tr>
+                <td><strong>Audit (196/152)</strong></td>
+                <td>Report 196, Report 152</td>
+                <td>GGU, GA</td>
+            </tr>
+            <tr>
+                <td><strong>Batch Request</strong></td>
+                <td>TIM Persona/Login [Operazione] Batch Request</td>
+                <td>Per competenza</td>
+            </tr>
+            <tr>
+                <td><strong>Schema Profili</strong></td>
+                <td>Schema Profili Report</td>
+                <td>Tutti gli utenti</td>
+            </tr>
+            <tr>
+                <td><strong>Identity Report</strong></td>
+                <td>TIM Identity Report Batch Request</td>
+                <td>Manager, GGU, GA</td>
+            </tr>
+            <tr>
+                <td><strong>Login/Profiles</strong></td>
+                <td>TIM Login/Profiles Detail</td>
+                <td>GGU, GA</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>7.3.2 Report Compliance</h3>
+    
+    <p><strong>Report 196 - Fotografia Statica Account Attivi</strong></p>
+    <div class="code">
+Tracciato:
+Applicazione, Codice Applicazione, Nome Utenza, Matricola, 
+Tipo Account, Profili, Nome Identità, Cognome Identità, Sigla Funzionale
+    </div>
+    
+    <p><strong>Report 152 - Login OLO Ultimi 6 Mesi</strong></p>
+    <div class="code">
+Tracciato:
+User ID/Matricola, Nome, Cognome, Profilo Abilitazione,
+Funzione Appartenenza, Data Abilitazione, Data Disabilitazione,
+Modifica Profilo, Data Modifica Profilo
+    </div>
+    
+    <p><strong>Finalità:</strong> Compliance Delibera 152/02/CONS e D.Lgs. 196/03</p>
+
+    <h3>7.3.3 Personalizzazione Report</h3>
+    
+    <p><strong>Processo:</strong></p>
+    <ol>
+        <li>Intelligence → Rapporti → Selezione template</li>
+        <li>Configurazione filtri ricerca</li>
+        <li>Personalizzazione campi e ordinamento</li>
+        <li>Salvataggio in "I Miei Rapporti"</li>
+        <li>Possibilità schedulazione esecuzioni periodiche</li>
+    </ol>
+
+    <h1 id="lifecycle">8. Tool Lifecycle</h1>
+    
+    <h2>8.1 Scadenza Identità</h2>
+    
+    <p><strong>Task:</strong> TIMUserExpirationManagement</p>
+    
+    <p><strong>Parametri Configurabili:</strong></p>
+    <ul>
+        <li>Intervallo notifiche: 15,10,7,5,3,2,1 giorni prima (default)</li>
+        <li>Periodo deroga (gracePeriod): 7 giorni (default)</li>
+    </ul>
+    
+    <p><strong>Processo:</strong></p>
+    <ol>
+        <li>Invio email preavviso a scadenze configurate</li>
+        <li>Periodo deroga post-scadenza per proroga</li>
+        <li>Al termine deroga:
+            <ul>
+                <li><strong>Account Standard:</strong> Generazione richiesta cancellazione automatica</li>
+                <li><strong>Account Non-Standard:</strong> Generazione richiesta variazione anagrafica (pending RPA Primario)</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h2>8.2 Scadenza Account</h2>
+    
+    <p><strong>Task:</strong> TIMAccountExpirationManagement</p>
+    <p><strong>Applicabilità:</strong> Solo account <strong>STANDARD</strong></p>
+    
+    <p><strong>Parametri Configurabili:</strong></p>
+    <ul>
+        <li>Intervallo notifiche: 15,10,7,5,3,2,1 giorni prima (default)</li>
+        <li>Periodo deroga (gracePeriod): 7 giorni (default)</li>
+    </ul>
+    
+    <p><strong>Processo:</strong></p>
+    <ol>
+        <li>Invio email preavviso a titolare e manager</li>
+        <li>Periodo deroga per richiesta proroga</li>
+        <li>Al termine deroga: Generazione richiesta cancellazione automatica</li>
+    </ol>
+
+    <h2>8.3 Blocco per Inattività</h2>
+    
+    <p><strong>Task:</strong> TIMInactivityBlockManagement</p>
+    <p><strong>Applicabilità:</strong> Solo account <strong>STANDARD</strong></p>
+    
+    <h3>8.3.1 Fonti Dati</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Frequenza</th>
+                <th>Utilizzo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>IAMLight_YYYYMMDD.txt</td>
+                <td>2x giorno (05:03, 21:00)</td>
+                <td>Aggiornamento data last_login</td>
+            </tr>
+            <tr>
+                <td>&lt;App&gt;_scaduti_YYYYMMGG.txt</td>
+                <td>2x giorno</td>
+                <td>Lista login da bloccare per inattività</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>8.3.2 Parametri Configurabili</h3>
+    
+    <p><strong>Trasversali (Business Process):</strong></p>
+    <ul>
+        <li>Giorni di blocco per inattività: es. 90</li>
+        <li>Massimo richieste blocco per elaborazione: es. 100</li>
+        <li>Giorni preavviso notifiche: 15,10,7,5,3,2,1 (default)</li>
+        <li>Giorni tolleranza blocco: 7 (default)</li>
+    </ul>
+    
+    <p><strong>Dedicati per Applicazione (Attributi Estesi):</strong></p>
+    <ul>
+        <li>Nome e path file scaduti specifico</li>
+        <li>Deroga operazione blocco (booleano)</li>
+        <li>Massimo richieste blocco per app</li>
+        <li>Giorni inattività specifici app</li>
+    </ul>
+
+    <h3>8.3.3 Processo</h3>
+    
+    <ol>
+        <li>Verifica deroga sistema (se configurata, skip)</li>
+        <li>Recupero file lista login da bloccare</li>
+        <li>Aggiornamento last_login da file dettagli account</li>
+        <li>Invio notifiche preavviso (se giorni tolleranza non superati)</li>
+        <li>Generazione richiesta blocco automatica (locked=true, disabled=false)</li>
+    </ol>
+
+    <div class="info">
+        <strong>Riattivazione:</strong> Tramite richiesta specifica con workflow autorizzativo (RG → Provisioning).<br>
+        <strong>Cancellazione:</strong> Preferibile via certificazione (con visibilità last_login su item).
+    </div>
+
+    <h2>8.4 Schedulazione Consigliata Tool Lifecycle</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Task</th>
+                <th>Orario Consigliato</th>
+                <th>Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>TIMUserExpirationManagement</td>
+                <td>02:00</td>
+                <td>Evita sovrapposizioni con aggregazioni</td>
+            </tr>
+            <tr>
+                <td>TIMAccountExpirationManagement</td>
+                <td>03:00</td>
+                <td>Dopo gestione scadenza identità</td>
+            </tr>
+            <tr>
+                <td>TIMInactivityBlockManagement</td>
+                <td>04:00</td>
+                <td>Dopo disponibilità file IAM Light (21:00)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h1 id="provisioning">9. Gestione Operativa Provisioning</h1>
+    
+    <h2>9.1 Architettura Provisioning</h2>
+    
+    <p><strong>Flusso Send Message:</strong></p>
+    <ol>
+        <li>Creazione richiesta post-approvazione su IIQ</li>
+        <li>Interceptor IntegrationConfig</li>
+        <li>Invoke service REST PEI con Client</li>
+        <li>Request verso PEI</li>
+        <li>Elaborazione per costruzione messaggio SOAP</li>
+        <li>Accodamento messaggio su OSB12c</li>
+        <li>Verifica accodamento</li>
+        <li>Invoke IIQ per esito accodamento</li>
+        <li>Analisi esito accodamento</li>
+        <li>Aggiornamento esito su IdentityRequest</li>
+    </ol>
+    
+    <p><strong>Flusso Receive Message (Asincrono):</strong></p>
+    <ol>
+        <li>Polling sulle code OSB12c</li>
+        <li>Ricezione esito da target via OSB</li>
+        <li>Elaborazione PEI</li>
+        <li>Invoke servizio REST IIQ per invio esito</li>
+        <li>Elaborazione esito</li>
+        <li>Aggiornamento IdentityRequest</li>
+        <li>Task "Perform Identity Request Maintenance"</li>
+        <li>Risposta aggiornamento esito</li>
+        <li>Commit/Rollback messaggio in coda</li>
+    </ol>
+
+    <h2>9.2 Gestione Transazioni</h2>
+    
+    <p><strong>Stati Transazione:</strong></p>
+    <table>
+        <thead>
+            <tr>
+                <th>Stato</th>
+                <th>Significato</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Queued</td>
+                <td>Accodata per invio</td>
+            </tr>
+            <tr>
+                <td>Sent</td>
+                <td>Inviata a OSB</td>
+            </tr>
+            <tr>
+                <td>Success</td>
+                <td>Esito positivo da target</td>
+            </tr>
+            <tr>
+                <td>Failed</td>
+                <td>Esito negativo</td>
+            </tr>
+            <tr>
+                <td>Failed_Pending</td>
+                <td>In attesa gestione errore</td>
+            </tr>
+            <tr>
+                <td>Retry</td>
+                <td>In attesa rielaborazione</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><strong>Processo Multi-Transazione:</strong></p>
+    <ul>
+        <li>N transazioni per N operazioni elementari</li>
+        <li>Elaborazione sequenziale</li>
+        <li>Attesa esito asincrono per ogni transazione</li>
+        <li>Aggiornamento consistenza al completamento tutte</li>
+    </ul>
+
+    <h2>9.3 Aggiornamento Consistenza</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Tipologia Provisioning</th>
+                <th>Comportamento</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Automatico</strong></td>
+                <td>
+                    <ul>
+                        <li>Esito OK da target → Richiesta Committed</li>
+                        <li>Aggiornamento consistenza DIM automatico</li>
+                        <li>Nessun work item manuale</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Manuale (LCM/NCD)</strong></td>
+                <td>
+                    <ul>
+                        <li>Generazione Work Item Manuale</li>
+                        <li>Aggiornamento consistenza post-approvazione work item</li>
+                        <li>Alert operatore per allineamento target</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Manuale (Certificazioni)</strong></td>
+                <td>
+                    <ul>
+                        <li>Aggiornamento consistenza immediato</li>
+                        <li>Work Item "informativo" successivo</li>
+                        <li>NCD rileva eventuale disallineamento (se abilitata)</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Operazioni Istantanee</strong></td>
+                <td>
+                    <ul>
+                        <li>Aggiornamento consistenza immediato anche se manuale</li>
+                        <li>Nessun Work Item generato</li>
+                    </ul>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="warning">
+        <strong>Prerequisito:</strong> Task "Perform Identity Request Maintenance" deve essere schedulato correttamente (ogni 30 min consigliato) per completamento richieste.
+    </div>
+
+    <h2>9.4 Gestione Errori (Pending AS)</h2>
+    
+    <h3>9.4.1 Cause Pending AS</h3>
+    <ul>
+        <li>Timeout risposta da OSB/target</li>
+        <li>Esito KO da target</li>
+        <li>Malformazione richiesta (configurazioni errate)</li>
+    </ul>
+    
+    <h3>9.4.2 Identificazione</h3>
+    <ul>
+        <li>Richiesta in stato: <strong>Retry</strong></li>
+        <li>Transazione in stato: <strong>Failed_Pending</strong></li>
+        <li>Visibilità: Il Mio Lavoro → Elementi di Lavoro (WorkgroupGGU)</li>
+    </ul>
+
+    <h3>9.4.3 Azioni Disponibili</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Azione</th>
+                <th>Effetto</th>
+                <th>Rischi</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Forza Esito OK</strong></td>
+                <td>
+                    <ul>
+                        <li>Chiusura richiesta in "Committed"</li>
+                        <li>Scrittura consistenza DIM</li>
+                        <li>Tutte transazioni forzate OK</li>
+                        <li>Commento obbligatorio</li>
+                    </ul>
+                </td>
+                <td>
+                    <div class="warning">
+                        ⚠️ Genera disallineamento DIM-Target<br>
+                        ⚠️ Transazioni successive non inviate
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Conferma Esito KO</strong></td>
+                <td>
+                    <ul>
+                        <li>Conferma fallimento</li>
+                        <li>Stato "Failed"</li>
+                        <li>Nessuna scrittura consistenza</li>
+                    </ul>
+                </td>
+                <td>
+                    <div class="warning">
+                        ⚠️ Se transazione non prima, possibile disallineamento
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Reinoltra Transaction</strong></td>
+                <td>
+                    <ul>
+                        <li>Reinoltro singola transazione failed_pending</li>
+                        <li>Usa parametri originali</li>
+                        <li>Nuova Pending AS se nuovo errore</li>
+                    </ul>
+                </td>
+                <td>
+                    <div class="info">
+                        ✓ Soluzione preferibile per errori temporanei
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Reinoltra Richiesta</strong></td>
+                <td>
+                    <ul>
+                        <li>Disponibile solo se:
+                            <ul>
+                                <li>Richiesta con 1 sola transazione</li>
+                                <li>Errore su prima transazione</li>
+                            </ul>
+                        </li>
+                        <li>Possibilità modifica parametri direttive</li>
+                        <li>Nuova Pending AS se nuovo errore</li>
+                    </ul>
+                </td>
+                <td>
+                    <div class="info">
+                        ✓ Utile per correggere configurazioni errate
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h1 id="sicurezza">10. Sicurezza e Audit</h1>
+    
+    <h2>10.1 Tracciamento Operazioni</h2>
+    
+    <h3>10.1.1 Audit Schemi Profili</h3>
+    
+    <p><strong>Accesso:</strong> Intelligence → Analisi Avanzate → Tipo Ricerca "Ricerca Audit"</p>
+    
+    <p><strong>Eventi Tracciati:</strong></p>
+    <ul>
+        <li>GestioneAnagrafica</li>
+        <li>CreazioneProfiloSchemiProfili</li>
+        <li>EliminazioneProfiloSchemiProfili</li>
+        <li>ModificaClasseSoggettiAbilitati</li>
+        <li>ModificaVincoli</li>
+        <li>ModificaFunzionalità</li>
+        <li>NominaRPA / RevocaRPA</li>
+        <li>ConfermaSchemiProfili</li>
+    </ul>
+    
+    <p><strong>Dettagli Disponibili:</strong></p>
+    <ul>
+        <li>Operatore (matricola)</li>
+        <li>Data e ora operazione</li>
+        <li>Attributi modificati (before/after)</li>
+        <li>Sistema/Profilo coinvolto</li>
+        <li>Export formato CEF</li>
+    </ul>
+
+    <h3>10.1.2 Notifiche Email</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Contesto</th>
+                <th>Tipologie Notifiche</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Gestione Accessi (LCM)</strong></td>
+                <td>
+                    <ul>
+                        <li>Approvatore: Notifica richiesta pending</li>
+                        <li>Utente titolare: Notifica esito (approvata/rigettata)</li>
+                        <li>Richiedente: Notifica esito</li>
+                        <li>Template specifici per ogni operazione</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Certificazioni</strong></td>
+                <td>
+                    <ul>
+                        <li>Inizio campagna (Active Phase)</li>
+                        <li>Reminder/Escalation lavorazione</li>
+                        <li>Inizio/Fine Challenge Period</li>
+                        <li>Creazione/Accettazione/Rifiuto challenge</li>
+                        <li>Sign-off e riepilogo operazioni</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Schemi Profili</strong></td>
+                <td>
+                    <ul>
+                        <li>Nomina/Revoca RPA</li>
+                        <li>Variazione classe soggetti abilitati</li>
+                        <li>Variazione vincoli/funzionalità</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Lifecycle Tools</strong></td>
+                <td>
+                    <ul>
+                        <li>Preavviso scadenza (identità/account/inattività)</li>
+                        <li>Conferma operazioni automatiche</li>
+                        <li>Alert a manager e titolari</li>
+                    </ul>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h1 id="integrazioni">11. Integrazioni e Interfacce</h1>
+    
+    <h2>11.1 IAM Light</h2>
+    
+    <p><strong>Funzione:</strong> Sistema di provisioning per target categoria E</p>
+    
+    <h3>11.1.1 File Giornalieri</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Frequenza</th>
+                <th>Orari</th>
+                <th>Utilizzo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>IAMLight_YYYYMMDD.txt</td>
+                <td>2x giorno</td>
+                <td>05:03, 21:00</td>
+                <td>Aggregazione, NCD, Blocco inattività</td>
+            </tr>
+            <tr>
+                <td>&lt;App&gt;_scaduti_YYYYMMGG.txt</td>
+                <td>2x giorno</td>
+                <td>05:03, 21:00</td>
+                <td>Blocco per inattività</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <p><strong>Tracciato IAMLight_YYYYMMDD.txt:</strong></p>
+    <div class="code">
+matricola;userid;nome;cognome;codice-sistema;codice-profilo;
+stato-account;dettaglio-stato-account;data-cancellazione;
+data-creazione-account;data-last-login
+    </div>
+    
+    <p><strong>Tracciato &lt;App&gt;_scaduti_YYYYMMGG.txt:</strong></p>
+    <div class="code">
+matricola;userid;codice-sistema
+    </div>
+
+    <h3>11.1.2 Task DIM Correlati</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Task</th>
+                <th>Schedulazione</th>
+                <th>Funzione</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>TIMNativeImporterIamLight</td>
+                <td>22:00</td>
+                <td>Recupero file, predisposizione dati</td>
+            </tr>
+            <tr>
+                <td>&lt;App&gt; TIM Account Aggregation</td>
+                <td>23:00</td>
+                <td>Aggregazione account per applicazione</td>
+            </tr>
+            <tr>
+                <td>&lt;App&gt; TIM Group Aggregation</td>
+                <td>23:30</td>
+                <td>Aggregazione profili, associazione RPA</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>11.2 Oracle Service Bus (OSB12c)</h2>
+    
+    <p><strong>Funzione:</strong> Layer integrazione tra DIM e sistemi target</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Aspetto</th>
+                <th>Dettaglio</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Protocollo</strong></td>
+                <td>REST (DIM → PEI) → SOAP (PEI → OSB)</td>
+            </tr>
+            <tr>
+                <td><strong>Modalità</strong></td>
+                <td>Asincrona</td>
+            </tr>
+            <tr>
+                <td><strong>Code</strong></td>
+                <td>Invio comandi / Ricezione esiti</td>
+            </tr>
+            <tr>
+                <td><strong>Gestione</strong></td>
+                <td>Accodamento, routing, retry, timeout</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h1 id="best-practices">12. Best Practices e Raccomandazioni</h1>
+    
+    <h2>12.1 Configurazione Sistemi</h2>
+    
+    <h3>12.1.1 Nuova Integrazione</h3>
+    <ol>
+        <li>Utilizzare template application di riferimento o TEMPLATE_RELEASE_1_0_0</li>
+        <li>Configurare sempre RPA Primario prima della migrazione</li>
+        <li>Verificare direttive provisioning dopo import</li>
+        <li>Testare task aggregazione prima attivazione NCD</li>
+        <li>Validare schema profili con stakeholder</li>
+    </ol>
+
+    <h3>12.1.2 Migrazione da IAM Engine</h3>
+    <ol>
+        <li>Assegnare RPA Primario su IAM Engine prima migrazione</li>
+        <li>Verificare file CSV generati da DMT</li>
+        <li>Controllare alberatura cartelle e file account/profili</li>
+        <li>Analizzare file "incongruences.csv"</li>
+        <li>Eseguire Application Builder solo dopo verifica DMT</li>
+        <li>Validare creazione task aggregazione</li>
+        <li>Verificare attributi estesi schemi profili</li>
+        <li>Confermare catalogo MIMIP</li>
+        <li>Dismettere sistema su IAM Engine solo dopo test completi</li>
+    </ol>
+
+    <h2>12.2 Governance</h2>
+    
+    <h3>12.2.1 Certificazioni</h3>
+    <ul>
+        <li>Utilizzare sempre <strong>tag</strong> per identificare campagne</li>
+        <li><strong>Non annullare</strong> prima certificazione in Staging (perdita template)</li>
+        <li>Configurare notifiche reminder/escalation</li>
+        <li>Non modificare Exclusion Rule senza "Save As"</li>
+        <li>Sign-off obbligatorio per completare certificazione</li>
+        <li>Verificare auto-approvazione item non lavorati</li>
+    </ul>
+
+    <h3>12.2.2 Native Change Detection</h3>
+    <ul>
+        <li>Abilitare solo dopo migrazione completa</li>
+        <li>Configurare attributi da riconoscere coerentemente</li>
+        <li>Schedulare task aggregazione in orari non operativi</li>
+        <li>Monitorare Pending AS per errori ricorrenti</li>
+        <li>Documentare decisioni RPA Primario in commenti</li>
+        <li>Gestire profili non censiti tempestivamente</li>
+    </ul>
+
+    <h2>12.3 Provisioning</h2>
+    
+    <h3>12.3.1 Gestione Errori</h3>
+    <ul>
+        <li>Analizzare sempre dettaglio transazione prima azione</li>
+        <li>Documentare motivazioni in campo commento</li>
+        <li>Preferire "Reinoltra Transaction" a "Forza Esito OK"</li>
+        <li>Monitorare disallineamenti post-forzatura</li>
+        <li>Verificare consistenza dopo ogni Pending AS risolta</li>
+    </ul>
+
+    <h3>12.3.2 Performance</h3>
+    <ul>
+        <li>Schedulare task aggregazione fuori orario operativo</li>
+        <li>Limitare richieste batch concurrent per applicazione</li>
+        <li>Monitorare code OSB per saturazione</li>
+        <li>Verificare timeout configurati adeguatamente</li>
+        <li>Pianificare manutenzioni in finestre concordate</li>
+    </ul>
+
+    <h1 id="limitazioni">13. Limitazioni e Vincoli</h1>
+    
+    <h2>13.1 Release 1.0.0</h2>
+    
+    <h3>13.1.1 Sistemi Non Supportati</h3>
+    <ul>
+        <li>Sistemi con parametri aggiuntivi su base profilo</li>
+        <li>Sorgente dati IDM</li>
+        <li>Workflow con RPC o GGU_EXT</li>
+        <li>Sistemi VPN</li>
+        <li>Profili incompatibili/correlati</li>
+        <li>Provisioning multi-target</li>
+    </ul>
+
+    <h3>13.1.2 Funzionalità Future</h3>
+    <ul>
+        <li>Integrazione diretta portale PGU</li>
+        <li>Gestione TMS</li>
+        <li>Connettori nativi per tutti i target</li>
+        <li>Supporto autenticazione biometrica</li>
+        <li>Workflow complessi multi-step</li>
+    </ul>
+
+    <h2>13.2 Limitazioni Tecniche</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Area</th>
+                <th>Limitazione</th>
+                <th>Workaround</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Browser Storage</strong></td>
+                <td>localStorage/sessionStorage NON supportati in artifacts</td>
+                <td>Utilizzare React state o variabili JavaScript</td>
+            </tr>
+            <tr>
+                <td><strong>Artifacts</strong></td>
+                <td>Max 1 artifact per risposta, update max 4 volte</td>
+                <td>Usare rewrite per modifiche estese</td>
+            </tr>
+            <tr>
+                <td><strong>Aggregazione</strong></td>
+                <td>Dipendenza da file IAM Light (2x giorno)</td>
+                <td>Ritardo max: fino a schedulazione successiva</td>
+            </tr>
+            <tr>
+                <td><strong>Provisioning</strong></td>
+                <td>Messaggistica asincrona (latenza variabile)</td>
+                <td>Monitoraggio Pending AS, configurazione timeout</td>
+            </tr>
+            <tr>
+                <td><strong>Certificazioni</strong></td>
+                <td>Template pianificate monouso al primo utilizzo</td>
+                <td>Non annullare in Staging, usare sezione Certificazioni</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h1 id="configurazioni">14. Configurazioni Tecniche</h1>
+    
+    <h2>14.1 Task Schedulati - Riepilogo</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Task</th>
+                <th>Frequenza</th>
+                <th>Orario</th>
+                <th>Dipendenze</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>TIMNativeImporterIamLight</td>
+                <td>Giornaliera</td>
+                <td>22:00</td>
+                <td>File IAM Light (21:00)</td>
+            </tr>
+            <tr>
+                <td>&lt;App&gt; TIM Account Aggregation</td>
+                <td>Giornaliera</td>
+                <td>23:00</td>
+                <td>TIMNativeImporterIamLight</td>
+            </tr>
+            <tr>
+                <td>&lt;App&gt; TIM Group Aggregation</td>
+                <td>Giornaliera</td>
+                <td>23:30</td>
+                <td>Account Aggregation</td>
+            </tr>
+            <tr>
+                <td>Refresh Identity Cube</td>
+                <td>Ogni 4 ore</td>
+                <td>-</td>
+                <td>Process Events=true</td>
+            </tr>
+            <tr>
+                <td>Perform Identity Request Maintenance</td>
+                <td>Ogni 30 min</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>TIMUserExpirationManagement</td>
+                <td>Giornaliera</td>
+                <td>02:00</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>TIMAccountExpirationManagement</td>
+                <td>Giornaliera</td>
+                <td>03:00</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>TIMInactivityBlockManagement</td>
+                <td>Giornaliera</td>
+                <td>04:00</td>
+                <td>File scaduti IAM Light</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h1 id="troubleshooting">15. Troubleshooting</h1>
+    
+    <h2>15.1 Problemi Comuni</h2>
+    
+    <h3>15.1.1 Migrazione</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Problema</th>
+                <th>Causa Probabile</th>
+                <th>Soluzione</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>DMT genera file vuoti</td>
+                <td>RPA Primario non assegnato</td>
+                <td>Assegnare RPA Primario su IAM Engine prima migrazione</td>
+            </tr>
+            <tr>
+                <td>File incongruences.csv popolato</td>
+                <td>Configurazioni non standard</td>
+                <td>Analizzare riga per riga, correggere manualmente</td>
+            </tr>
+            <tr>
+                <td>Application Builder fallisce</td>
+                <td>File CSV corrotti</td>
+                <td>Verificare tracciato, rigenerare con DMT</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>15.1.2 Provisioning</h3>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Problema</th>
+                <th>Causa Probabile</th>
+                <th>Soluzione</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Richiesta bloccata in Retry</td>
+                <td>Timeout OSB o target</td>
+                <td>Verificare Pending AS, analizzare log OSB</td>
+            </tr>
+            <tr>
+                <td>Pending AS ricorrente</td>
+                <td>Configurazione direttive errata</td>
+                <td>Modificare Field in Provisioning Policies</td>
+            </tr>
+            <tr>
+                <td>Consistenza non aggiornata</td>
+                <td>Task maintenance non schedulato</td>
+                <td>Verificare "Perform Identity Request Maintenance"</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>15.2 Procedure di Emergenza</h2>
+    
+    <h3>15.2.1 Blocco Provisioning Applicazione</h3>
+    <div class="code">
+1. Applicazioni → Definizione Applicazioni
+2. Selezionare applicazione interessata
+3. Abilitare flag "Maintenance Enabled"
+4. Salvare
+
+→ Richieste accodate, nessuna perdita dati
+→ Disabilitare flag al termine emergenza
+    </div>
+
+    <h3>15.2.2 Forzatura Chiusura Pending AS Massive</h3>
+    <div class="warning">
+<strong>ATTENZIONE: Solo in emergenza estrema</strong>
+<ol>
+<li>Il Mio Lavoro → Elementi di Lavoro</li>
+<li>Filtro per Applicazione</li>
+<li>Per ogni Pending AS:
+    <ul>
+        <li>Se possibile: Reinoltra</li>
+        <li>Altrimenti: Conferma Esito KO</li>
+    </ul>
+</li>
+<li>Documentare in ticket Remedy</li>
+<li>Pianificare allineamento manuale target</li>
+</ol>
+    </div>
+
+    <h1 id="appendici">16. Appendici</h1>
+    
+    <h2>16.1 Glossario Tecnico</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Termine</th>
+                <th>Definizione</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Account</strong></td>
+                <td>Sinonimo di Login, accesso a un sistema target</td>
+            </tr>
+            <tr>
+                <td><strong>Application</strong></td>
+                <td>Sistema target di provisioning (terminologia SailPoint)</td>
+            </tr>
+            <tr>
+                <td><strong>Batch Request</strong></td>
+                <td>Richiesta massiva tramite upload file CSV</td>
+            </tr>
+            <tr>
+                <td><strong>Certification Owner</strong></td>
+                <td>Responsabile campagna certificazione (certificatore)</td>
+            </tr>
+            <tr>
+                <td><strong>Challenger</strong></td>
+                <td>Utente che contesta decisione certificazione</td>
+            </tr>
+            <tr>
+                <td><strong>Compliance Officer</strong></td>
+                <td>Responsabile avvio certificazioni (GGU/GA)</td>
+            </tr>
+            <tr>
+                <td><strong>Consistenza</strong></td>
+                <td>Stato dati su database DIM</td>
+            </tr>
+            <tr>
+                <td><strong>DMT</strong></td>
+                <td>Data Migration Tool, strumento migrazione IAM Engine → DIM</td>
+            </tr>
+            <tr>
+                <td><strong>Entitlement</strong></td>
+                <td>Profilo/titolarità su applicazione (terminologia SailPoint)</td>
+            </tr>
+            <tr>
+                <td><strong>Grace Period</strong></td>
+                <td>Periodo tolleranza post-scadenza</td>
+            </tr>
+            <tr>
+                <td><strong>IAM Engine</strong></td>
+                <td>Piattaforma IAM custom precedente (AS-IS)</td>
+            </tr>
+            <tr>
+                <td><strong>LCM</strong></td>
+                <td>Lifecycle Manager, gestione ciclo vita accessi</td>
+            </tr>
+            <tr>
+                <td><strong>NCD</strong></td>
+                <td>Native Change Detection, rilevamento modifiche native</td>
+            </tr>
+            <tr>
+                <td><strong>Pending AS</strong></td>
+                <td>Richiesta in attesa gestione errore amministrativo</td>
+            </tr>
+            <tr>
+                <td><strong>Provisioning</strong></td>
+                <td>Processo creazione/modifica/cancellazione accessi su target</td>
+            </tr>
+            <tr>
+                <td><strong>RPA</strong></td>
+                <td>Responsabile Processi Applicativi (per profilo)</td>
+            </tr>
+            <tr>
+                <td><strong>Sign-Off</strong></td>
+                <td>Firma decisioni certificazione da parte certificatore</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>16.2 Acronimi</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Acronimo</th>
+                <th>Significato</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>AS-IS</strong></td>
+                <td>Situazione attuale</td>
+            </tr>
+            <tr>
+                <td><strong>CE</strong></td>
+                <td>Collaboratore Esterno</td>
+            </tr>
+            <tr>
+                <td><strong>CRUD</strong></td>
+                <td>Create, Read, Update, Delete</td>
+            </tr>
+            <tr>
+                <td><strong>CSV</strong></td>
+                <td>Comma Separated Values</td>
+            </tr>
+            <tr>
+                <td><strong>DB</strong></td>
+                <td>Database</td>
+            </tr>
+            <tr>
+                <td><strong>DMT</strong></td>
+                <td>Data Migration Tool</td>
+            </tr>
+            <tr>
+                <td><strong>GA</strong></td>
+                <td>Gestore Applicativo</td>
+            </tr>
+            <tr>
+                <td><strong>GDPR</strong></td>
+                <td>General Data Protection Regulation</td>
+            </tr>
+            <tr>
+                <td><strong>GGU</strong></td>
+                <td>Gruppo Gestione Utenza</td>
+            </tr>
+            <tr>
+                <td><strong>GS</strong></td>
+                <td>Gestore Sistemistico</td>
+            </tr>
+            <tr>
+                <td><strong>IA</strong></td>
+                <td>Interfaccia Applicativa</td>
+            </tr>
+            <tr>
+                <td><strong>IAG</strong></td>
+                <td>Identity & Access Governance</td>
+            </tr>
+            <tr>
+                <td><strong>IAM</strong></td>
+                <td>Identity & Access Management</td>
+            </tr>
+            <tr>
+                <td><strong>IDM</strong></td>
+                <td>Identity Management</td>
+            </tr>
+            <tr>
+                <td><strong>IIQ</strong></td>
+                <td>IdentityIQ (SailPoint)</td>
+            </tr>
+            <tr>
+                <td><strong>LCM</strong></td>
+                <td>Lifecycle Manager</td>
+            </tr>
+            <tr>
+                <td><strong>M2M</strong></td>
+                <td>Machine-to-Machine</td>
+            </tr>
+            <tr>
+                <td><strong>MIMIP</strong></td>
+                <td>Sistema catalogo TIM</td>
+            </tr>
+            <tr>
+                <td><strong>NCD</strong></td>
+                <td>Native Change Detection</td>
+            </tr>
+            <tr>
+                <td><strong>OLO</strong></td>
+                <td>Other Licensed Operator</td>
+            </tr>
+            <tr>
+                <td><strong>OSB</strong></td>
+                <td>Oracle Service Bus</td>
+            </tr>
+            <tr>
+                <td><strong>PEI</strong></td>
+                <td>Provisioning Engine Integration</td>
+            </tr>
+            <tr>
+                <td><strong>RG</strong></td>
+                <td>Responsabile Gerarchico</td>
+            </tr>
+            <tr>
+                <td><strong>RO</strong></td>
+                <td>Responsabile Outsourcer</td>
+            </tr>
+            <tr>
+                <td><strong>RPA</strong></td>
+                <td>Responsabile Processi Applicativi</td>
+            </tr>
+            <tr>
+                <td><strong>RPR</strong></td>
+                <td>Responsabile Processi di Riferimento</td>
+            </tr>
+            <tr>
+                <td><strong>TIM</strong></td>
+                <td>Telecom Italia Mobile</td>
+            </tr>
+            <tr>
+                <td><strong>TO-BE</strong></td>
+                <td>Situazione obiettivo</td>
+            </tr>
+            <tr>
+                <td><strong>UAT</strong></td>
+                <td>User Acceptance Test</td>
+            </tr>
+            <tr>
+                <td><strong>UF</strong></td>
+                <td>Utente Finale</td>
+            </tr>
+            <tr>
+                <td><strong>VPN</strong></td>
+                <td>Virtual Private Network</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>16.3 Riferimenti Normativi</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Normativa</th>
+                <th>Ambito</th>
+                <th>Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>D.Lgs. 196/03</strong></td>
+                <td>Privacy e protezione dati personali</td>
+                <td>Codice Privacy italiano</td>
+            </tr>
+            <tr>
+                <td><strong>Del. 152/02/CONS</strong></td>
+                <td>Separazione contabile operatori TLC</td>
+                <td>Accessi dati OLO</td>
+            </tr>
+            <tr>
+                <td><strong>GDPR (Reg. UE 2016/679)</strong></td>
+                <td>Protezione dati personali europei</td>
+                <td>Principi trattamento dati</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>16.4 Documenti di Riferimento</h2>
+    
+    <h3>16.4.1 Documentazione Progetto</h3>
+    <ul>
+        <li>DIM - Requisiti Funzionali - Wave1 (serie documenti)</li>
+        <li>DIM - Specifiche Funzionali - Gestione Accessi Privilegiati</li>
+        <li>DIM SailPoint IIQ - Progettazione Provisioning TIM</li>
+    </ul>
+
+    <h3>16.4.2 Documentazione Prodotto SailPoint</h3>
+    <ul>
+        <li>IdentityIQ 8.0 User Guide</li>
+        <li>IdentityIQ Administration Guide</li>
+        <li>IdentityIQ Certification Guide</li>
+        <li>IdentityIQ Integration Guide</li>
+    </ul>
+
+    <h3>16.4.3 Documentazione Supporto</h3>
+    <ul>
+        <li>DIM - Documentazione a Supporto - Certificazioni</li>
+        <li>Template Tracciamento Statico Abilitazioni</li>
+        <li>Template Email Notifiche</li>
+        <li>Template File Import CSV</li>
+    </ul>
+
+    <h2>16.5 Contatti e Supporto</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Ruolo</th>
+                <th>Responsabilità</th>
+                <th>Livello</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Utente Finale</strong></td>
+                <td>Richieste standard tramite GUI</td>
+                <td>L1</td>
+            </tr>
+            <tr>
+                <td><strong>GGU</strong></td>
+                <td>Pending AS, configurazioni applicative, supporto processo</td>
+                <td>L2</td>
+            </tr>
+            <tr>
+                <td><strong>GA (Engineering IAM)</strong></td>
+                <td>Issue tecnici, sviluppo, integrazioni</td>
+                <td>L3</td>
+            </tr>
+            <tr>
+                <td><strong>SailPoint</strong></td>
+                <td>Bug prodotto, enhancement, consulenza architetturale</td>
+                <td>L4</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>16.5.1 Canali di Supporto</h3>
+    <ul>
+        <li><strong>Ticket Remedy:</strong> Sistema ticketing corporate</li>
+        <li><strong>Email:</strong> Contatti funzione IAM TIM</li>
+        <li><strong>Documentazione:</strong> Repository SharePoint/Confluence</li>
+        <li><strong>Knowledge Base:</strong> Articoli risoluzione problemi comuni</li>
+    </ul>
+
+    <h2>16.6 Checklist Go-Live</h2>
+    
+    <h3>16.6.1 Pre-Migrazione Sistema</h3>
+    
+    <div class="info">
+        <strong>Checklist Verifica:</strong>
+        <ul>
+            <li>☐ RPA Primario assegnato su IAM Engine</li>
+            <li>☐ Sistema attivo e funzionante su IAM Engine</li>
+            <li>☐ Documentazione PGA aggiornata</li>
+            <li>☐ Stakeholder informati della migrazione</li>
+            <li>☐ Finestra manutenzione concordata</li>
+        </ul>
+    </div>
+
+    <h3>16.6.2 Post-Migrazione Sistema</h3>
+    
+    <div class="info">
+        <strong>Checklist Verifica:</strong>
+        <ul>
+            <li>☐ Applicazione visibile in DIM</li>
+            <li>☐ Attributi estesi popolati correttamente</li>
+            <li>☐ Direttive provisioning verificate</li>
+            <li>☐ Task aggregazione creati e schedulati</li>
+            <li>☐ Account e profili importati correttamente</li>
+            <li>☐ Catalogo MIMIP valorizzato</li>
+            <li>☐ RPA/Responsabili profili nominati</li>
+            <li>☐ Test provisioning completati con successo</li>
+            <li>☐ Sistema dismesso su IAM Engine</li>
+            <li>☐ Documentazione aggiornata</li>
+        </ul>
+    </div>
+
+    <h3>16.6.3 Abilitazione NCD</h3>
+    
+    <div class="info">
+        <strong>Checklist Verifica:</strong>
+        <ul>
+            <li>☐ Lifecycle Event globale abilitato</li>
+            <li>☐ Refresh Identity Cube con Process Events</li>
+            <li>☐ Work Item Archives configurato</li>
+            <li>☐ Flag "Riconoscimento modifiche native" su applicazione</li>
+            <li>☐ Operazioni configurate (Crea/Modifica/Elimina)</li>
+            <li>☐ Attributi da riconoscere definiti</li>
+            <li>☐ Task aggregazione schedulati correttamente</li>
+            <li>☐ Test NCD completato con successo</li>
+        </ul>
+    </div>
+
+    <h3>16.6.4 Configurazione Certificazione</h3>
+    
+    <div class="info">
+        <strong>Checklist Verifica:</strong>
+        <ul>
+            <li>☐ Template certificazione selezionato</li>
+            <li>☐ Tag identificativo definito</li>
+            <li>☐ Applicazioni incluse specificate</li>
+            <li>☐ Durate periodi configurate</li>
+            <li>☐ Notifiche reminder/escalation impostate</li>
+            <li>☐ Exclusion Rule verificata (non modificata se critica)</li>
+            <li>☐ Certificatore/Owner identificato</li>
+            <li>☐ Schedulazione definita</li>
+            <li>☐ Test su ambiente non produttivo</li>
+        </ul>
+    </div>
+
+    <h2>16.7 Matrice RACI</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Attività</th>
+                <th>UF</th>
+                <th>Manager</th>
+                <th>RPA</th>
+                <th>Resp. Profili</th>
+                <th>Gest. Schema</th>
+                <th>GGU</th>
+                <th>GA</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Richiesta creazione account</td>
+                <td><strong>R/A</strong></td>
+                <td>A</td>
+                <td>I</td>
+                <td>-</td>
+                <td>-</td>
+                <td>C</td>
+                <td>C</td>
+            </tr>
+            <tr>
+                <td>Approvazione richiesta standard</td>
+                <td>I</td>
+                <td><strong>R/A</strong></td>
+                <td>I</td>
+                <td>-</td>
+                <td>-</td>
+                <td>C</td>
+                <td>C</td>
+            </tr>
+            <tr>
+                <td>Approvazione richiesta non-standard</td>
+                <td>I</td>
+                <td>C</td>
+                <td><strong>R/A</strong></td>
+                <td>-</td>
+                <td>-</td>
+                <td>C</td>
+                <td>C</td>
+            </tr>
+            <tr>
+                <td>Certificazione account standard</td>
+                <td>I</td>
+                <td><strong>R/A</strong></td>
+                <td>I</td>
+                <td>-</td>
+                <td>-</td>
+                <td>C</td>
+                <td>C</td>
+            </tr>
+            <tr>
+                <td>Certificazione account non-standard</td>
+                <td>I</td>
+                <td>I</td>
+                <td><strong>R/A</strong></td>
+                <td>-</td>
+                <td>-</td>
+                <td>C</td>
+                <td>C</td>
+            </tr>
+            <tr>
+                <td>NCD - Approvazione Manager</td>
+                <td>I</td>
+                <td><strong>R/A</strong></td>
+                <td>C</td>
+                <td>-</td>
+                <td>-</td>
+                <td>C</td>
+                <td>C</td>
+            </tr>
+            <tr>
+                <td>NCD - Decisione finale</td>
+                <td>I</td>
+                <td>I</td>
+                <td><strong>R/A</strong></td>
+                <td>-</td>
+                <td>-</td>
+                <td>C</td>
+                <td>C</td>
+            </tr>
+            <tr>
+                <td>Gestione schema profili</td>
+                <td>I</td>
+                <td>-</td>
+                <td>C</td>
+                <td>C</td>
+                <td><strong>R/A</strong></td>
+                <td>A</td>
+                <td>A</td>
+            </tr>
+            <tr>
+                <td>Nomina RPA</td>
+                <td>-</td>
+                <td>-</td>
+                <td>I</td>
+                <td>-</td>
+                <td>C</td>
+                <td><strong>R/A</strong></td>
+                <td><strong>R/A</strong></td>
+            </tr>
+            <tr>
+                <td>Configurazione sistema</td>
+                <td>-</td>
+                <td>-</td>
+                <td>I</td>
+                <td>I</td>
+                <td>-</td>
+                <td><strong>R/A</strong></td>
+                <td><strong>R/A</strong></td>
+            </tr>
+            <tr>
+                <td>Migrazione sistema</td>
+                <td>-</td>
+                <td>-</td>
+                <td>C</td>
+                <td>-</td>
+                <td>-</td>
+                <td>C</td>
+                <td><strong>R/A</strong></td>
+            </tr>
+            <tr>
+                <td>Gestione Pending AS</td>
+                <td>-</td>
+                <td>-</td>
+                <td>I</td>
+                <td>-</td>
+                <td>-</td>
+                <td><strong>R/A</strong></td>
+                <td>C</td>
+            </tr>
+            <tr>
+                <td>Configurazione certificazione</td>
+                <td>-</td>
+                <td>-</td>
+                <td>I</td>
+                <td>I</td>
+                <td>-</td>
+                <td><strong>R/A</strong></td>
+                <td>C</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="info">
+        <strong>Legenda RACI:</strong>
+        <ul>
+            <li><strong>R</strong> (Responsible): Esegue l'attività</li>
+            <li><strong>A</strong> (Accountable): Responsabile finale, approva</li>
+            <li><strong>C</strong> (Consulted): Consultato, fornisce input</li>
+            <li><strong>I</strong> (Informed): Informato dei risultati</li>
+        </ul>
+    </div>
+
+    <h2>16.8 Timeline Tipica Migrazione</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Fase</th>
+                <th>Durata Stimata</th>
+                <th>Attività Principali</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Preparazione</strong></td>
+                <td>1-2 giorni</td>
+                <td>
+                    <ul>
+                        <li>Verifica prerequisiti</li>
+                        <li>Assegnazione RPA Primario</li>
+                        <li>Comunicazioni stakeholder</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Estrazione DMT</strong></td>
+                <td>2-4 ore</td>
+                <td>
+                    <ul>
+                        <li>Esecuzione DMT</li>
+                        <li>Verifica file generati</li>
+                        <li>Analisi incongruences</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Import DIM</strong></td>
+                <td>1-2 ore</td>
+                <td>
+                    <ul>
+                        <li>Application Builder Create</li>
+                        <li>Verifica import</li>
+                        <li>Application Builder Update</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Configurazione</strong></td>
+                <td>4-8 ore</td>
+                <td>
+                    <ul>
+                        <li>Verifica direttive provisioning</li>
+                        <li>Completamento schema profili</li>
+                        <li>Valorizzazione catalogo MIMIP</li>
+                        <li>Nomina responsabili</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Test</strong></td>
+                <td>1-2 giorni</td>
+                <td>
+                    <ul>
+                        <li>Test provisioning</li>
+                        <li>Test aggregazione</li>
+                        <li>Test workflow autorizzativi</li>
+                        <li>Test reportistica</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Go-Live</strong></td>
+                <td>2-4 ore</td>
+                <td>
+                    <ul>
+                        <li>Attivazione sistema DIM</li>
+                        <li>Dismissione IAM Engine</li>
+                        <li>Monitoraggio iniziale</li>
+                        <li>Documentazione finale</li>
+                    </ul>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <hr>
+        <p><strong>DIM - Digital Identity Management</strong></p>
+        <p>Descrizione Funzionale Completa - Release 1.0.0</p>
+        <p>Data Emissione: 30/04/2021 | Stato: Definitivo</p>
+        <p>Emesso da: Ingegneria IAM</p>
+        <p style="margin-top: 20px;"><em>Telecom Italia – USO INTERNO – Tutti i diritti riservati</em></p>
+        <p style="margin-top: 10px; font-size: 10px;">
+            Questo documento contiene informazioni proprietarie e confidenziali di Telecom Italia.<br>
+            La riproduzione, distribuzione o utilizzo non autorizzato è severamente proibito.
+        </p>
+    </div>
+
+    <script>
+        // Aggiungi numero pagina in stampa
+        window.onbeforeprint = function() {
+            console.log('Preparazione stampa PDF...');
+        };
+        
+        // Messaggio informativo
+        console.log('%c📄 DIM - Documento Pronto per Stampa PDF', 'color: #0066cc; font-size: 16px; font-weight: bold;');
+        console.log('%cPer salvare come PDF: Ctrl+P (o Cmd+P su Mac) → Salva come PDF', 'color: #666; font-size: 14px;');
+        console.log('%cIl documento è ottimizzato per formato A4', 'color: #666; font-size: 14px;');
+    </script>
+
+</body>
+</html>

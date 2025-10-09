@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - Gemini AI{% endblock %}
+{% block page_title %}Chat con Gemini AI{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Colonna Input -->
+    <div class="col-lg-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Nuova Richiesta</h5>
+            </div>
+            <div class="card-body">
+                <!-- Alert Contesto Attivo -->
+                <div id="contextAlert" class="alert alert-success alert-dismissible fade show" style="display: none;">
+                    <i class="bi bi-check-circle"></i>
+                    <strong id="contextCount"></strong> conversazioni caricate come contesto
+                    <button type="button" class="btn-close" id="clearContext"></button>
+                </div>
+
+                <form id="chatForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="userPrompt" class="form-label fw-bold">Inserisci la tua richiesta:</label>
+                        <textarea class="form-control" id="userPrompt" rows="4"
+                                  placeholder="Es: Analizza questo documento e dimmi cosa contiene" required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Carica file (opzionale):</label>
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <i class="bi bi-cloud-upload fs-1 text-primary"></i>
+                            <p class="mb-2">Trascina i file qui o clicca per selezionarli</p>
+                            <small class="text-muted">Formati supportati: TXT, PDF, immagini (PNG, JPG), DOC, CSV (max 10MB)</small>
+                            <input type="file" id="fileInput" name="files" multiple class="d-none" accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.csv">
+                        </div>
+                        <div id="fileList" class="file-list"></div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <span class="btn-text">Invia Richiesta</span>
+                            <span class="spinner-border spinner-border-sm ms-2" role="status"></span>
+                        </button>
+
+                        <a href="{{ url_for('history') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-clock-history"></i> Seleziona Contesto da Cronologia
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonna Risposta -->
+    <div class="col-lg-8">
+        <div class="card shadow h-100">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-robot me-2"></i>Risposta AI</h5>
+                <button type="button" class="btn btn-sm btn-light" id="copyBtn" style="display: none;" title="Copia risposta">
+                    <i class="bi bi-clipboard"></i> Copia
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="emptyState" class="text-center text-muted py-5">
+                    <i class="bi bi-chat-square-text fs-1 mb-3 d-block"></i>
+                    <p>La risposta apparirà qui dopo aver inviato una richiesta</p>
+                </div>
+
+                <div id="responseContainer" style="display: none;">
+                    <div class="response-box" id="responseText"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .response-box {
+        max-height: calc(100vh - 350px);
+        overflow-y: auto;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 0.375rem;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .card {
+        min-height: 600px;
+    }
+
+    @media (max-width: 991px) {
+        .card {
+            min-height: auto;
+        }
+
+        .response-box {
+            max-height: 400px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script>
+    // Gestione bottone copia
+    const copyBtn = document.getElementById('copyBtn');
+    const responseText = document.getElementById('responseText');
+    const responseContainer = document.getElementById('responseContainer');
+    const emptyState = document.getElementById('emptyState');
+
+    copyBtn.addEventListener('click', async () => {
+        try {
+            const text = responseText.textContent;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="bi bi-check2"></i> Copiato!';
+            copyBtn.classList.remove('btn-light');
+            copyBtn.classList.add('btn-success');
+
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHTML;
+                copyBtn.classList.remove('btn-success');
+                copyBtn.classList.add('btn-light');
+            }, 2000);
+        } catch (err) {
+            console.error('Errore nella copia:', err);
+            alert('Impossibile copiare il testo. Prova a selezionarlo manualmente.');
+        }
+    });
+
+    const observer = new MutationObserver(() => {
+        const isVisible = responseContainer.style.display !== 'none';
+        const hasContent = responseText.textContent.trim() !== '';
+
+        if (isVisible && hasContent) {
+            emptyState.style.display = 'none';
+            copyBtn.style.display = 'inline-block';
+        } else if (!isVisible) {
+            emptyState.style.display = 'block';
+            copyBtn.style.display = 'none';
+        }
+    });
+
+    observer.observe(responseContainer, { attributes: true, attributeFilter: ['style'] });
+    observer.observe(responseText, { childList: true, characterData: true, subtree: true });
+
+    // Gestione contesto dalle conversazioni
+    const contextAlert = document.getElementById('contextAlert');
+    const contextCount = document.getElementById('contextCount');
+    const clearContextBtn = document.getElementById('clearContext');
+
+    function checkContext() {
+        const context = sessionStorage.getItem('contextConversations');
+        if (context) {
+            const conversations = JSON.parse(context);
+            contextCount.textContent = conversations.length;
+            contextAlert.style.display = 'block';
+        }
+    }
+
+    clearContextBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('contextConversations');
+        contextAlert.style.display = 'none';
+    });
+
+    checkContext();
+</script>
+{% endblock %}

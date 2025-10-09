@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Impostazioni - Gemini AI{% endblock %}
+{% block page_title %}Impostazioni{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-body">
+                <form id="settingsForm">
+                    <h5 class="card-title mb-4">Configurazione API</h5>
+
+                    <div class="mb-3">
+                        <label for="apiKey" class="form-label">API Key</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="apiKey" name="api_key"
+                                   value="{{ settings.api_key }}" placeholder="AIzaSy...">
+                            <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">La tua API key di Google Gemini</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="model" class="form-label">Modello</label>
+                        <select class="form-select" id="model" name="model">
+                            <option value="gemini-2.5-flash" {% if settings.model == 'gemini-2.5-flash' %}selected{% endif %}>gemini-2.5-flash</option>
+                            <option value="gemini-pro" {% if settings.model == 'gemini-pro' %}selected{% endif %}>gemini-pro</option>
+                            <option value="gemini-pro-vision" {% if settings.model == 'gemini-pro-vision' %}selected{% endif %}>gemini-pro-vision</option>
+                        </select>
+                        <small class="text-muted">Scegli il modello AI da utilizzare</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="temperature" class="form-label">
+                            Temperature: <span id="temperatureValue">{{ settings.temperature }}</span>
+                        </label>
+                        <input type="range" class="form-range" id="temperature" name="temperature"
+                               value="{{ settings.temperature }}" min="0" max="1" step="0.1">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">Preciso (0.0)</small>
+                            <small class="text-muted">Creativo (1.0)</small>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h5 class="card-title mb-4">Preferenze</h5>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="saveHistory" name="save_history"
+                               {% if settings.save_history %}checked{% endif %}>
+                        <label class="form-check-label" for="saveHistory">
+                            Salva cronologia conversazioni
+                        </label>
+                        <div class="form-text">Le conversazioni verranno salvate localmente sul server</div>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="darkMode" name="dark_mode"
+                               {% if settings.dark_mode %}checked{% endif %}>
+                        <label class="form-check-label" for="darkMode">
+                            Modalità scura (coming soon)
+                        </label>
+                        <div class="form-text">Tema scuro per ridurre l'affaticamento degli occhi</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Salva Impostazioni
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" id="resetSettings">
+                            <i class="bi bi-arrow-counterclockwise"></i> Ripristina Predefinite
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="card shadow mt-4">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-info-circle"></i> Informazioni</h5>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2"><strong>Versione:</strong> 1.0.0</li>
+                    <li class="mb-2"><strong>Framework:</strong> Flask + Google Gemini AI</li>
+                    <li class="mb-2"><strong>Cartella Cronologia:</strong> {{ history_folder }}</li>
+                    <li><strong>File Impostazioni:</strong> {{ settings_file }}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Cronologia - Gemini AI{% endblock %}
+{% block page_title %}Cronologia Conversazioni{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Cronologia Conversazioni</h5>
+                    <div>
+                        <button class="btn btn-sm btn-success me-2" id="useAsContextBtn" style="display: none;">
+                            <i class="bi bi-check-circle"></i> Usa come Contesto (<span id="selectedCount">0</span>)
+                        </button>
+                        <button class="btn btn-sm btn-danger" id="deleteAllBtn" style="display: none;">
+                            <i class="bi bi-trash"></i> Elimina Tutte
+                        </button>
+                        <span class="badge bg-primary">{{ conversations|length }} conversazioni</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if conversations %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> <strong>Seleziona conversazioni</strong> da usare come contesto per istruire il sistema nelle nuove richieste
+                    </div>
+
+                    <div class="list-group">
+                        {% for conv in conversations %}
+                        <div class="list-group-item list-group-item-action conversation-item" data-id="{{ conv.id }}">
+                            <div class="d-flex w-100 justify-content-between align-items-start">
+                                <div class="form-check me-3 mt-1">
+                                    <input class="form-check-input conversation-checkbox" type="checkbox"
+                                           value="{{ conv.id }}" id="check-{{ conv.id }}">
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">
+                                        <i class="bi bi-chat-left-text text-primary"></i>
+                                        {{ conv.prompt[:100] }}{% if conv.prompt|length > 100 %}...{% endif %}
+                                    </h6>
+                                    <p class="mb-1 text-muted small">
+                                        {{ conv.response[:200] }}{% if conv.response|length > 200 %}...{% endif %}
+                                    </p>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar3"></i> {{ conv.timestamp[:19] }}
+                                        {% if conv.files %}
+                                            | <i class="bi bi-paperclip"></i> {{ conv.files|length }} file
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="ms-3">
+                                    <button class="btn btn-sm btn-outline-primary view-btn" data-id="{{ conv.id }}" title="Visualizza">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn" data-id="{{ conv.id }}" title="Elimina">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <h4 class="mt-3">Nessuna conversazione salvata</h4>
+                        <p class="text-muted">Le tue conversazioni appariranno qui</p>
+                        <a href="{{ url_for('index') }}" class="btn btn-primary mt-3">
+                            <i class="bi bi-chat-dots"></i> Inizia una Conversazione
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Visualizza Conversazione -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-chat-left-text"></i> Dettagli Conversazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Richiesta:</label>
+                    <div class="p-3 bg-light rounded" id="modalPrompt"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Risposta:</label>
+                    <div class="p-3 bg-light rounded response-box" id="modalResponse"></div>
+                </div>
+                <div id="modalFiles" class="mb-3"></div>
+                <div class="text-muted small" id="modalTimestamp"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const conversations = {{ conversations | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/history.js') }}"></script>
+<script>
+// Gestione selezione conversazioni per contesto
+const checkboxes = document.querySelectorAll('.conversation-checkbox');
+const useAsContextBtn = document.getElementById('useAsContextBtn');
+const selectedCount = document.getElementById('selectedCount');
+
+function updateSelectionUI() {
+    const checkedCount = document.querySelectorAll('.conversation-checkbox:checked').length;
+    selectedCount.textContent = checkedCount;
+    useAsContextBtn.style.display = checkedCount > 0 ? 'inline-block' : 'none';
+}
+
+checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', updateSelectionUI);
+});
+
+useAsContextBtn.addEventListener('click', () => {
+    const selectedIds = Array.from(document.querySelectorAll('.conversation-checkbox:checked'))
+        .map(cb => cb.value);
+
+    const selectedConversations = conversations.filter(conv => selectedIds.includes(conv.id));
+
+    // Salva nel sessionStorage
+    sessionStorage.setItem('contextConversations', JSON.stringify(selectedConversations));
+
+    // Reindirizza alla pagina chat
+    window.location.href = "{{ url_for('index') }}";
+});
+
+// Gestione eliminazione di tutte le conversazioni
+const deleteAllBtn = document.getElementById('deleteAllBtn');
+
+// Mostra bottone elimina tutte solo se ci sono conversazioni
+if (conversations.length > 0) {
+    deleteAllBtn.style.display = 'inline-block';
+}
+
+deleteAllBtn.addEventListener('click', async () => {
+    if (!confirm(`Sei sicuro di voler eliminare TUTTE le ${conversations.length} conversazioni?\n\nQuesta azione non può essere annullata!`)) {
+        return;
+    }
+
+    const confirmAgain = confirm('ATTENZIONE: Confermi di voler eliminare definitivamente tutta la cronologia?');
+    if (!confirmAgain) {
+        return;
+    }
+
+    try {
+        deleteAllBtn.disabled = true;
+        deleteAllBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Eliminazione...';
+
+        const response = await fetch('/history/delete-all', {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Errore durante l\'eliminazione: ' + data.error);
+            deleteAllBtn.disabled = false;
+            deleteAllBtn.innerHTML = '<i class="bi bi-trash"></i> Elimina Tutte';
+        }
+    } catch (error) {
+        alert('Errore di connessione: ' + error.message);
+        deleteAllBtn.disabled = false;
+        deleteAllBtn.innerHTML = '<i class="bi bi-trash"></i> Elimina Tutte';
+    }
+});
+</script>
+{% endblock %}
