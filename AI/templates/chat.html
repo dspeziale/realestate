@@ -19,7 +19,50 @@
                     <button type="button" class="btn-close" id="clearContext"></button>
                 </div>
 
+                <!-- Alert Knowledge Base Attiva (NUOVO) -->
+                <div id="kbAlert" class="alert alert-info alert-dismissible fade show" style="display: none;">
+                    <i class="bi bi-book"></i>
+                    <strong id="kbCount"></strong> knowledge base selezionate
+                    <button type="button" class="btn-close" id="clearKb"></button>
+                </div>
+
                 <form id="chatForm" enctype="multipart/form-data">
+                    <!-- Selezione Knowledge Base (NUOVO) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-book"></i> Knowledge Base (opzionale)</span>
+                            <a href="{{ url_for('knowledge_base') }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                <i class="bi bi-gear"></i> Gestisci
+                            </a>
+                        </label>
+
+                        {% if kb_files %}
+                        <div class="kb-selection-area border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                            {% for kb in kb_files %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input kb-checkbox" type="checkbox"
+                                       value="{{ kb.id }}" id="kb-{{ kb.id }}">
+                                <label class="form-check-label small w-100" for="kb-{{ kb.id }}" style="cursor: pointer;">
+                                    <strong>{{ kb.name }}</strong>
+                                    <span class="badge bg-secondary ms-1">{{ kb.category }}</span>
+                                    <br>
+                                    <span class="text-muted" style="font-size: 0.85rem;">{{ kb.description[:80] }}{% if kb.description|length > 80 %}...{% endif %}</span>
+                                </label>
+                            </div>
+                            {% if not loop.last %}
+                            <hr class="my-2">
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted">Seleziona le knowledge base da usare come contesto/istruzioni</small>
+                        {% else %}
+                        <div class="alert alert-warning small mb-2">
+                            <i class="bi bi-exclamation-triangle"></i> Nessuna knowledge base disponibile.
+                            <a href="{{ url_for('knowledge_base') }}">Creane una</a>
+                        </div>
+                        {% endif %}
+                    </div>
+
                     <div class="mb-3">
                         <label for="userPrompt" class="form-label fw-bold">Inserisci la tua richiesta:</label>
                         <textarea class="form-control" id="userPrompt" rows="4"
@@ -90,6 +133,32 @@
         min-height: 600px;
     }
 
+    .kb-selection-area {
+        background-color: #f8f9fa;
+    }
+
+    .kb-selection-area .form-check {
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        position: relative;
+    }
+
+    .kb-selection-area .form-check:hover {
+        background-color: #e9ecef;
+        border-radius: 0.25rem;
+    }
+
+    .kb-selection-area .form-check-input {
+        margin-top: 0.25rem;
+        float: left;
+        margin-left: 0;
+    }
+
+    .kb-selection-area .form-check-label {
+        margin-left: 1.5rem;
+        display: block;
+    }
+
     @media (max-width: 991px) {
         .card {
             min-height: auto;
@@ -105,15 +174,12 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 <script>
-    // Gestione bottone copia
+    // Gestione bottone copia (usa le variabili già dichiarate in chat.js)
     const copyBtn = document.getElementById('copyBtn');
-    const responseText = document.getElementById('responseText');
-    const responseContainer = document.getElementById('responseContainer');
-    const emptyState = document.getElementById('emptyState');
 
     copyBtn.addEventListener('click', async () => {
         try {
-            const text = responseText.textContent;
+            const text = document.getElementById('responseText').textContent;
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(text);
@@ -145,20 +211,24 @@
     });
 
     const observer = new MutationObserver(() => {
-        const isVisible = responseContainer.style.display !== 'none';
-        const hasContent = responseText.textContent.trim() !== '';
+        const respContainer = document.getElementById('responseContainer');
+        const respText = document.getElementById('responseText');
+        const emptyStateEl = document.getElementById('emptyState');
+
+        const isVisible = respContainer.style.display !== 'none';
+        const hasContent = respText.textContent.trim() !== '';
 
         if (isVisible && hasContent) {
-            emptyState.style.display = 'none';
+            emptyStateEl.style.display = 'none';
             copyBtn.style.display = 'inline-block';
         } else if (!isVisible) {
-            emptyState.style.display = 'block';
+            emptyStateEl.style.display = 'block';
             copyBtn.style.display = 'none';
         }
     });
 
-    observer.observe(responseContainer, { attributes: true, attributeFilter: ['style'] });
-    observer.observe(responseText, { childList: true, characterData: true, subtree: true });
+    observer.observe(document.getElementById('responseContainer'), { attributes: true, attributeFilter: ['style'] });
+    observer.observe(document.getElementById('responseText'), { childList: true, characterData: true, subtree: true });
 
     // Gestione contesto dalle conversazioni
     const contextAlert = document.getElementById('contextAlert');
@@ -180,5 +250,30 @@
     });
 
     checkContext();
+
+    // Gestione Knowledge Base (NUOVO)
+    const kbAlert = document.getElementById('kbAlert');
+    const kbCount = document.getElementById('kbCount');
+    const clearKbBtn = document.getElementById('clearKb');
+    const kbCheckboxes = document.querySelectorAll('.kb-checkbox');
+
+    function updateKbAlert() {
+        const checkedCount = document.querySelectorAll('.kb-checkbox:checked').length;
+        if (checkedCount > 0) {
+            kbCount.textContent = checkedCount;
+            kbAlert.style.display = 'block';
+        } else {
+            kbAlert.style.display = 'none';
+        }
+    }
+
+    kbCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateKbAlert);
+    });
+
+    clearKbBtn.addEventListener('click', () => {
+        kbCheckboxes.forEach(cb => cb.checked = false);
+        updateKbAlert();
+    });
 </script>
 {% endblock %}

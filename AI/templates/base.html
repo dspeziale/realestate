@@ -23,6 +23,11 @@
                         <i class="bi bi-chat-dots"></i> Chat
                     </a>
                 </li>
+                <li class="{% if request.endpoint == 'knowledge_base' %}active{% endif %}">
+                    <a href="{{ url_for('knowledge_base') }}">
+                        <i class="bi bi-book"></i> Knowledge Base
+                    </a>
+                </li>
                 <li class="{% if request.endpoint == 'history' %}active{% endif %}">
                     <a href="{{ url_for('history') }}">
                         <i class="bi bi-clock-history"></i> Cronologia
@@ -75,4 +80,3 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
-</html>

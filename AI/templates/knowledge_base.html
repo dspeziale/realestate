@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+
+{% block title %}Knowledge Base - Gemini AI{% endblock %}
+{% block page_title %}Knowledge Base{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-book"></i> Gestione Knowledge Base</h5>
+                    <div>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+                            <i class="bi bi-plus-circle"></i> Nuova Knowledge Base
+                        </button>
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                            <i class="bi bi-upload"></i> Carica File
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> I file della Knowledge Base sono istruzioni persistenti che puoi selezionare durante la chat per istruire l'AI
+                </div>
+
+                {% if kb_files %}
+                    <!-- Filtro per categoria -->
+                    <div class="mb-3">
+                        <select class="form-select" id="categoryFilter">
+                            <option value="">Tutte le categorie</option>
+                            <option value="generale">Generale</option>
+                            <option value="medico">Medico</option>
+                            <option value="tecnico">Tecnico</option>
+                            <option value="business">Business</option>
+                            <option value="altro">Altro</option>
+                        </select>
+                    </div>
+
+                    <div class="row" id="kbGrid">
+                        {% for kb in kb_files %}
+                        <div class="col-md-6 col-lg-4 mb-3 kb-item" data-category="{{ kb.category }}">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title mb-0">
+                                            <i class="bi bi-file-text text-primary"></i>
+                                            {{ kb.name }}
+                                        </h6>
+                                        <span class="badge bg-secondary">{{ kb.category }}</span>
+                                    </div>
+                                    <p class="card-text text-muted small">
+                                        {{ kb.description[:100] }}{% if kb.description|length > 100 %}...{% endif %}
+                                    </p>
+                                    <div class="text-muted small mb-3">
+                                        <i class="bi bi-calendar3"></i> {{ kb.created_at[:10] }}
+                                        {% if kb.updated_at != kb.created_at %}
+                                            | <i class="bi bi-pencil"></i> {{ kb.updated_at[:10] }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-primary view-btn" data-id="{{ kb.id }}" title="Visualizza">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning edit-btn" data-id="{{ kb.id }}" title="Modifica">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="{{ kb.id }}" title="Elimina">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-book display-1 text-muted"></i>
+                        <h4 class="mt-3">Nessuna Knowledge Base creata</h4>
+                        <p class="text-muted">Crea la tua prima knowledge base per istruire l'AI</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crea/Modifica -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="bi bi-plus-circle"></i> Nuova Knowledge Base
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="kbForm">
+                    <input type="hidden" id="kbId" value="">
+
+                    <div class="mb-3">
+                        <label for="kbName" class="form-label fw-bold">Nome *</label>
+                        <input type="text" class="form-control" id="kbName" required
+                               placeholder="Es: Istruzioni per analisi mediche">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="kbCategory" class="form-label fw-bold">Categoria</label>
+                        <select class="form-select" id="kbCategory">
+                            <option value="generale">Generale</option>
+                            <option value="medico">Medico</option>
+                            <option value="tecnico">Tecnico</option>
+                            <option value="business">Business</option>
+                            <option value="altro">Altro</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="kbDescription" class="form-label fw-bold">Descrizione</label>
+                        <textarea class="form-control" id="kbDescription" rows="2"
+                                  placeholder="Breve descrizione dello scopo di questa knowledge base"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="kbContent" class="form-label fw-bold">Contenuto/Istruzioni *</label>
+                        <textarea class="form-control" id="kbContent" rows="12" required
+                                  placeholder="Inserisci le istruzioni, regole o informazioni che vuoi che l'AI utilizzi come contesto..."></textarea>
+                        <small class="text-muted">
+                            Questo contenuto verrà incluso nel contesto quando selezionerai questa KB durante la chat
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="saveKbBtn">
+                    <i class="bi bi-check-circle"></i> Salva
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Upload File -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-upload"></i> Carica File di Testo
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="uploadFile" class="form-label fw-bold">Seleziona file .txt *</label>
+                        <input type="file" class="form-control" id="uploadFile" accept=".txt" required>
+                        <small class="text-muted">Solo file di testo (.txt)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="uploadName" class="form-label fw-bold">Nome (opzionale)</label>
+                        <input type="text" class="form-control" id="uploadName"
+                               placeholder="Se vuoto, userà il nome del file">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="uploadCategory" class="form-label fw-bold">Categoria</label>
+                        <select class="form-select" id="uploadCategory">
+                            <option value="generale">Generale</option>
+                            <option value="medico">Medico</option>
+                            <option value="tecnico">Tecnico</option>
+                            <option value="business">Business</option>
+                            <option value="altro">Altro</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="uploadDescription" class="form-label fw-bold">Descrizione</label>
+                        <textarea class="form-control" id="uploadDescription" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-success" id="uploadKbBtn">
+                    <i class="bi bi-upload"></i> Carica
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Visualizza -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-eye"></i> Dettagli Knowledge Base
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nome:</label>
+                    <div class="p-2 bg-light rounded" id="viewName"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Categoria:</label>
+                    <div class="p-2 bg-light rounded" id="viewCategory"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descrizione:</label>
+                    <div class="p-2 bg-light rounded" id="viewDescription"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Contenuto:</label>
+                    <div class="p-3 bg-light rounded" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;" id="viewContent"></div>
+                </div>
+                <div class="text-muted small">
+                    <div><i class="bi bi-calendar-plus"></i> Creato: <span id="viewCreated"></span></div>
+                    <div><i class="bi bi-calendar-check"></i> Modificato: <span id="viewUpdated"></span></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const kbFiles = {{ kb_files | tojson }};
+
+const createModal = new bootstrap.Modal(document.getElementById('createModal'));
+const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+const viewModal = new bootstrap.Modal(document.getElementById('viewModal'));
+
+// Filtro per categoria (solo se esistono KB)
+const categoryFilter = document.getElementById('categoryFilter');
+if (categoryFilter) {
+    categoryFilter.addEventListener('change', function() {
+        const category = this.value;
+        document.querySelectorAll('.kb-item').forEach(item => {
+            if (!category || item.dataset.category === category) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+}
+
+// Visualizza KB
+document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        const kb = kbFiles.find(k => k.id === id);
+
+        if (kb) {
+            document.getElementById('viewName').textContent = kb.name;
+            document.getElementById('viewCategory').textContent = kb.category;
+            document.getElementById('viewDescription').textContent = kb.description || 'Nessuna descrizione';
+            document.getElementById('viewContent').textContent = kb.content;
+            document.getElementById('viewCreated').textContent = kb.created_at;
+            document.getElementById('viewUpdated').textContent = kb.updated_at;
+
+            viewModal.show();
+        }
+    });
+});
+
+// Modifica KB
+document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.dataset.id;
+
+        try {
+            const response = await fetch(`/knowledge-base/get/${id}`);
+            const result = await response.json();
+
+            if (result.success) {
+                const kb = result.data;
+
+                document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil"></i> Modifica Knowledge Base';
+                document.getElementById('kbId').value = kb.id;
+                document.getElementById('kbName').value = kb.name;
+                document.getElementById('kbCategory').value = kb.category;
+                document.getElementById('kbDescription').value = kb.description;
+                document.getElementById('kbContent').value = kb.content;
+
+                createModal.show();
+            }
+        } catch (error) {
+            alert('Errore nel caricamento: ' + error.message);
+        }
+    });
+});
+
+// Elimina KB
+document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        if (!confirm('Sei sicuro di voler eliminare questa knowledge base?')) {
+            return;
+        }
+
+        const id = this.dataset.id;
+
+        try {
+            const response = await fetch(`/knowledge-base/delete/${id}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Errore: ' + result.error);
+            }
+        } catch (error) {
+            alert('Errore di connessione: ' + error.message);
+        }
+    });
+});
+
+// Reset form quando si apre modal per creare nuova KB
+const createNewBtn = document.querySelector('[data-bs-target="#createModal"]');
+if (createNewBtn) {
+    createNewBtn.addEventListener('click', function() {
+        document.getElementById('modalTitle').innerHTML = '<i class="bi bi-plus-circle"></i> Nuova Knowledge Base';
+        document.getElementById('kbForm').reset();
+        document.getElementById('kbId').value = '';
+    });
+}
+
+// Salva KB (crea o modifica)
+document.getElementById('saveKbBtn').addEventListener('click', async function() {
+    const id = document.getElementById('kbId').value;
+    const name = document.getElementById('kbName').value.trim();
+    const category = document.getElementById('kbCategory').value;
+    const description = document.getElementById('kbDescription').value.trim();
+    const content = document.getElementById('kbContent').value.trim();
+
+    if (!name || !content) {
+        alert('Nome e contenuto sono obbligatori');
+        return;
+    }
+
+    const data = { name, category, description, content };
+
+    try {
+        const url = id ? `/knowledge-base/update/${id}` : '/knowledge-base/create';
+        const method = id ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            createModal.hide();
+            location.reload();
+        } else {
+            alert('Errore: ' + result.error);
+        }
+    } catch (error) {
+        alert('Errore di connessione: ' + error.message);
+    }
+});
+
+// Upload file
+document.getElementById('uploadKbBtn').addEventListener('click', async function() {
+    const fileInput = document.getElementById('uploadFile');
+    const name = document.getElementById('uploadName').value.trim();
+    const category = document.getElementById('uploadCategory').value;
+    const description = document.getElementById('uploadDescription').value.trim();
+
+    if (!fileInput.files.length) {
+        alert('Seleziona un file');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('name', name);
+    formData.append('category', category);
+    formData.append('description', description);
+
+    try {
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Caricamento...';
+
+        const response = await fetch('/knowledge-base/upload-file', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            uploadModal.hide();
+            location.reload();
+        } else {
+            alert('Errore: ' + result.error);
+            this.disabled = false;
+            this.innerHTML = '<i class="bi bi-upload"></i> Carica';
+        }
+    } catch (error) {
+        alert('Errore di connessione: ' + error.message);
+        this.disabled = false;
+        this.innerHTML = '<i class="bi bi-upload"></i> Carica';
+    }
+});
+</script>
+{% endblock %}
