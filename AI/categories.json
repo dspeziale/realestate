@@ -1,0 +1,46 @@
+{
+  "categories": [
+    {
+      "id": "generale",
+      "name": "Generale",
+      "description": "Conoscenze generali e informazioni di base",
+      "color": "secondary"
+    },
+    {
+      "id": "medico",
+      "name": "Medico",
+      "description": "Informazioni mediche, cliniche e sanitarie",
+      "color": "danger"
+    },
+    {
+      "id": "tecnico",
+      "name": "Tecnico",
+      "description": "Documentazione tecnica e IT",
+      "color": "primary"
+    },
+    {
+      "id": "business",
+      "name": "Business",
+      "description": "Procedure aziendali e business",
+      "color": "success"
+    },
+    {
+      "id": "legale",
+      "name": "Legale",
+      "description": "Documentazione legale e normativa",
+      "color": "warning"
+    },
+    {
+      "id": "ricerca",
+      "name": "Ricerca",
+      "description": "Articoli scientifici e ricerca",
+      "color": "info"
+    },
+    {
+      "id": "altro",
+      "name": "Altro",
+      "description": "Altre categorie non specificate",
+      "color": "dark"
+    }
+  ]
+}

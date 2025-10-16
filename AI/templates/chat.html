@@ -19,7 +19,7 @@
                     <button type="button" class="btn-close" id="clearContext"></button>
                 </div>
 
-                <!-- Alert Knowledge Base Attiva (NUOVO) -->
+                <!-- Alert Knowledge Base Attiva -->
                 <div id="kbAlert" class="alert alert-info alert-dismissible fade show" style="display: none;">
                     <i class="bi bi-book"></i>
                     <strong id="kbCount"></strong> knowledge base selezionate
@@ -27,7 +27,7 @@
                 </div>
 
                 <form id="chatForm" enctype="multipart/form-data">
-                    <!-- Selezione Knowledge Base (NUOVO) -->
+                    <!-- Selezione Knowledge Base -->
                     <div class="mb-3">
                         <label class="form-label fw-bold d-flex justify-content-between align-items-center">
                             <span><i class="bi bi-book"></i> Knowledge Base (opzionale)</span>
@@ -44,7 +44,16 @@
                                        value="{{ kb.id }}" id="kb-{{ kb.id }}">
                                 <label class="form-check-label small w-100" for="kb-{{ kb.id }}" style="cursor: pointer;">
                                     <strong>{{ kb.name }}</strong>
-                                    <span class="badge bg-secondary ms-1">{{ kb.category }}</span>
+                                    {% set cat_info = namespace(found=false) %}
+                                    {% for cat in categories.categories %}
+                                        {% if cat.id == kb.category %}
+                                            <span class="badge bg-{{ cat.color }} ms-1">{{ cat.name }}</span>
+                                            {% set cat_info.found = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not cat_info.found %}
+                                        <span class="badge bg-secondary ms-1">{{ kb.category }}</span>
+                                    {% endif %}
                                     <br>
                                     <span class="text-muted" style="font-size: 0.85rem;">{{ kb.description[:80] }}{% if kb.description|length > 80 %}...{% endif %}</span>
                                 </label>
@@ -174,7 +183,7 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 <script>
-    // Gestione bottone copia (usa le variabili già dichiarate in chat.js)
+    // Gestione bottone copia
     const copyBtn = document.getElementById('copyBtn');
 
     copyBtn.addEventListener('click', async () => {
@@ -251,7 +260,7 @@
 
     checkContext();
 
-    // Gestione Knowledge Base (NUOVO)
+    // Gestione Knowledge Base
     const kbAlert = document.getElementById('kbAlert');
     const kbCount = document.getElementById('kbCount');
     const clearKbBtn = document.getElementById('clearKb');

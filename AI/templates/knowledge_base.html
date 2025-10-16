@@ -11,6 +11,9 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-book"></i> Gestione Knowledge Base</h5>
                     <div>
+                        <button class="btn btn-warning btn-sm me-2" data-bs-toggle="modal" data-bs-target="#categoriesModal">
+                            <i class="bi bi-tags"></i> Gestisci Categorie
+                        </button>
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
                             <i class="bi bi-plus-circle"></i> Nuova Knowledge Base
                         </button>
@@ -28,13 +31,12 @@
                 {% if kb_files %}
                     <!-- Filtro per categoria -->
                     <div class="mb-3">
+                        <label class="form-label fw-bold">Filtra per categoria:</label>
                         <select class="form-select" id="categoryFilter">
                             <option value="">Tutte le categorie</option>
-                            <option value="generale">Generale</option>
-                            <option value="medico">Medico</option>
-                            <option value="tecnico">Tecnico</option>
-                            <option value="business">Business</option>
-                            <option value="altro">Altro</option>
+                            {% for cat in categories.categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
                         </select>
                     </div>
 
@@ -48,7 +50,16 @@
                                             <i class="bi bi-file-text text-primary"></i>
                                             {{ kb.name }}
                                         </h6>
-                                        <span class="badge bg-secondary">{{ kb.category }}</span>
+                                        {% set cat_info = namespace(found=false) %}
+                                        {% for cat in categories.categories %}
+                                            {% if cat.id == kb.category %}
+                                                <span class="badge bg-{{ cat.color }}">{{ cat.name }}</span>
+                                                {% set cat_info.found = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if not cat_info.found %}
+                                            <span class="badge bg-secondary">{{ kb.category }}</span>
+                                        {% endif %}
                                     </div>
                                     <p class="card-text text-muted small">
                                         {{ kb.description[:100] }}{% if kb.description|length > 100 %}...{% endif %}
@@ -87,7 +98,45 @@
     </div>
 </div>
 
-<!-- Modal Crea/Modifica -->
+<!-- Modal Gestione Categorie -->
+<div class="modal fade" id="categoriesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-tags"></i> Gestione Categorie Knowledge Base
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Attenzione:</strong>
+                    Modificare l'ID di categorie esistenti potrebbe influenzare le Knowledge Base già create.
+                    Le modifiche vengono salvate nel file <code>categories.json</code>
+                </div>
+
+                <div id="categoriesList" class="mb-3"></div>
+
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-success" id="addCategoryBtn">
+                        <i class="bi bi-plus-circle"></i> Aggiungi Categoria
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" id="resetCategoriesBtn">
+                    <i class="bi bi-arrow-counterclockwise"></i> Ripristina Default
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="saveCategoriesBtn">
+                    <i class="bi bi-check-circle"></i> Salva Categorie
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crea/Modifica KB -->
 <div class="modal fade" id="createModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -110,12 +159,14 @@
                     <div class="mb-3">
                         <label for="kbCategory" class="form-label fw-bold">Categoria</label>
                         <select class="form-select" id="kbCategory">
-                            <option value="generale">Generale</option>
-                            <option value="medico">Medico</option>
-                            <option value="tecnico">Tecnico</option>
-                            <option value="business">Business</option>
-                            <option value="altro">Altro</option>
+                            {% for cat in categories.categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
                         </select>
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            Puoi gestire le categorie cliccando su "Gestisci Categorie"
+                        </small>
                     </div>
 
                     <div class="mb-3">
@@ -171,11 +222,9 @@
                     <div class="mb-3">
                         <label for="uploadCategory" class="form-label fw-bold">Categoria</label>
                         <select class="form-select" id="uploadCategory">
-                            <option value="generale">Generale</option>
-                            <option value="medico">Medico</option>
-                            <option value="tecnico">Tecnico</option>
-                            <option value="business">Business</option>
-                            <option value="altro">Altro</option>
+                            {% for cat in categories.categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
                         </select>
                     </div>
 
@@ -234,28 +283,276 @@
     </div>
 </div>
 
+<style>
+    .category-card {
+        transition: all 0.2s;
+    }
+
+    .category-card:hover {
+        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    }
+
+    .badge-preview {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    .kb-item {
+        transition: opacity 0.3s, transform 0.3s;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-const kbFiles = {{ kb_files | tojson }};
+const kbFiles = {{ kb_files | tojson | safe }};
+let categoriesData = {{ categories | tojson | safe }};
 
 const createModal = new bootstrap.Modal(document.getElementById('createModal'));
 const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
 const viewModal = new bootstrap.Modal(document.getElementById('viewModal'));
+const categoriesModal = new bootstrap.Modal(document.getElementById('categoriesModal'));
 
-// Filtro per categoria (solo se esistono KB)
+// ============================================
+// GESTIONE CATEGORIE
+// ============================================
+
+function renderCategoriesList() {
+    const container = document.getElementById('categoriesList');
+    container.innerHTML = '';
+
+    if (!categoriesData.categories || categoriesData.categories.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Nessuna categoria presente.
+                Clicca su "Aggiungi Categoria" per crearne una.
+            </div>
+        `;
+        return;
+    }
+
+    categoriesData.categories.forEach((cat, index) => {
+        const categoryCard = document.createElement('div');
+        categoryCard.className = 'card mb-3 category-card';
+        categoryCard.innerHTML = `
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold mb-1">ID *</label>
+                        <input type="text" class="form-control form-control-sm category-id"
+                               value="${cat.id}" data-index="${index}" required>
+                        <small class="text-muted" style="font-size: 0.7rem;">Univoco</small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold mb-1">Nome *</label>
+                        <input type="text" class="form-control form-control-sm category-name"
+                               value="${cat.name}" data-index="${index}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold mb-1">Descrizione</label>
+                        <input type="text" class="form-control form-control-sm category-description"
+                               value="${cat.description || ''}" data-index="${index}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold mb-1">Colore Badge</label>
+                        <select class="form-select form-select-sm category-color" data-index="${index}">
+                            <option value="primary" ${cat.color === 'primary' ? 'selected' : ''}>🔵 Blu</option>
+                            <option value="secondary" ${cat.color === 'secondary' ? 'selected' : ''}>⚪ Grigio</option>
+                            <option value="success" ${cat.color === 'success' ? 'selected' : ''}>🟢 Verde</option>
+                            <option value="danger" ${cat.color === 'danger' ? 'selected' : ''}>🔴 Rosso</option>
+                            <option value="warning" ${cat.color === 'warning' ? 'selected' : ''}>🟡 Giallo</option>
+                            <option value="info" ${cat.color === 'info' ? 'selected' : ''}>🔵 Ciano</option>
+                            <option value="dark" ${cat.color === 'dark' ? 'selected' : ''}>⚫ Nero</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <button class="btn btn-sm btn-outline-danger delete-category-btn w-100"
+                                data-index="${index}" title="Elimina categoria">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span class="badge bg-${cat.color} badge-preview">Anteprima: ${cat.name}</span>
+                </div>
+            </div>
+        `;
+        container.appendChild(categoryCard);
+    });
+
+    // Event listeners per eliminazione
+    document.querySelectorAll('.delete-category-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.dataset.index);
+            const categoryName = categoriesData.categories[index].name;
+
+            if (confirm(`Sei sicuro di voler eliminare la categoria "${categoryName}"?\n\nLe Knowledge Base con questa categoria manterranno il vecchio ID.`)) {
+                categoriesData.categories.splice(index, 1);
+                renderCategoriesList();
+            }
+        });
+    });
+
+    // Event listeners per aggiornamento dati
+    document.querySelectorAll('.category-id, .category-name, .category-description, .category-color').forEach(input => {
+        input.addEventListener('input', function() {
+            const index = parseInt(this.dataset.index);
+            const cat = categoriesData.categories[index];
+
+            if (this.classList.contains('category-id')) {
+                cat.id = this.value;
+            }
+            if (this.classList.contains('category-name')) {
+                cat.name = this.value;
+                const badge = this.closest('.card-body').querySelector('.badge-preview');
+                if (badge) {
+                    badge.textContent = `Anteprima: ${this.value}`;
+                }
+            }
+            if (this.classList.contains('category-description')) {
+                cat.description = this.value;
+            }
+            if (this.classList.contains('category-color')) {
+                cat.color = this.value;
+                const badge = this.closest('.card-body').querySelector('.badge-preview');
+                if (badge) {
+                    badge.className = `badge bg-${this.value} badge-preview`;
+                }
+            }
+        });
+    });
+}
+
+// Aggiungi nuova categoria
+document.getElementById('addCategoryBtn').addEventListener('click', () => {
+    categoriesData.categories.push({
+        id: 'categoria_' + Date.now(),
+        name: 'Nuova Categoria',
+        description: 'Descrizione della categoria',
+        color: 'secondary'
+    });
+    renderCategoriesList();
+
+    setTimeout(() => {
+        const container = document.getElementById('categoriesList');
+        container.scrollTop = container.scrollHeight;
+    }, 100);
+});
+
+// Salva categorie
+document.getElementById('saveCategoriesBtn').addEventListener('click', async () => {
+    // Validazione
+    const ids = categoriesData.categories.map(c => c.id);
+    const duplicates = ids.filter((item, index) => ids.indexOf(item) !== index);
+
+    if (duplicates.length > 0) {
+        alert('❌ Errore: ID duplicati trovati: ' + duplicates.join(', ') + '\n\nOgni categoria deve avere un ID univoco.');
+        return;
+    }
+
+    const invalid = categoriesData.categories.filter(c => !c.id || !c.id.trim() || !c.name || !c.name.trim());
+    if (invalid.length > 0) {
+        alert('❌ Errore: Tutte le categorie devono avere un ID e un Nome validi.');
+        return;
+    }
+
+    const btn = document.getElementById('saveCategoriesBtn');
+    const originalHTML = btn.innerHTML;
+
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+
+        const response = await fetch('/categories/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(categoriesData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('✅ Categorie salvate con successo!\n\nLa pagina verrà ricaricata per applicare le modifiche.');
+            categoriesModal.hide();
+            location.reload();
+        } else {
+            alert('❌ Errore nel salvataggio: ' + result.error);
+        }
+    } catch (error) {
+        alert('❌ Errore di connessione: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+});
+
+// Ripristina categorie default
+document.getElementById('resetCategoriesBtn').addEventListener('click', async () => {
+    if (!confirm('⚠️ Sei sicuro di voler ripristinare le categorie di default?\n\nQuesta azione sovrascriverà tutte le categorie personalizzate!\n\nLe Knowledge Base esistenti NON saranno modificate.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/categories/reset', {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('✅ Categorie ripristinate ai valori di default!\n\nLa pagina verrà ricaricata.');
+            location.reload();
+        } else {
+            alert('❌ Errore: ' + result.error);
+        }
+    } catch (error) {
+        alert('❌ Errore di connessione: ' + error.message);
+    }
+});
+
+// Render categorie quando si apre il modal
+document.querySelector('[data-bs-target="#categoriesModal"]').addEventListener('click', () => {
+    renderCategoriesList();
+});
+
+// ============================================
+// GESTIONE KNOWLEDGE BASE
+// ============================================
+
+// Filtro per categoria
 const categoryFilter = document.getElementById('categoryFilter');
 if (categoryFilter) {
     categoryFilter.addEventListener('change', function() {
         const category = this.value;
-        document.querySelectorAll('.kb-item').forEach(item => {
+        const items = document.querySelectorAll('.kb-item');
+        let visibleCount = 0;
+
+        items.forEach(item => {
             if (!category || item.dataset.category === category) {
                 item.style.display = 'block';
+                visibleCount++;
             } else {
                 item.style.display = 'none';
             }
         });
+
+        // Mostra messaggio se nessun risultato
+        const grid = document.getElementById('kbGrid');
+        let noResultMsg = document.getElementById('noResultMsg');
+
+        if (visibleCount === 0 && items.length > 0) {
+            if (!noResultMsg) {
+                noResultMsg = document.createElement('div');
+                noResultMsg.id = 'noResultMsg';
+                noResultMsg.className = 'col-12 text-center text-muted py-5';
+                noResultMsg.innerHTML = '<i class="bi bi-inbox display-4"></i><p class="mt-3 mb-0">Nessuna Knowledge Base trovata per questa categoria</p>';
+                grid.appendChild(noResultMsg);
+            }
+        } else if (noResultMsg) {
+            noResultMsg.remove();
+        }
     });
 }
 
@@ -267,7 +564,10 @@ document.querySelectorAll('.view-btn').forEach(btn => {
 
         if (kb) {
             document.getElementById('viewName').textContent = kb.name;
-            document.getElementById('viewCategory').textContent = kb.category;
+
+            const category = categoriesData.categories.find(c => c.id === kb.category);
+            document.getElementById('viewCategory').textContent = category ? category.name : kb.category;
+
             document.getElementById('viewDescription').textContent = kb.description || 'Nessuna descrizione';
             document.getElementById('viewContent').textContent = kb.content;
             document.getElementById('viewCreated').textContent = kb.created_at;
@@ -294,13 +594,15 @@ document.querySelectorAll('.edit-btn').forEach(btn => {
                 document.getElementById('kbId').value = kb.id;
                 document.getElementById('kbName').value = kb.name;
                 document.getElementById('kbCategory').value = kb.category;
-                document.getElementById('kbDescription').value = kb.description;
+                document.getElementById('kbDescription').value = kb.description || '';
                 document.getElementById('kbContent').value = kb.content;
 
                 createModal.show();
+            } else {
+                alert('❌ Errore nel caricamento: ' + result.error);
             }
         } catch (error) {
-            alert('Errore nel caricamento: ' + error.message);
+            alert('❌ Errore di connessione: ' + error.message);
         }
     });
 });
@@ -308,11 +610,13 @@ document.querySelectorAll('.edit-btn').forEach(btn => {
 // Elimina KB
 document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', async function() {
-        if (!confirm('Sei sicuro di voler eliminare questa knowledge base?')) {
+        const id = this.dataset.id;
+        const kb = kbFiles.find(k => k.id === id);
+        const kbName = kb ? kb.name : 'questa knowledge base';
+
+        if (!confirm(`Sei sicuro di voler eliminare "${kbName}"?\n\nQuesta azione non può essere annullata.`)) {
             return;
         }
-
-        const id = this.dataset.id;
 
         try {
             const response = await fetch(`/knowledge-base/delete/${id}`, {
@@ -322,12 +626,18 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
             const result = await response.json();
 
             if (result.success) {
-                location.reload();
+                const kbCard = this.closest('.kb-item');
+                kbCard.style.opacity = '0';
+                kbCard.style.transform = 'scale(0.9)';
+
+                setTimeout(() => {
+                    location.reload();
+                }, 300);
             } else {
-                alert('Errore: ' + result.error);
+                alert('❌ Errore: ' + result.error);
             }
         } catch (error) {
-            alert('Errore di connessione: ' + error.message);
+            alert('❌ Errore di connessione: ' + error.message);
         }
     });
 });
@@ -351,13 +661,17 @@ document.getElementById('saveKbBtn').addEventListener('click', async function() 
     const content = document.getElementById('kbContent').value.trim();
 
     if (!name || !content) {
-        alert('Nome e contenuto sono obbligatori');
+        alert('❌ Nome e contenuto sono obbligatori');
         return;
     }
 
     const data = { name, category, description, content };
+    const originalHTML = this.innerHTML;
 
     try {
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvataggio...';
+
         const url = id ? `/knowledge-base/update/${id}` : '/knowledge-base/create';
         const method = id ? 'PUT' : 'POST';
 
@@ -373,10 +687,13 @@ document.getElementById('saveKbBtn').addEventListener('click', async function() 
             createModal.hide();
             location.reload();
         } else {
-            alert('Errore: ' + result.error);
+            alert('❌ Errore: ' + result.error);
         }
     } catch (error) {
-        alert('Errore di connessione: ' + error.message);
+        alert('❌ Errore di connessione: ' + error.message);
+    } finally {
+        this.disabled = false;
+        this.innerHTML = originalHTML;
     }
 });
 
@@ -388,19 +705,29 @@ document.getElementById('uploadKbBtn').addEventListener('click', async function(
     const description = document.getElementById('uploadDescription').value.trim();
 
     if (!fileInput.files.length) {
-        alert('Seleziona un file');
+        alert('❌ Seleziona un file');
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    // Verifica dimensione file (max 1MB per file di testo)
+    if (file.size > 1024 * 1024) {
+        alert('❌ Il file è troppo grande. Dimensione massima: 1MB');
         return;
     }
 
     const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
+    formData.append('file', file);
     formData.append('name', name);
     formData.append('category', category);
     formData.append('description', description);
 
+    const originalHTML = this.innerHTML;
+
     try {
         this.disabled = true;
-        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Caricamento...';
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Caricamento...';
 
         const response = await fetch('/knowledge-base/upload-file', {
             method: 'POST',
@@ -413,15 +740,24 @@ document.getElementById('uploadKbBtn').addEventListener('click', async function(
             uploadModal.hide();
             location.reload();
         } else {
-            alert('Errore: ' + result.error);
-            this.disabled = false;
-            this.innerHTML = '<i class="bi bi-upload"></i> Carica';
+            alert('❌ Errore: ' + result.error);
         }
     } catch (error) {
-        alert('Errore di connessione: ' + error.message);
+        alert('❌ Errore di connessione: ' + error.message);
+    } finally {
         this.disabled = false;
-        this.innerHTML = '<i class="bi bi-upload"></i> Carica';
+        this.innerHTML = originalHTML;
     }
 });
+
+// Reset form upload quando si apre il modal
+document.querySelector('[data-bs-target="#uploadModal"]')?.addEventListener('click', function() {
+    document.getElementById('uploadForm').reset();
+});
+
+// Log inizializzazione
+console.log('✅ Knowledge Base Manager inizializzato');
+console.log('📊 Knowledge Base caricate:', kbFiles.length);
+console.log('🏷️ Categorie disponibili:', categoriesData.categories.length);
 </script>
 {% endblock %}

@@ -1,3 +1,8 @@
+# chat.py - Google Gemini AI Sample
+# Copyright 2025 TIM SPA
+# Author
+# Python 3.13 Compatible
+
 from flask import Flask, render_template, request, jsonify, session
 from google import genai
 from google.genai import types
@@ -5,20 +10,28 @@ import os
 import json
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+# Carica le variabili d'ambiente dal file .env
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-this-in-production'
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-change-this-in-production')
 
-# Configurazione
-API_KEY = 'AIzaSyDKxn4lXHrcmELXCjP6xpG1jwGlf9BB_Zc'
+# Configurazione da variabili d'ambiente
+API_KEY = os.getenv('GOOGLE_API_KEY')
+if not API_KEY:
+    raise ValueError("GOOGLE_API_KEY non trovata nel file .env")
+
 client = genai.Client(api_key=API_KEY)
 
-UPLOAD_FOLDER = 'uploads'
-HISTORY_FOLDER = 'history'
-KNOWLEDGE_BASE_FOLDER = 'knowledge_base'  # NUOVO
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'uploads')
+HISTORY_FOLDER = os.getenv('HISTORY_FOLDER', 'history')
+KNOWLEDGE_BASE_FOLDER = os.getenv('KNOWLEDGE_BASE_FOLDER', 'knowledge_base')
 SETTINGS_FILE = 'settings.json'
+CATEGORIES_FILE = 'categories.json'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'csv'}
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_FILE_SIZE = int(os.getenv('MAX_FILE_SIZE_MB', '10')) * 1024 * 1024
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
@@ -26,7 +39,30 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 # Crea cartelle se non esistono
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(HISTORY_FOLDER, exist_ok=True)
-os.makedirs(KNOWLEDGE_BASE_FOLDER, exist_ok=True)  # NUOVO
+os.makedirs(KNOWLEDGE_BASE_FOLDER, exist_ok=True)
+
+
+def load_categories():
+    """Carica le categorie dal file JSON"""
+    if os.path.exists(CATEGORIES_FILE):
+        with open(CATEGORIES_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    # Categorie di default se il file non esiste
+    # return {
+    #     "categories": [
+    #         {"id": "generale", "name": "Generale", "description": "Conoscenze generali", "color": "secondary"},
+    #         {"id": "medico", "name": "Medico", "description": "Informazioni mediche", "color": "danger"},
+    #         {"id": "tecnico", "name": "Tecnico", "description": "Documentazione tecnica", "color": "primary"},
+    #         {"id": "business", "name": "Business", "description": "Procedure aziendali", "color": "success"},
+    #         {"id": "altro", "name": "Altro", "description": "Altre categorie", "color": "dark"}
+    #     ]
+    # }
+
+
+def save_categories(categories_data):
+    """Salva le categorie nel file JSON"""
+    with open(CATEGORIES_FILE, 'w', encoding='utf-8') as f:
+        json.dump(categories_data, f, indent=2, ensure_ascii=False)
 
 
 def allowed_file(filename):
@@ -37,7 +73,11 @@ def load_settings():
     """Carica le impostazioni dal file JSON"""
     if os.path.exists(SETTINGS_FILE):
         with open(SETTINGS_FILE, 'r') as f:
-            return json.load(f)
+            settings = json.load(f)
+            # Usa sempre la API key dal .env se disponibile
+            if API_KEY:
+                settings['api_key'] = API_KEY
+            return settings
     return {
         'api_key': API_KEY,
         'model': 'gemini-2.5-flash',
@@ -48,9 +88,14 @@ def load_settings():
 
 
 def save_settings(settings):
-    """Salva le impostazioni nel file JSON"""
+    """Salva le impostazioni nel file JSON (esclusa API key)"""
+    # Non salvare l'API key nel file settings.json
+    settings_to_save = settings.copy()
+    if 'api_key' in settings_to_save:
+        del settings_to_save['api_key']
+
     with open(SETTINGS_FILE, 'w') as f:
-        json.dump(settings, f, indent=4)
+        json.dump(settings_to_save, f, indent=4)
 
 
 def save_conversation(prompt, response, files=[]):
@@ -97,7 +142,7 @@ def delete_conversation(conversation_id):
 
 
 # ============================================
-# NUOVE FUNZIONI PER KNOWLEDGE BASE
+# FUNZIONI PER KNOWLEDGE BASE
 # ============================================
 
 def load_knowledge_base_files():
@@ -214,13 +259,14 @@ def build_context_prompt(context_conversations):
 
 
 # ============================================
-# ROUTES ESISTENTI
+# ROUTES
 # ============================================
 
 @app.route('/')
 def index():
     kb_files = load_knowledge_base_files()
-    return render_template('chat.html', kb_files=kb_files)
+    categories = load_categories()
+    return render_template('chat.html', kb_files=kb_files, categories=categories)
 
 
 @app.route('/history')
@@ -263,6 +309,10 @@ def delete_all_history():
 @app.route('/settings')
 def settings():
     settings_data = load_settings()
+    # Maschera l'API key per la visualizzazione
+    if 'api_key' in settings_data and settings_data['api_key']:
+        settings_data['api_key'] = '**********' + settings_data['api_key'][-4:]
+
     return render_template('settings.html',
                            settings=settings_data,
                            history_folder=os.path.abspath(HISTORY_FOLDER),
@@ -273,12 +323,12 @@ def settings():
 def save_settings_route():
     try:
         settings_data = request.get_json()
+
+        # Non permettere di modificare l'API key (viene dal .env)
+        if 'api_key' in settings_data:
+            del settings_data['api_key']
+
         save_settings(settings_data)
-
-        global client
-        if settings_data.get('api_key'):
-            client = genai.Client(api_key=settings_data['api_key'])
-
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -288,7 +338,6 @@ def save_settings_route():
 def reset_settings():
     try:
         default_settings = {
-            'api_key': API_KEY,
             'model': 'gemini-2.5-flash',
             'temperature': 0.1,
             'save_history': True,
@@ -301,14 +350,15 @@ def reset_settings():
 
 
 # ============================================
-# NUOVE ROUTES PER KNOWLEDGE BASE
+# ROUTES PER KNOWLEDGE BASE
 # ============================================
 
 @app.route('/knowledge-base')
 def knowledge_base():
     """Pagina di gestione della knowledge base"""
     kb_files = load_knowledge_base_files()
-    return render_template('knowledge_base.html', kb_files=kb_files)
+    categories = load_categories()
+    return render_template('knowledge_base.html', kb_files=kb_files, categories=categories)
 
 
 @app.route('/knowledge-base/create', methods=['POST'])
@@ -417,7 +467,51 @@ def upload_knowledge_file():
 
 
 # ============================================
-# ROUTE GENERATE AGGIORNATA
+# ROUTES PER GESTIONE CATEGORIE
+# ============================================
+
+@app.route('/categories', methods=['GET'])
+def get_categories():
+    """Ottiene tutte le categorie"""
+    try:
+        categories = load_categories()
+        return jsonify({'success': True, 'data': categories})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/categories/save', methods=['POST'])
+def save_categories_route():
+    """Salva le categorie modificate"""
+    try:
+        categories_data = request.get_json()
+        save_categories(categories_data)
+        return jsonify({'success': True, 'message': 'Categorie salvate con successo'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/categories/reset', methods=['POST'])
+def reset_categories():
+    """Ripristina le categorie di default"""
+    try:
+        default_categories = {
+            "categories": [
+                {"id": "generale", "name": "Generale", "description": "Conoscenze generali", "color": "secondary"},
+                {"id": "medico", "name": "Medico", "description": "Informazioni mediche", "color": "danger"},
+                {"id": "tecnico", "name": "Tecnico", "description": "Documentazione tecnica", "color": "primary"},
+                {"id": "business", "name": "Business", "description": "Procedure aziendali", "color": "success"},
+                {"id": "altro", "name": "Altro", "description": "Altre categorie", "color": "dark"}
+            ]
+        }
+        save_categories(default_categories)
+        return jsonify({'success': True, 'message': 'Categorie ripristinate'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# ============================================
+# ROUTE GENERATE
 # ============================================
 
 @app.route('/generate', methods=['POST'])
@@ -430,7 +524,7 @@ def generate():
 
         settings = load_settings()
 
-        # Gestione Knowledge Base (NUOVO)
+        # Gestione Knowledge Base
         kb_data = request.form.get('knowledge_base', '')
         kb_context = ""
 
@@ -468,7 +562,7 @@ def generate():
                 file_names.append(filename)
 
                 try:
-                    current_client = genai.Client(api_key=settings.get('api_key', API_KEY))
+                    current_client = genai.Client(api_key=settings.get('api_key'))
                     uploaded_file = current_client.files.upload(file=filepath)
                     file_parts.append(uploaded_file)
                     os.remove(filepath)
@@ -486,7 +580,7 @@ def generate():
         full_prompt = kb_context + context_prompt + user_prompt + ". Dammi un testo senza formattazione"
         contents.append(full_prompt)
 
-        current_client = genai.Client(api_key=settings.get('api_key', API_KEY))
+        current_client = genai.Client(api_key=settings.get('api_key'))
 
         # Chiamata all'API Gemini
         response = current_client.models.generate_content(
@@ -514,4 +608,8 @@ def generate():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(
+        debug=os.getenv('FLASK_DEBUG', 'False').lower() == 'true',
+        host='0.0.0.0',
+        port=5000
+    )
