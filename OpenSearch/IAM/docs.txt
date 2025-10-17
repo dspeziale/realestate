@@ -1,0 +1,7 @@
+  python iam_main.py --full              # Esecuzione completa ⭐
+  python iam_main.py --load-only         # Solo caricamento da Oracle
+  python iam_main.py --analyze-only      # Solo analisi
+  python iam_main.py --kpi-only          # Solo KPI
+  python iam_main.py --dashboard-only    # Solo dashboard
+  python iam_main.py --update            # Aggiornamento periodico (ogni ora)
+  python iam_main.py --update --interval 30  # Aggiornamento ogni 30 minuti

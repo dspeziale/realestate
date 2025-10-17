@@ -1,0 +1,33 @@
+{
+  "oracle": {
+    "host": "10.22.112.70",
+    "port": 1551,
+    "service_name": "iam.griffon.local",
+    "user": "X1090405",
+    "password": "Fhdf!K42retwH"
+  },
+  "opensearch": {
+    "host": "localhost",
+    "port": 9200,
+    "auth": [
+      "admin",
+      "admin"
+    ],
+    "use_ssl": false
+  },
+  "dashboards": {
+    "host": "localhost",
+    "port": 5601,
+    "username": "admin",
+    "password": "admin"
+  },
+  "schedule": {
+    "tipo": "daily",
+    "ora": "02:00",
+    "minuti": 0,
+    "giorno": "monday"
+  },
+  "giorni_indietro": 90,
+  "ricrea_indici": false,
+  "ricrea_visualizzazioni": false
+}

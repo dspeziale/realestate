@@ -388,6 +388,87 @@ class IAMOrchestrator:
                 print(f"\n{Colors.GREEN}✓ Aggiornamento interrotto{Colors.RESET}")
                 break
 
+    def show_menu(self):
+        """Mostra menu interattivo"""
+        print_banner()
+        print_section("MENU PRINCIPALE")
+
+        while True:
+            print(f"{Colors.BOLD}Seleziona un'opzione:{Colors.RESET}\n")
+            print(f"  {Colors.CYAN}1{Colors.RESET}. Esecuzione Completa (Load + Analyze + KPI + Dashboard)")
+            print(f"  {Colors.CYAN}2{Colors.RESET}. Solo Caricamento da Oracle")
+            print(f"  {Colors.CYAN}3{Colors.RESET}. Solo Analisi")
+            print(f"  {Colors.CYAN}4{Colors.RESET}. Solo KPI")
+            print(f"  {Colors.CYAN}5{Colors.RESET}. Solo Dashboard")
+            print(f"  {Colors.CYAN}6{Colors.RESET}. Aggiornamento Periodico (ogni ora)")
+            print(f"  {Colors.CYAN}7{Colors.RESET}. Aggiornamento Personalizzato")
+            print(f"  {Colors.CYAN}0{Colors.RESET}. Esci\n")
+
+            choice = input(f"{Colors.BOLD}Scelta [{Colors.GREEN}1-7{Colors.RESET}/{Colors.RED}0{Colors.BOLD}]:{Colors.RESET} ").strip()
+
+            if choice == '1':
+                print()
+                success = self.run_full()
+                self._show_menu_bottom(success)
+            elif choice == '2':
+                print()
+                success = self.run_load_only()
+                self._show_menu_bottom(success)
+            elif choice == '3':
+                print()
+                success = self.run_analyze_only()
+                self._show_menu_bottom(success)
+            elif choice == '4':
+                print()
+                success = self.run_kpi_only()
+                self._show_menu_bottom(success)
+            elif choice == '5':
+                print()
+                success = self.run_dashboard_only()
+                self._show_menu_bottom(success)
+            elif choice == '6':
+                print()
+                try:
+                    self.run_periodic_update(60)
+                except KeyboardInterrupt:
+                    pass
+                self._show_menu_return()
+            elif choice == '7':
+                print()
+                try:
+                    interval = input(f"{Colors.BOLD}Intervallo in minuti [{Colors.CYAN}default 30{Colors.BOLD}]:{Colors.RESET} ").strip()
+                    interval = int(interval) if interval else 30
+                    self.run_periodic_update(interval)
+                except (ValueError, KeyboardInterrupt):
+                    print(f"{Colors.RED}✗ Intervallo non valido{Colors.RESET}")
+                self._show_menu_return()
+            elif choice == '0':
+                print(f"\n{Colors.GREEN}✓ Arrivederci!{Colors.RESET}\n")
+                sys.exit(0)
+            else:
+                print(f"{Colors.RED}✗ Scelta non valida{Colors.RESET}\n")
+
+    def _show_menu_bottom(self, success: bool):
+        """Mostra opzioni finali dopo esecuzione"""
+        print()
+        if success:
+            print(f"{Colors.GREEN}{'='*80}{Colors.RESET}")
+            print(f"{Colors.BOLD}{Colors.GREEN}✓ Operazione completata con successo!{Colors.RESET}")
+            print(f"{Colors.GREEN}{'='*80}{Colors.RESET}\n")
+            print(f"{Colors.BOLD}📊 Dashboard:{Colors.RESET}")
+            print(f"   http://localhost:5601/app/dashboards/view/iam-dashboard-main\n")
+        else:
+            print(f"{Colors.RED}{'='*80}{Colors.RESET}")
+            print(f"{Colors.BOLD}{Colors.RED}✗ Operazione fallita{Colors.RESET}")
+            print(f"{Colors.RED}{'='*80}{Colors.RESET}\n")
+
+        self._show_menu_return()
+
+    def _show_menu_return(self):
+        """Mostra opzione per tornare al menu"""
+        input(f"{Colors.YELLOW}Premi INVIO per tornare al menu...{Colors.RESET}")
+        print("\n" * 2)
+
 
 def main():
     """Main function"""
@@ -411,11 +492,12 @@ def main():
   python iam_main.py --dashboard-only    # Solo dashboard
   python iam_main.py --update            # Aggiornamento periodico (ogni ora)
   python iam_main.py --update --interval 30  # Aggiornamento ogni 30 minuti
+  python iam_main.py --menu              # Menu interattivo ⭐ CONSIGLIATO
 
 {Colors.BOLD}FIRST TIME:{Colors.RESET}
   1. Verifica che OpenSearch sia in esecuzione
   2. Configura credenziali Oracle in iam_main.py
-  3. Esegui: python iam_main.py --full
+  3. Esegui: python iam_main.py --menu
   4. Apri: http://localhost:5601/app/dashboards/view/iam-dashboard-main
         """
     )
@@ -432,6 +514,8 @@ def main():
                         help='Solo creazione dashboard')
     parser.add_argument('--update', action='store_true',
                         help='Aggiornamento periodico')
+    parser.add_argument('--menu', action='store_true', default="--menu3",
+                        help='Menu interattivo')
     parser.add_argument('--interval', type=int, default=60,
                         help='Intervallo aggiornamento in minuti (default: 60)')
 
@@ -440,7 +524,9 @@ def main():
     orchestrator = IAMOrchestrator()
 
     try:
-        if args.load_only:
+        if args.menu:
+            orchestrator.show_menu()
+        elif args.load_only:
             success = orchestrator.run_load_only()
         elif args.analyze_only:
             success = orchestrator.run_analyze_only()

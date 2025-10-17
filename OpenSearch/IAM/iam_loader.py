@@ -227,11 +227,11 @@ class IAMRequestsLoader:
                     row_dict['giorni_elaborazione'] = None
                     row_dict['ore_elaborazione'] = None
 
-                # Determina status
+                # Determina status (Griffon uses: EVASA, NON EVASA, ANNULLATA)
                 stato = row_dict.get('STATO', '').upper()
-                row_dict['is_completed'] = 'COMPLETATA' in stato or 'CHIUSA' in stato or 'CLOSED' in stato
-                row_dict['is_failed'] = 'ERRORE' in stato or 'FALLITA' in stato or 'REJECTED' in stato
-                row_dict['is_pending'] = 'ATTESA' in stato or 'PENDING' in stato or 'ELABORAZIONE' in stato
+                row_dict['is_completed'] = 'EVASA' in stato
+                row_dict['is_failed'] = 'ANNULLATA' in stato
+                row_dict['is_pending'] = 'NON EVASA' in stato
 
                 rows.append(row_dict)
 

@@ -2,107 +2,125 @@
   "comment": "================================================================================",
   "comment2": "FILE: iam_kpi_config.json",
   "comment3": "Configurazione KPI per IAM Requests Monitoring System",
-  "comment4": "================================================================================",
-  "comment5": "",
-  "comment6": "COME FUNZIONA:",
-  "comment7": "- operation_type: nome operazione con pattern (es: 'RESET%' = tutte le RESET_*)",
-  "comment8": "- sla_percentage: percentuale minima da raggiungere in 24h per avere OK",
-  "comment9": "- sla_percentage_2: percentuale minima in 48h (opzionale, per second tier)",
-  "comment10": "- status: stato richiesta considerato (EVASA, COMPLETATA, ecc)",
-  "comment11": "- duration: ore massime per rispettare SLA 24h",
-  "comment12": "- duration_2: ore massime per rispettare SLA 48h (opzionale)",
-  "comment13": "",
+  "comment4": "KPI specifici per operazioni IAM Griffon",
+  "comment5": "================================================================================",
   "kpi": {
-    "reset": {
-      "operation_type": "RESET%",
-      "column_operation": "fk_nome_operazione",
-      "sla_percentage": 80.0,
-      "sla_percentage_2": 100.0,
-      "status": "EVASA",
-      "column_status": "stato",
-      "duration": 24,
-      "duration_2": 48,
-      "description": "Reset operazioni (password, OTP, sicurezza) - 80% in 24h, 100% in 48h"
-    },
-    "attivazione": {
-      "operation_type": "ATTIVAZIONE%",
-      "column_operation": "fk_nome_operazione",
-      "sla_percentage": 85.0,
-      "sla_percentage_2": 95.0,
-      "status": "EVASA",
-      "column_status": "stato",
-      "duration": 24,
-      "duration_2": 48,
-      "description": "Attivazione account/utenti - 85% in 24h, 95% in 48h"
-    },
-    "provisioning": {
-      "operation_type": "PROVISIONING%",
-      "column_operation": "fk_nome_operazione",
-      "sla_percentage": 75.0,
-      "sla_percentage_2": 90.0,
-      "status": "EVASA",
-      "column_status": "stato",
-      "duration": 48,
-      "duration_2": 72,
-      "description": "Provisioning applicativi - 75% in 48h, 90% in 72h"
-    },
-    "deprovisioning": {
-      "operation_type": "DEPROVISIONING%",
-      "column_operation": "fk_nome_operazione",
-      "sla_percentage": 80.0,
-      "sla_percentage_2": 100.0,
-      "status": "EVASA",
-      "column_status": "stato",
-      "duration": 24,
-      "duration_2": 48,
-      "description": "Deprovisioning account - 80% in 24h, 100% in 48h"
-    },
-    "cambio_ruolo": {
-      "operation_type": "CAMBIO%",
-      "column_operation": "fk_nome_operazione",
-      "sla_percentage": 85.0,
-      "sla_percentage_2": 100.0,
-      "status": "EVASA",
-      "column_status": "stato",
-      "duration": 24,
-      "duration_2": 48,
-      "description": "Cambio ruoli/autorizzazioni - 85% in 24h, 100% in 48h"
-    },
-    "supporto": {
-      "operation_type": "SUPPORTO%",
-      "column_operation": "fk_nome_operazione",
+    "reset_password": {
+      "operation_type": "RESET_PASSWORD%",
+      "column_operation": "FK_NOME_OPERAZIONE",
       "sla_percentage": 90.0,
       "sla_percentage_2": 100.0,
       "status": "EVASA",
-      "column_status": "stato",
+      "column_status": "STATO",
+      "duration": 8,
+      "duration_2": 24,
+      "description": "Reset Password - 90% in 8h, 100% in 24h"
+    },
+    "creazione_account": {
+      "operation_type": "CREAZIONE_ACCOUNT",
+      "column_operation": "FK_NOME_OPERAZIONE",
+      "sla_percentage": 85.0,
+      "sla_percentage_2": 95.0,
+      "status": "EVASA",
+      "column_status": "STATO",
       "duration": 24,
       "duration_2": 48,
-      "description": "Supporto tecnico - 90% in 24h, 100% in 48h"
+      "description": "Creazione Account - 85% in 24h, 95% in 48h"
     },
-    "modifica_dati": {
-      "operation_type": "MODIFICA%",
-      "column_operation": "fk_nome_operazione",
+    "cancellazione_account": {
+      "operation_type": "CANCELLAZIONE_ACCOUNT%",
+      "column_operation": "FK_NOME_OPERAZIONE",
       "sla_percentage": 80.0,
+      "sla_percentage_2": 100.0,
       "status": "EVASA",
-      "column_status": "stato",
+      "column_status": "STATO",
       "duration": 24,
-      "description": "Modifica dati personali - 80% in 24h"
+      "duration_2": 72,
+      "description": "Cancellazione Account - 80% in 24h, 100% in 72h"
     },
-    "richiesta_accesso": {
-      "operation_type": "RICHIESTA%",
-      "column_operation": "fk_nome_operazione",
+    "modifica_parametri": {
+      "operation_type": "MODIFICA_PARAMETRI%",
+      "column_operation": "FK_NOME_OPERAZIONE",
       "sla_percentage": 85.0,
       "sla_percentage_2": 100.0,
       "status": "EVASA",
-      "column_status": "stato",
-      "duration": 48,
-      "duration_2": 72,
-      "description": "Richieste accesso - 85% in 48h, 100% in 72h"
+      "column_status": "STATO",
+      "duration": 4,
+      "duration_2": 8,
+      "description": "Modifica Parametri - 85% in 4h, 100% in 8h"
+    },
+    "cambio_password": {
+      "operation_type": "CAMBIO_PASSWORD%",
+      "column_operation": "FK_NOME_OPERAZIONE",
+      "sla_percentage": 90.0,
+      "sla_percentage_2": 100.0,
+      "status": "EVASA",
+      "column_status": "STATO",
+      "duration": 8,
+      "duration_2": 24,
+      "description": "Cambio Password - 90% in 8h, 100% in 24h"
+    },
+    "propagazione": {
+      "operation_type": "PROPAGAZIONE%",
+      "column_operation": "FK_NOME_OPERAZIONE",
+      "sla_percentage": 75.0,
+      "sla_percentage_2": 90.0,
+      "status": "EVASA",
+      "column_status": "STATO",
+      "duration": 24,
+      "duration_2": 48,
+      "description": "Propagazione Anagrafica - 75% in 24h, 90% in 48h"
+    },
+    "riattivazione": {
+      "operation_type": "RIATTIV%",
+      "column_operation": "FK_NOME_OPERAZIONE",
+      "sla_percentage": 85.0,
+      "sla_percentage_2": 100.0,
+      "status": "EVASA",
+      "column_status": "STATO",
+      "duration": 12,
+      "duration_2": 24,
+      "description": "Riattivazione Accessi - 85% in 12h, 100% in 24h"
+    },
+    "blocco_inattivita": {
+      "operation_type": "BLOCCO%",
+      "column_operation": "FK_NOME_OPERAZIONE",
+      "sla_percentage": 95.0,
+      "sla_percentage_2": 100.0,
+      "status": "EVASA",
+      "column_status": "STATO",
+      "duration": 2,
+      "duration_2": 4,
+      "description": "Blocco per Inattività - 95% in 2h, 100% in 4h"
+    },
+    "proroga_scadenza": {
+      "operation_type": "PROROGA%",
+      "column_operation": "FK_NOME_OPERAZIONE",
+      "sla_percentage": 90.0,
+      "sla_percentage_2": 100.0,
+      "status": "EVASA",
+      "column_status": "STATO",
+      "duration": 8,
+      "duration_2": 24,
+      "description": "Proroga Scadenza - 90% in 8h, 100% in 24h"
+    },
+    "variazione_anagrafica": {
+      "operation_type": "VARIAZIONE%",
+      "column_operation": "FK_NOME_OPERAZIONE",
+      "sla_percentage": 80.0,
+      "sla_percentage_2": 95.0,
+      "status": "EVASA",
+      "column_status": "STATO",
+      "duration": 24,
+      "duration_2": 48,
+      "description": "Variazione Anagrafica - 80% in 24h, 95% in 48h"
     }
   },
   "metadata": {
     "created_at": "2025-01-17T10:00:00Z",
-    "version": "1.0",
-    "environment": "production"
+    "version": "2.0",
+    "environment": "production",
+    "sistema": "IAM Griffon",
+    "note": "KPI specifici per operazioni IAM Griffon - Ultimi 30 giorni da Oracle"
   }
 }
