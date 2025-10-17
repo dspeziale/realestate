@@ -1,0 +1,108 @@
+{
+  "comment": "================================================================================",
+  "comment2": "FILE: iam_kpi_config.json",
+  "comment3": "Configurazione KPI per IAM Requests Monitoring System",
+  "comment4": "================================================================================",
+  "comment5": "",
+  "comment6": "COME FUNZIONA:",
+  "comment7": "- operation_type: nome operazione con pattern (es: 'RESET%' = tutte le RESET_*)",
+  "comment8": "- sla_percentage: percentuale minima da raggiungere in 24h per avere OK",
+  "comment9": "- sla_percentage_2: percentuale minima in 48h (opzionale, per second tier)",
+  "comment10": "- status: stato richiesta considerato (EVASA, COMPLETATA, ecc)",
+  "comment11": "- duration: ore massime per rispettare SLA 24h",
+  "comment12": "- duration_2: ore massime per rispettare SLA 48h (opzionale)",
+  "comment13": "",
+  "kpi": {
+    "reset": {
+      "operation_type": "RESET%",
+      "column_operation": "fk_nome_operazione",
+      "sla_percentage": 80.0,
+      "sla_percentage_2": 100.0,
+      "status": "EVASA",
+      "column_status": "stato",
+      "duration": 24,
+      "duration_2": 48,
+      "description": "Reset operazioni (password, OTP, sicurezza) - 80% in 24h, 100% in 48h"
+    },
+    "attivazione": {
+      "operation_type": "ATTIVAZIONE%",
+      "column_operation": "fk_nome_operazione",
+      "sla_percentage": 85.0,
+      "sla_percentage_2": 95.0,
+      "status": "EVASA",
+      "column_status": "stato",
+      "duration": 24,
+      "duration_2": 48,
+      "description": "Attivazione account/utenti - 85% in 24h, 95% in 48h"
+    },
+    "provisioning": {
+      "operation_type": "PROVISIONING%",
+      "column_operation": "fk_nome_operazione",
+      "sla_percentage": 75.0,
+      "sla_percentage_2": 90.0,
+      "status": "EVASA",
+      "column_status": "stato",
+      "duration": 48,
+      "duration_2": 72,
+      "description": "Provisioning applicativi - 75% in 48h, 90% in 72h"
+    },
+    "deprovisioning": {
+      "operation_type": "DEPROVISIONING%",
+      "column_operation": "fk_nome_operazione",
+      "sla_percentage": 80.0,
+      "sla_percentage_2": 100.0,
+      "status": "EVASA",
+      "column_status": "stato",
+      "duration": 24,
+      "duration_2": 48,
+      "description": "Deprovisioning account - 80% in 24h, 100% in 48h"
+    },
+    "cambio_ruolo": {
+      "operation_type": "CAMBIO%",
+      "column_operation": "fk_nome_operazione",
+      "sla_percentage": 85.0,
+      "sla_percentage_2": 100.0,
+      "status": "EVASA",
+      "column_status": "stato",
+      "duration": 24,
+      "duration_2": 48,
+      "description": "Cambio ruoli/autorizzazioni - 85% in 24h, 100% in 48h"
+    },
+    "supporto": {
+      "operation_type": "SUPPORTO%",
+      "column_operation": "fk_nome_operazione",
+      "sla_percentage": 90.0,
+      "sla_percentage_2": 100.0,
+      "status": "EVASA",
+      "column_status": "stato",
+      "duration": 24,
+      "duration_2": 48,
+      "description": "Supporto tecnico - 90% in 24h, 100% in 48h"
+    },
+    "modifica_dati": {
+      "operation_type": "MODIFICA%",
+      "column_operation": "fk_nome_operazione",
+      "sla_percentage": 80.0,
+      "status": "EVASA",
+      "column_status": "stato",
+      "duration": 24,
+      "description": "Modifica dati personali - 80% in 24h"
+    },
+    "richiesta_accesso": {
+      "operation_type": "RICHIESTA%",
+      "column_operation": "fk_nome_operazione",
+      "sla_percentage": 85.0,
+      "sla_percentage_2": 100.0,
+      "status": "EVASA",
+      "column_status": "stato",
+      "duration": 48,
+      "duration_2": 72,
+      "description": "Richieste accesso - 85% in 48h, 100% in 72h"
+    }
+  },
+  "metadata": {
+    "created_at": "2025-01-17T10:00:00Z",
+    "version": "1.0",
+    "environment": "production"
+  }
+}
