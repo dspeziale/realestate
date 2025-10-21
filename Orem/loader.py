@@ -596,7 +596,7 @@ def pulisci_santo_testo(testo_lista):
         # Se siamo in skip_mode, continua a saltare
         if skip_mode:
             # Quando trovi "Memoria facoltativa", disattiva e salta anche questa riga
-            if "Memoria facoltativa" in t:
+            if "Dal Martirologio" in t:
                 skip_mode = False
             continue
 
@@ -696,7 +696,7 @@ def Process_Santo(giorno = '20251020'):
         json.dump(dati, f, ensure_ascii=False, indent=2)
 
 if __name__ == "__main__":
-    giorno='20251019'
+    giorno='20251021'
     urlLodi = f"https://www.chiesacattolica.it/la-liturgia-delle-ore/?data-liturgia={giorno}&ora=lodi-mattutine"
     testo_lodi = estrai_lodi_filtrata(urlLodi)
     salva_testo(testo_lodi, f"txt/liturgia_filtrata_lodi_mattutine_{giorno}.txt")
