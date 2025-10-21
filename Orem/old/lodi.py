@@ -28,7 +28,7 @@ class LodiParser:
 
     @classmethod
     def parse(cls, html):
-        """Estrae la liturgia delle lodi"""
+        """Estrae la liturgia delle lodi con le 3 antifone e i 3 salmi/cantici"""
         soup = BeautifulSoup(html, 'html.parser')
 
         # Rimuovi elementi non rilevanti
@@ -83,25 +83,58 @@ class LodiParser:
         if inno_match:
             data_info["inno"] = cls.clean_text(inno_match.group(1))
 
-        # Estrai salmi e antifone
-        text_clean = re.sub(r'\s+', ' ', text)
+        # ===== NUOVO APPROCCIO: Dividi per antifone =====
+        # Trova tutte le posizioni delle antifone (1 ant., 2 ant., 3 ant.)
+        ant_positions = []
+        for match in re.finditer(r'(\d+)\s+ant\.', text):
+            ant_positions.append((match.start(), match.group(1)))
 
-        salmi_matches = re.findall(
-            r'(\d+)\s+ant\.\s+([^S]+?)\s*(?:SALMO|CANTICO)\s+([\d,:\-]+)\s+([^\n]+?)\s+(.*?)(?=\d+\s+ant\.|LETTURA\s+BREVE)',
-            text_clean,
-            re.DOTALL
-        )
+        # Estrai le sezioni di ogni antifona
+        for idx, (start_pos, num_ant) in enumerate(ant_positions):
+            # La fine della sezione è l'inizio della prossima antifona oppure "LETTURA BREVE"
+            if idx + 1 < len(ant_positions):
+                end_pos = ant_positions[idx + 1][0]
+            else:
+                # Trova "LETTURA BREVE" come fine
+                lettura_match = re.search(r'LETTURA\s+BREVE', text[start_pos:])
+                if lettura_match:
+                    end_pos = start_pos + lettura_match.start()
+                else:
+                    end_pos = len(text)
 
-        for num_ant, testo_ant, num_salmo, titolo_salmo, contenuto_salmo in salmi_matches:
-            contenuto_pulito = cls.clean_duplicate_lines(contenuto_salmo)
+            sezione = text[start_pos:end_pos]
 
-            data_info["salmi_e_antifone"].append({
-                "antifona_numero": num_ant,
-                "antifona_testo": cls.clean_text(testo_ant),
-                "salmo_numero": cls.clean_text(num_salmo),
-                "salmo_titolo": cls.clean_text(titolo_salmo),
-                "salmo_contenuto": contenuto_pulito[:600]
-            })
+            # Estrai il testo dell'antifona (da "ant." fino a SALMO/CANTICO, anche su più righe)
+            ant_text_match = re.search(r'ant\.\s*\n\s*(.+?)(?=\n\s*(?:SALMO|CANTICO))', sezione, re.DOTALL)
+            if ant_text_match:
+                testo_ant = cls.clean_text(ant_text_match.group(1))
+            else:
+                testo_ant = ""
+
+            # Estrai SALMO o CANTICO con numero e titolo
+            salmo_cantico_match = re.search(
+                r'(SALMO|CANTICO)\s+(.+?)\s+([A-Z][^\n]*)\n(.*?)$',
+                sezione,
+                re.DOTALL
+            )
+
+            if salmo_cantico_match:
+                tipo = salmo_cantico_match.group(1)
+                numero = cls.clean_text(salmo_cantico_match.group(2))
+                titolo = cls.clean_text(salmo_cantico_match.group(3))
+                contenuto_raw = salmo_cantico_match.group(4)
+
+                # Pulisci il contenuto
+                contenuto_pulito = cls.clean_duplicate_lines(contenuto_raw)
+
+                data_info["salmi_e_antifone"].append({
+                    "numero_antifona": num_ant,
+                    "testo_antifona": testo_ant,
+                    "tipo_salmo_cantico": tipo,
+                    "numero_salmo_cantico": numero,
+                    "titolo_salmo_cantico": titolo,
+                    "contenuto_salmo_cantico": contenuto_pulito[:800]
+                })
 
         # Estrai lettura breve
         lettura_match = re.search(r'LETTURA BREVE\s*([^\n]*)\s*(.*?)(?=RESPONSORIO)', text, re.DOTALL)
@@ -119,14 +152,17 @@ class LodiParser:
                 "contenuto": cls.clean_text(responsorio_match.group(1))[:400]
             }
 
-        # Estrai antifona benedicite
+        # Estrai antifona Benedicite (al Ben.)
         ant_ben_match = re.search(r'Ant\.\s+al\s+Ben\.\s+([^\n]+)', text)
         if ant_ben_match:
             data_info["antifona_benedicite"] = cls.clean_text(ant_ben_match.group(1))
 
         # Estrai cantico di Zaccaria
         cantico_match = re.search(
-            r'CANTICO DI ZACCARIA\s+(Lc\s+[\d,:\-]+)\s+([^\n]+)\s*(.*?)(?=INVOCAZIONI|Padre nostro|$)', text, re.DOTALL)
+            r'CANTICO DI ZACCARIA\s+(Lc\s+[\d,:\-]+)\s+([^\n]+)\s*(.*?)(?=INVOCAZIONI|Padre nostro|$)',
+            text,
+            re.DOTALL
+        )
         if cantico_match:
             data_info["cantico_benedicite"] = {
                 "riferimento": cls.clean_text(cantico_match.group(1)),

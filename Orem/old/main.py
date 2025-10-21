@@ -12,7 +12,7 @@ class LiturgiaParser:
 
     def __init__(self):
         self.base_url = "https://www.chiesacattolica.it"
-        self.output_dir = "json"
+        self.output_dir = "../json"
         self.create_output_dir()
 
     def create_output_dir(self):
@@ -166,7 +166,7 @@ def main():
     print("=" * 70)
 
     # Elabora una singola data
-    parser.process_single_date("20251021")
+    parser.process_single_date("20251020")
 
     # Oppure un range di date
     # parser.process_date_range("20251018", "20251031")
