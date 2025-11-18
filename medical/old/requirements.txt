@@ -1,0 +1,22 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.0
+requests==2.31.0
+
+# LLM Providers
+anthropic==0.7.0
+google-generativeai==0.3.0
+openai==1.3.0
+
+# Vector Database
+faiss-cpu
+
+# Document Processing
+PyPDF2==3.0.1
+python-multipart==0.0.6
+
+# Security
+python-dotenv==1.0.0
+
+# Development
+pytest==7.4.3
