@@ -1,0 +1,12 @@
+{
+    "probe": {
+        "id": "6F9619FF-8B86-D011-B42D-00C04FC964FF",
+        "nome": "Sonda-A1B2C3D4",
+        "posizione_geografica": "via Carlo Arturo Jemolo, 283,Roma, Italia",
+        "latitudine": 41.9504295,
+        "longitudine": 12.5794326,
+        "referente_nome": "Rossella Belziti",
+        "referente_email": "rossella.belziti@gmail.com",
+        "referente_telefono": "+39 123 456 7890"
+    }
+}
